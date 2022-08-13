@@ -1,2 +1,2 @@
-# lenra-cli
+# lenra_cli
 The Lenra's command line interface
