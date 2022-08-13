@@ -1,5 +1,7 @@
 pub use clap::Args;
+use lazy_static::lazy_static;
 use log;
+use regex::Regex;
 use std::fs;
 use std::process::Command;
 
@@ -7,10 +9,13 @@ use crate::cli::CliSubcommand;
 
 #[derive(Args)]
 pub struct New {
-    /// The project template
+    /// The project template from which your project will be created.
+    /// For example, defining `rust` or `template-rust` will use the next one: https://github.com/lenra-io/template-rust
+    /// You can find all our templates at this url: https://github.com/orgs/lenra-io/repositories?q=&type=template&language=&sort=stargazers
+    /// You also can set the template project full url to use custom ones.
     pub template: String,
 
-    /// The target project path
+    /// The project path
     #[clap(parse(from_os_str))]
     path: std::path::PathBuf,
 
@@ -19,25 +24,42 @@ pub struct New {
     pub name: Option<String>,
 }
 
+lazy_static! {
+    static ref TEMPLATE_SHORT_REGEX: Regex =
+        Regex::new(r"^(template-)?([0-9a-zA-Z]+([_-][0-9a-zA-Z]+)*)$").unwrap();
+    static ref NAME_REGEX: Regex =
+        Regex::new(r"^([0-9a-zA-Z]+([_-][0-9a-zA-Z]+)*)$").unwrap();
+}
+
 impl CliSubcommand for New {
     fn run(&self) {
         if self.path.exists() {
             panic!("The path '{}' already exists", self.path.display())
         }
-        let template = format!("https://github.com/lenra-io/template-{}", self.template);
-        let download_url = format!("{}/archive/refs/heads/main.zip", template);
+
+        let template = if TEMPLATE_SHORT_REGEX.is_match(self.template.as_str()) {
+            format!(
+                "https://github.com/lenra-io/template-{}",
+                TEMPLATE_SHORT_REGEX.replace(self.template.as_str(), "$2")
+            )
+        } else {
+            self.template.clone()
+        };
+        
         let name = if let Some(n) = &self.name {
-            // TODO: check name pattern
+            if !NAME_REGEX.is_match(n) {
+                panic!("The specified name does not seems correct. Does not match the regex {}", NAME_REGEX.as_str());
+            }
             n.clone()
         } else {
             String::from(self.path.file_name().unwrap().to_str().unwrap())
         };
-        println!(
-            "new project {} from tempalte {}[{}]",
-            name, template, download_url
-        );
 
-        log::debug!("clone the template");
+        log::debug!(
+            "clone the template {} into {}",
+            template,
+            self.path.display()
+        );
         match Command::new("git")
             .arg("clone")
             .arg(template)
@@ -45,7 +67,9 @@ impl CliSubcommand for New {
             .spawn()
         {
             Ok(child) => {
-                child.wait_with_output().expect("Failed to clone the template");
+                child
+                    .wait_with_output()
+                    .expect("Failed to clone the template");
             }
             Err(e) => match e.kind() {
                 std::io::ErrorKind::NotFound => panic!("`git` was not found!"),
