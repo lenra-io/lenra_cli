@@ -9,7 +9,6 @@ use env_logger;
 mod build;
 mod cli;
 mod config;
-mod dev;
 mod new;
 mod start;
 
