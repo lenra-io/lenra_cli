@@ -1,7 +1,7 @@
 //! # new
 //!
 //! The new subcommand creates a new Lenra app project from a given template and into a given path
- 
+
 pub use clap::Args;
 use lazy_static::lazy_static;
 use log;
@@ -51,6 +51,9 @@ impl CliSubcommand for New {
         );
         match Command::new("git")
             .arg("clone")
+            .arg("--single-branch")
+            .arg("--depth")
+            .arg("1")
             .arg(template)
             .arg(self.path.as_os_str())
             .spawn()
