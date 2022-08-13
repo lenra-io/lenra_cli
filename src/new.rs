@@ -1,3 +1,7 @@
+//! # new
+//!
+//! The new subcommand creates a new Lenra app project from a given template and into a given path
+ 
 pub use clap::Args;
 use lazy_static::lazy_static;
 use log;
