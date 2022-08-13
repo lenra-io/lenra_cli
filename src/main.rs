@@ -1,3 +1,7 @@
+//! # lenra_cli
+//!
+//! The Lenra's command line interface
+ 
 use clap::Parser;
 use cli::{Cli, CliSubcommand};
 use env_logger;
