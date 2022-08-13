@@ -18,17 +18,11 @@ pub struct New {
     /// The project path
     #[clap(parse(from_os_str))]
     path: std::path::PathBuf,
-
-    /// The project name
-    #[clap(long)]
-    pub name: Option<String>,
 }
 
 lazy_static! {
     static ref TEMPLATE_SHORT_REGEX: Regex =
         Regex::new(r"^(template-)?([0-9a-zA-Z]+([_-][0-9a-zA-Z]+)*)$").unwrap();
-    static ref NAME_REGEX: Regex =
-        Regex::new(r"^([0-9a-zA-Z]+([_-][0-9a-zA-Z]+)*)$").unwrap();
 }
 
 impl CliSubcommand for New {
@@ -44,15 +38,6 @@ impl CliSubcommand for New {
             )
         } else {
             self.template.clone()
-        };
-        
-        let name = if let Some(n) = &self.name {
-            if !NAME_REGEX.is_match(n) {
-                panic!("The specified name does not seems correct. Does not match the regex {}", NAME_REGEX.as_str());
-            }
-            n.clone()
-        } else {
-            String::from(self.path.file_name().unwrap().to_str().unwrap())
         };
 
         log::debug!(
