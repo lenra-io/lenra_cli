@@ -28,23 +28,40 @@ pub struct Application {
     pub generator: Generator,
 }
 
-/** Represents the Dockerfile main stage */
+/** The application generator configuration */
 #[derive(Serialize, Deserialize, Debug, PartialEq)]
 #[serde(untagged)]
 pub enum Generator {
     Dofigen(Dofigen),
     DofigenFile(DofigenFile),
     DofigenError { dofigen: Value },
+    Dockerfile(Dockerfile),
+    Docker(Docker),
 }
 
-/** The application generator configuration */
+/** The Dofigen configuration */
 #[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
 pub struct Dofigen {
     pub dofigen: Image,
 }
 
-/** The application generator configuration */
+/** The Dofigen configuration file */
 #[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
 pub struct DofigenFile {
     pub dofigen: std::path::PathBuf,
 }
+
+/** The Docker configuration */
+#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
+pub struct Docker {
+    pub docker: String,
+    pub ignore: Option<String>,
+}
+
+/** The Docker configuration file */
+#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
+pub struct Dockerfile {
+    pub docker: std::path::PathBuf,
+}
+
+pub trait DockerIgnore {}

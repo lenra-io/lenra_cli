@@ -9,7 +9,7 @@ use regex::Regex;
 use std::fs;
 use std::process::Command;
 
-use crate::cli::CliSubcommand;
+use crate::cli::CliCommand;
 
 #[derive(Args)]
 pub struct New {
@@ -29,7 +29,7 @@ lazy_static! {
         Regex::new(r"^(template-)?([0-9a-zA-Z]+([_-][0-9a-zA-Z]+)*)$").unwrap();
 }
 
-impl CliSubcommand for New {
+impl CliCommand for New {
     fn run(&self) {
         if self.path.exists() {
             panic!("The path '{}' already exists", self.path.display())

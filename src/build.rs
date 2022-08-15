@@ -2,17 +2,19 @@ use log;
 use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 pub use clap::Args;
 use dofigen_lib::{
     from_file_path, generate_dockerfile, generate_dockerignore, Artifact, Builder, Image,
 };
 
-use crate::cli::CliSubcommand;
+use crate::cli::CliCommand;
 use crate::config::{load_config_file, Generator, DEFAULT_CONFIG_FILE, LENRA_CACHE_DIRECTORY};
 
 static OF_WATCHDOG_BUILDER: &str = "of-watchdog";
+static OF_WATCHDOG_IMAGE: &str = "ghcr.io/openfaas/of-watchdog";
+static OF_WATCHDOG_VERSION: &str = "0.9.6";
 
 #[derive(Args)]
 pub struct Build {
@@ -21,7 +23,7 @@ pub struct Build {
     pub config: std::path::PathBuf,
 }
 
-impl CliSubcommand for Build {
+impl CliCommand for Build {
     fn run(&self) {
         let conf = load_config_file(&self.config);
         // TODO: check the components API version
@@ -37,6 +39,11 @@ impl CliSubcommand for Build {
             Generator::DofigenError { dofigen: _ } => {
                 panic!("Your Dofigen configuration is not correct")
             }
+            Generator::Dockerfile(dockerfile) => build_docker_image(Some(dockerfile.docker)),
+            Generator::Docker(docker) => {
+                save_docker_content(docker.docker, docker.ignore);
+                build_docker_image(None);
+            }
         }
     }
 }
@@ -46,17 +53,22 @@ fn build_dofigen(image: Image) {
     let of_overlay = dofigen_of_overlay(image);
 
     // generate the Dockerfile and .dockerignore files with Dofigen
-    let dockerfile_content = generate_dockerfile(&of_overlay);
-    let dockerignore_content = generate_dockerignore(&of_overlay);
+    let dockerfile = generate_dockerfile(&of_overlay);
+    let dockerignore = generate_dockerignore(&of_overlay);
+    save_docker_content(dockerfile, Some(dockerignore));
+
+    // build the generated Dockerfile
+    build_docker_image(None);
+}
+
+fn save_docker_content(dockerfile_content: String, dockerignore_content: Option<String>) {
     let dockerfile_path: PathBuf = [LENRA_CACHE_DIRECTORY, "Dockerfile"].iter().collect();
     let dockerignore_path: PathBuf = [LENRA_CACHE_DIRECTORY, ".dockerignore"].iter().collect();
 
     fs::write(dockerfile_path, dockerfile_content).expect("Unable to write the Dockerfile");
-    fs::write(dockerignore_path, dockerignore_content)
-        .expect("Unable to write the .dockerignore file");
-
-    // build the generated Dockerfile
-    build_dockerfile();
+    if let Some(content) = dockerignore_content {
+        fs::write(dockerignore_path, content).expect("Unable to write the .dockerignore file");
+    }
 }
 
 fn dofigen_of_overlay(image: Image) -> Image {
@@ -68,7 +80,7 @@ fn dofigen_of_overlay(image: Image) -> Image {
     };
     builders.push(Builder {
         name: Some(String::from(OF_WATCHDOG_BUILDER)),
-        image: String::from("ghcr.io/openfaas/of-watchdog:0.9.6"),
+        image: format!("{}:{}", OF_WATCHDOG_IMAGE, OF_WATCHDOG_VERSION),
         ..Default::default()
     });
 
@@ -130,22 +142,36 @@ fn dofigen_of_overlay(image: Image) -> Image {
     }
 }
 
-fn build_dockerfile() {
+fn build_docker_image(dockerfile: Option<PathBuf>) {
     log::debug!("Build the Docker image");
-    let dockerfile: PathBuf = [LENRA_CACHE_DIRECTORY, "Dockerfile"].iter().collect();
+    let dockerfile_path: PathBuf =
+        dockerfile.unwrap_or([LENRA_CACHE_DIRECTORY, "Dockerfile"].iter().collect());
     let build_tar: PathBuf = [LENRA_CACHE_DIRECTORY, "image.tar"].iter().collect();
+    let cache_directory: PathBuf = [LENRA_CACHE_DIRECTORY, "dockercache"].iter().collect();
     let mut command = Command::new("docker");
-    command.arg("buildx")
+    let image_tag = "lenra/app";
+
+    // TODO: display std out & err
+    command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
+    command
+        .arg("buildx")
         .arg("build")
         .arg("-f")
-        .arg(dockerfile)
-        .arg("--cache-from=lenra/app")
+        .arg(dockerfile_path)
+        .arg(format!(
+            "--cache-to=type=local,dest={}",
+            cache_directory.display()
+        ))
+        .arg(format!(
+            "--cache-from=type=local,src={}",
+            cache_directory.display()
+        ))
         .arg("-t")
-        .arg("lenra/app")
+        .arg(image_tag)
         .arg("--output")
         .arg(format!("type=tar,dest={}", build_tar.display()))
         .arg(".");
-    log::debug!("Command: {:?}", command);
+
     let output = command.output().expect("Failed building the Docker image");
     if !output.status.success() {
         panic!(

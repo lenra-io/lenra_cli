@@ -10,7 +10,7 @@ pub struct Cli {
     pub command: Command,
 }
 
-pub trait CliSubcommand {
+pub trait CliCommand {
     fn run(&self);
 }
 
@@ -25,7 +25,7 @@ pub enum Command {
     Start(Start),
 }
 
-impl CliSubcommand for Command {
+impl CliCommand for Command {
     fn run(&self) {
         match self {
             Command::New(new) => new.run(),

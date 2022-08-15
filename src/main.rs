@@ -3,7 +3,7 @@
 //! The Lenra's command line interface
 
 use clap::Parser;
-use cli::{Cli, CliSubcommand};
+use cli::{Cli, CliCommand};
 use env_logger;
 
 mod build;
