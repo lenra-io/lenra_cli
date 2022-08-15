@@ -1,7 +1,18 @@
+use log;
+use std::collections::HashMap;
+use std::fs;
+use std::path::PathBuf;
+use std::process::Command;
+
 pub use clap::Args;
+use dofigen_lib::{
+    from_file_path, generate_dockerfile, generate_dockerignore, Artifact, Builder, Image,
+};
 
 use crate::cli::CliSubcommand;
-use crate::config::DEFAULT_CONFIG_FILE;
+use crate::config::{load_config_file, Generator, DEFAULT_CONFIG_FILE, LENRA_CACHE_DIRECTORY};
+
+static OF_WATCHDOG_BUILDER: &str = "of-watchdog";
 
 #[derive(Args)]
 pub struct Build {
@@ -12,6 +23,136 @@ pub struct Build {
 
 impl CliSubcommand for Build {
     fn run(&self) {
-        todo!()
+        let conf = load_config_file(&self.config);
+        // TODO: check the components API version
+
+        // create the `.lenra` cache directory
+        fs::create_dir_all(LENRA_CACHE_DIRECTORY).unwrap();
+
+        match conf.generator {
+            Generator::Dofigen(dofigen) => build_dofigen(dofigen.dofigen),
+            Generator::DofigenFile(dofigen_file) => {
+                build_dofigen(from_file_path(&dofigen_file.dofigen))
+            }
+            Generator::DofigenError { dofigen: _ } => {
+                panic!("Your Dofigen configuration is not correct")
+            }
+        }
     }
+}
+
+fn build_dofigen(image: Image) {
+    // Generate the Dofigen config with OpenFaaS overlay to handle the of-watchdog
+    let of_overlay = dofigen_of_overlay(image);
+
+    // generate the Dockerfile and .dockerignore files with Dofigen
+    let dockerfile_content = generate_dockerfile(&of_overlay);
+    let dockerignore_content = generate_dockerignore(&of_overlay);
+    let dockerfile_path: PathBuf = [LENRA_CACHE_DIRECTORY, "Dockerfile"].iter().collect();
+    let dockerignore_path: PathBuf = [LENRA_CACHE_DIRECTORY, ".dockerignore"].iter().collect();
+
+    fs::write(dockerfile_path, dockerfile_content).expect("Unable to write the Dockerfile");
+    fs::write(dockerignore_path, dockerignore_content)
+        .expect("Unable to write the .dockerignore file");
+
+    // build the generated Dockerfile
+    build_dockerfile();
+}
+
+fn dofigen_of_overlay(image: Image) -> Image {
+    log::debug!("Adding OpenFaaS overlay to the Dofigen descriptor");
+    let mut builders = if let Some(vec) = image.builders {
+        vec
+    } else {
+        Vec::new()
+    };
+    builders.push(Builder {
+        name: Some(String::from(OF_WATCHDOG_BUILDER)),
+        image: String::from("ghcr.io/openfaas/of-watchdog:0.9.6"),
+        ..Default::default()
+    });
+
+    let mut artifacts = if let Some(arts) = image.artifacts {
+        arts
+    } else {
+        Vec::new()
+    };
+    artifacts.push(Artifact {
+        builder: OF_WATCHDOG_BUILDER.to_string(),
+        source: "/fwatchdog".to_string(),
+        destination: "/fwatchdog".to_string(),
+    });
+
+    let mut envs = if let Some(envs) = image.envs {
+        envs
+    } else {
+        HashMap::new()
+    };
+
+    if let Some(ports) = image.ports {
+        if ports.len() == 1 {
+            envs.insert("mode".to_string(), "http".to_string());
+            envs.insert(
+                "upstream_url".to_string(),
+                format!("http://127.0.0.1:{}", ports[0]),
+            );
+        } else if ports.len() > 1 {
+            panic!("More than one port has been defined in the Dofigen descriptor");
+        }
+    };
+
+    if image.entrypoint.is_some() {
+        panic!("The Dofigen descriptor can't have entrypoint defined. Use cmd instead");
+    }
+
+    if let Some(cmd) = image.cmd {
+        envs.insert("fprocess".to_string(), cmd.join(" "));
+    } else {
+        panic!("The Dofigen cmd property is not defined");
+    }
+
+    Image {
+        image: image.image,
+        builders: Some(builders),
+        artifacts: Some(artifacts),
+        ports: Some(vec![8080]),
+        envs: Some(envs),
+        entrypoint: None,
+        cmd: Some(vec!["fwatchdog".to_string()]),
+        user: image.user,
+        workdir: image.workdir,
+        adds: image.adds,
+        root: image.root,
+        script: image.script,
+        caches: image.caches,
+        healthcheck: image.healthcheck,
+        ignores: image.ignores,
+    }
+}
+
+fn build_dockerfile() {
+    log::debug!("Build the Docker image");
+    let dockerfile: PathBuf = [LENRA_CACHE_DIRECTORY, "Dockerfile"].iter().collect();
+    let build_tar: PathBuf = [LENRA_CACHE_DIRECTORY, "image.tar"].iter().collect();
+    let mut command = Command::new("docker");
+    command.arg("buildx")
+        .arg("build")
+        .arg("-f")
+        .arg(dockerfile)
+        .arg("--cache-from=lenra/app")
+        .arg("-t")
+        .arg("lenra/app")
+        .arg("--output")
+        .arg(format!("type=tar,dest={}", build_tar.display()))
+        .arg(".");
+    log::debug!("Command: {:?}", command);
+    let output = command.output().expect("Failed building the Docker image");
+    if !output.status.success() {
+        panic!(
+            "An error occured while building the Docker image:\n{}\n{}",
+            String::from_utf8(output.stdout).unwrap(),
+            String::from_utf8(output.stderr).unwrap()
+        )
+    }
+    log::debug!("Image built");
 }

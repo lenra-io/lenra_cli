@@ -15,6 +15,5 @@ mod start;
 fn main() {
     env_logger::init();
     let args = Cli::parse();
-    // TODO: manage config file
     args.command.run();
 }
