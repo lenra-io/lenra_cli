@@ -63,5 +63,3 @@ pub struct Docker {
 pub struct Dockerfile {
     pub docker: std::path::PathBuf,
 }
-
-pub trait DockerIgnore {}
