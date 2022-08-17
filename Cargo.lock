@@ -80,12 +80,16 @@ dependencies = [
 ]
 
 [[package]]
-name = "dofigen_lib"
-version = "0.0.0"
+name = "dofigen"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "71144688ed025d3b62fa7f2d24f6f72891843c49976869c6d4b9927490ce9360"
 dependencies = [
+ "clap",
  "serde",
  "serde_json",
  "serde_yaml",
+ "thiserror",
 ]
 
 [[package]]
@@ -155,7 +159,7 @@ name = "lenra_cli"
 version = "0.0.0"
 dependencies = [
  "clap",
- "dofigen_lib",
+ "dofigen",
  "env_logger",
  "lazy_static",
  "log",
@@ -338,6 +342,26 @@ name = "textwrap"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b1141d4d61095b28419e22cb0bbf02755f5e54e0526f97f1e3d1d160e60885fb"
+
+[[package]]
+name = "thiserror"
+version = "1.0.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f5f6586b7f764adc0231f4c79be7b920e766bb2f3e51b3661cdb263828f19994"
+dependencies = [
+ "thiserror-impl",
+]
+
+[[package]]
+name = "thiserror-impl"
+version = "1.0.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "12bafc5b54507e0149cdf1b145a5d80ab80a90bcd9275df43d4fff68460f6c21"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "unicode-ident"

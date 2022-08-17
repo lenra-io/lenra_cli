@@ -34,7 +34,7 @@ impl CliCommand for Build {
         match conf.generator {
             Generator::Dofigen(dofigen) => build_dofigen(dofigen.dofigen),
             Generator::DofigenFile(dofigen_file) => {
-                build_dofigen(from_file_path(&dofigen_file.dofigen))
+                build_dofigen(from_file_path(&dofigen_file.dofigen).expect("Failed loading the Dofigen file"))
             }
             Generator::DofigenError { dofigen: _ } => {
                 panic!("Your Dofigen configuration is not correct")
@@ -48,6 +48,7 @@ impl CliCommand for Build {
     }
 }
 
+/// Builds a Docker image from a Dofigen structure
 fn build_dofigen(image: Image) {
     // Generate the Dofigen config with OpenFaaS overlay to handle the of-watchdog
     let of_overlay = dofigen_of_overlay(image);
@@ -61,16 +62,7 @@ fn build_dofigen(image: Image) {
     build_docker_image(None);
 }
 
-fn save_docker_content(dockerfile_content: String, dockerignore_content: Option<String>) {
-    let dockerfile_path: PathBuf = [LENRA_CACHE_DIRECTORY, "Dockerfile"].iter().collect();
-    let dockerignore_path: PathBuf = [LENRA_CACHE_DIRECTORY, ".dockerignore"].iter().collect();
-
-    fs::write(dockerfile_path, dockerfile_content).expect("Unable to write the Dockerfile");
-    if let Some(content) = dockerignore_content {
-        fs::write(dockerignore_path, content).expect("Unable to write the .dockerignore file");
-    }
-}
-
+/// Add an overlay to the given Dofigen structure to manage OpenFaaS
 fn dofigen_of_overlay(image: Image) -> Image {
     log::debug!("Adding OpenFaaS overlay to the Dofigen descriptor");
     let mut builders = if let Some(vec) = image.builders {
@@ -130,7 +122,7 @@ fn dofigen_of_overlay(image: Image) -> Image {
         ports: Some(vec![8080]),
         envs: Some(envs),
         entrypoint: None,
-        cmd: Some(vec!["fwatchdog".to_string()]),
+        cmd: Some(vec!["/fwatchdog".to_string()]),
         user: image.user,
         workdir: image.workdir,
         adds: image.adds,
@@ -142,6 +134,18 @@ fn dofigen_of_overlay(image: Image) -> Image {
     }
 }
 
+/// Saves the Dockerfile and dockerignore (if present) files from their contents
+fn save_docker_content(dockerfile_content: String, dockerignore_content: Option<String>) {
+    let dockerfile_path: PathBuf = [LENRA_CACHE_DIRECTORY, "Dockerfile"].iter().collect();
+    let dockerignore_path: PathBuf = [LENRA_CACHE_DIRECTORY, ".dockerignore"].iter().collect();
+
+    fs::write(dockerfile_path, dockerfile_content).expect("Unable to write the Dockerfile");
+    if let Some(content) = dockerignore_content {
+        fs::write(dockerignore_path, content).expect("Unable to write the .dockerignore file");
+    }
+}
+
+/// Builds a Dockerfile. If None, get's it at the default path: ./.lenra/Dockerfile
 fn build_docker_image(dockerfile: Option<PathBuf>) {
     log::debug!("Build the Docker image");
     let dockerfile_path: PathBuf =
@@ -181,4 +185,47 @@ fn build_docker_image(dockerfile: Option<PathBuf>) {
         )
     }
     log::debug!("Image built");
+}
+
+#[cfg(test)]
+mod dofigen_of_overlay_tests {
+    use super::*;
+
+    #[test]
+    fn simple_image() {
+        let image = Image {
+            image: "my-dockerimage".into(),
+            cmd: Some(vec!["/app/my-app".into()]),
+            ..Default::default()
+        };
+        let overlayed_image = Image {
+            builders: Some(vec![Builder {
+                name: Some("of-watchdog".into()),
+                image: format!("ghcr.io/openfaas/of-watchdog:{}", OF_WATCHDOG_VERSION),
+                ..Default::default()
+            }]),
+            image: String::from("my-dockerimage"),
+            envs: Some([("fprocess".to_string(), "/app/my-app".to_string())].into()),
+            artifacts: Some(vec![Artifact {
+                builder: "of-watchdog".into(),
+                source: "/fwatchdog".into(),
+                destination: "/fwatchdog".into(),
+            }]),
+            ports: Some(vec![8080]),
+            cmd: Some(vec!["/fwatchdog".into()]),
+            ..Default::default()
+        };
+
+        assert_eq!(dofigen_of_overlay(image), overlayed_image);
+    }
+
+    #[test]
+    #[should_panic]
+    fn no_cmd() {
+        let image = Image {
+            image: "my-dockerimage".into(),
+            ..Default::default()
+        };
+        dofigen_of_overlay(image);
+    }
 }
