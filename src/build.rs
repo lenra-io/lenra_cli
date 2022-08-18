@@ -29,9 +29,13 @@ pub struct Build {
 
 #[derive(clap::ValueEnum, Clone, Debug)]
 pub enum Cache {
+    /// Handle cache with a local directory ".lenra/dockercache"
     Local,
+    /// Handle cache in the built image "lenra/app:latest"
     Inline,
+    /// Handle cache with a specific image "lenra/app:cache"
     Image,
+    /// Disable cache
     No,
 }
 
@@ -137,6 +141,11 @@ impl Build {
         }
     }
 
+    fn generate_docker_compose(&self, dockerfile: Option<PathBuf>) {
+        
+    }
+
+    #[deprecated]
     /// Builds a Dockerfile. If None, get's it at the default path: ./.lenra/Dockerfile
     fn build_docker_image(&self, dockerfile: Option<PathBuf>) {
         log::info!("Build the Docker image");
