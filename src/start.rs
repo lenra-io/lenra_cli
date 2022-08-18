@@ -1,6 +1,6 @@
 pub use clap::Args;
 
-use crate::cli::CliSubcommand;
+use crate::cli::CliCommand;
 use crate::config::DEFAULT_CONFIG_FILE;
 
 #[derive(Args)]
@@ -10,7 +10,7 @@ pub struct Start {
     pub config: std::path::PathBuf,
 }
 
-impl CliSubcommand for Start {
+impl CliCommand for Start {
     fn run(&self) {
         todo!()
     }
