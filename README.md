@@ -80,15 +80,73 @@ OPTIONS:
 
 SUBCOMMANDS:
     build    Build your app in release mode
-    dev      Start your app in development mode
     help     Print this message or the help of the given subcommand(s)
     new      Create a new Lenra app project
     start    Start your app previously built with the build command
 ```
 
+### Subcommands
+
+This tools contains many subcommands to help you doing what you need.
+
+- [new](#new): creates a new Lenra app project
+- [build](#build): builds the Lenra app of the current directory
+
+#### new
+
+This subcommand creates a new Lenra app project from a given template and in a given directory.
+The target directory must not exist.
+
+```bash
+$ lenra new --help
+lenra-new 
+Create a new Lenra app project
+
+USAGE:
+    lenra new <TEMPLATE> <PATH>
+
+ARGS:
+    <TEMPLATE>    The project template from which your project will be created. For example,
+                  defining `rust` or `template-rust` will use the next one:
+                  https://github.com/lenra-io/template-rust You can find all our templates at
+                  this url:
+                  https://github.com/orgs/lenra-io/repositories?q=&type=template&language=&sort=stargazers
+                  You also can set the template project full url to use custom ones
+    <PATH>        The project path
+
+OPTIONS:
+    -h, --help    Print help information
+```
+
+#### build
+
+This subcommand builds the Lenra app of the current directory.
+The app configuration are defined by a [configuration file](#configuration-file).
+
+```bash
+$ lenra build --help
+lenra-build 
+Build your app in release mode
+
+USAGE:
+    lenra build [OPTIONS]
+
+OPTIONS:
+        --config <CONFIG>    The app configuration file [default: lenra.yml]
+    -h, --help               Print help information
+```
+
 ### Configuration file
 
-The Lenra's configuration file `lenra.yml` describes your Lenra app configurations, like API versions or how to build it.
+The Lenra's configuration file describes your Lenra app configurations, like API versions or how to build it.
+
+Here is an example using a Dofigen file:
+
+```yaml
+componentsApi: "1.0"
+generator:
+  dofigen: dofigen.yml
+```
 
 #### Configuration
 
@@ -97,6 +155,26 @@ The configuration is the main element of the file:
 | Field            | Type             | Description                   |
 |------------------|------------------|-------------------------------|
 | `componentsApi`  | String           | The components API version    |
+| `generator`      | [Generator](#generator)  The generator configuration |
+
+#### Generator
+
+The generator define your application is built. There are many configurators:
+
+- [Dofigen](#dofigen)
+- [Docker](#docker)
+
+##### Dofigen
+
+The Dofigen generator use a [Dofigen](https://github.com/lenra-io/dofigen) configuration to generate the Docker image.
+
+The Dofigen configuration can be the path to a Dofigen file or it content directly.
+
+##### Docker
+
+The Docker generator use a Dockerfile to generate the Docker image.
+
+The Dockerfile can be the path to a file or it content directly.
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
