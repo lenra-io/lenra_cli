@@ -32,6 +32,7 @@ pub enum Cache {
     Local,
     Inline,
     Image,
+    No,
 }
 
 impl Build {
@@ -169,6 +170,7 @@ impl Build {
             Cache::Image => command
                 .arg(format!("--cache-to={}:cache", image_name))
                 .arg(format!("--cache-from={}:cache", image_name)),
+            Cache::No => &command,
         };
         command.arg("-t").arg(image_name).arg("--load").arg(".");
 
