@@ -4,8 +4,12 @@ use dofigen_lib::Image;
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 
-pub static DEFAULT_CONFIG_FILE: &str = "lenra.yml";
-pub static LENRA_CACHE_DIRECTORY: &str = ".lenra";
+pub const DEFAULT_CONFIG_FILE: &str = "lenra.yml";
+pub const LENRA_CACHE_DIRECTORY: &str = ".lenra";
+
+pub const DOCKERFILE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, "Dockerfile"];
+pub const DOCKERIGNORE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, ".dockerignore"];
+pub const DOCKERCOMPOSE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, "docker-compose.yml"];
 
 pub fn load_config_file(path: &std::path::PathBuf) -> Application {
     let file = fs::File::open(path).unwrap();

@@ -10,11 +10,12 @@ use dofigen_lib::{
 };
 
 use crate::cli::CliCommand;
-use crate::config::{load_config_file, Generator, DEFAULT_CONFIG_FILE, LENRA_CACHE_DIRECTORY};
+use crate::config::{load_config_file, Generator, DEFAULT_CONFIG_FILE, LENRA_CACHE_DIRECTORY, DOCKERFILE_DEFAULT_PATH, DOCKERIGNORE_DEFAULT_PATH, DOCKERCOMPOSE_DEFAULT_PATH};
+use crate::docker_compose::generate_docker_compose_file;
 
-static OF_WATCHDOG_BUILDER: &str = "of-watchdog";
-static OF_WATCHDOG_IMAGE: &str = "ghcr.io/openfaas/of-watchdog";
-static OF_WATCHDOG_VERSION: &str = "0.9.6";
+const OF_WATCHDOG_BUILDER: &str = "of-watchdog";
+const OF_WATCHDOG_IMAGE: &str = "ghcr.io/openfaas/of-watchdog";
+const OF_WATCHDOG_VERSION: &str = "0.9.6";
 
 #[derive(clap::Args)]
 pub struct Build {
@@ -22,7 +23,7 @@ pub struct Build {
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
     pub config: std::path::PathBuf,
 
-    /// The app configuration file.
+    /// The cache management.
     #[clap(value_enum, long, default_value = "local")]
     pub cache: Cache,
 }
@@ -50,8 +51,11 @@ impl Build {
         let dockerignore = generate_dockerignore(&of_overlay);
         self.save_docker_content(dockerfile, Some(dockerignore));
 
+        // Generate docker-compose file
+        self.generate_docker_compose(None);
+
         // build the generated Dockerfile
-        self.build_docker_image(None);
+        self.build_docker_compose();
     }
 
     /// Add an overlay to the given Dofigen structure to manage OpenFaaS
@@ -132,8 +136,8 @@ impl Build {
         dockerfile_content: String,
         dockerignore_content: Option<String>,
     ) {
-        let dockerfile_path: PathBuf = [LENRA_CACHE_DIRECTORY, "Dockerfile"].iter().collect();
-        let dockerignore_path: PathBuf = [LENRA_CACHE_DIRECTORY, ".dockerignore"].iter().collect();
+        let dockerfile_path: PathBuf = DOCKERFILE_DEFAULT_PATH.iter().collect();
+        let dockerignore_path: PathBuf = DOCKERIGNORE_DEFAULT_PATH.iter().collect();
 
         fs::write(dockerfile_path, dockerfile_content).expect("Unable to write the Dockerfile");
         if let Some(content) = dockerignore_content {
@@ -141,49 +145,31 @@ impl Build {
         }
     }
 
+    /// Generates the docker-compose.yml file
     fn generate_docker_compose(&self, dockerfile: Option<PathBuf>) {
-        
+        let compose_content = generate_docker_compose_file(
+            dockerfile.unwrap_or(DOCKERFILE_DEFAULT_PATH.iter().collect()),
+        );
+        let compose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
+        fs::write(compose_path, compose_content).expect("Unable to write the docker-compose file");
     }
 
-    #[deprecated]
     /// Builds a Dockerfile. If None, get's it at the default path: ./.lenra/Dockerfile
-    fn build_docker_image(&self, dockerfile: Option<PathBuf>) {
+    fn build_docker_compose(&self) {
         log::info!("Build the Docker image");
-        let dockerfile_path: PathBuf =
-            dockerfile.unwrap_or([LENRA_CACHE_DIRECTORY, "Dockerfile"].iter().collect());
-        let cache_directory: PathBuf = [LENRA_CACHE_DIRECTORY, "dockercache"].iter().collect();
+        let dockercompose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
         let mut command = Command::new("docker");
-        let image_name = "lenra/app";
 
         // TODO: display std out & err
         command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
         command
             .arg("buildx")
-            .arg("build")
+            .arg("bake")
             .arg("-f")
-            .arg(dockerfile_path);
+            .arg(dockercompose_path)
+            .arg("--load");
 
-        match self.cache {
-            Cache::Inline => command
-                .arg("--cache-to=type=inline")
-                .arg(format!("--cache-from={}", image_name)),
-            Cache::Local => command
-                .arg(format!(
-                    "--cache-to=type=local,dest={}",
-                    cache_directory.display()
-                ))
-                .arg(format!(
-                    "--cache-from=type=local,src={}",
-                    cache_directory.display()
-                )),
-            Cache::Image => command
-                .arg(format!("--cache-to={}:cache", image_name))
-                .arg(format!("--cache-from={}:cache", image_name)),
-            Cache::No => &command,
-        };
-        command.arg("-t").arg(image_name).arg("--load").arg(".");
-
-        log::debug!("Build image: {:?}", command);
+        log::debug!("Build: {:?}", command);
         let output = command.output().expect("Failed building the Docker image");
         if !output.status.success() {
             panic!(
@@ -212,10 +198,21 @@ impl CliCommand for Build {
             Generator::DofigenError { dofigen: _ } => {
                 panic!("Your Dofigen configuration is not correct")
             }
-            Generator::Dockerfile(dockerfile) => self.build_docker_image(Some(dockerfile.docker)),
+            Generator::Dockerfile(dockerfile) => {
+                // Generate docker-compose file
+                self.generate_docker_compose(Some(dockerfile.docker));
+
+                // build the Dockerfile
+                self.build_docker_compose();
+            }
             Generator::Docker(docker) => {
                 self.save_docker_content(docker.docker, docker.ignore);
-                self.build_docker_image(None);
+
+                // Generate docker-compose file
+                self.generate_docker_compose(None);
+
+                // build the Dockerfile
+                self.build_docker_compose();
             }
         }
     }
