@@ -1,8 +1,10 @@
-use std::path::PathBuf;
+use std::{path::PathBuf, fs};
 
 use docker_compose_types::{
     AdvancedBuildStep, BuildStep, Compose, DependsOnOptions, Environment, Service, Services,
 };
+
+use crate::config::{DOCKERFILE_DEFAULT_PATH, DOCKERCOMPOSE_DEFAULT_PATH};
 
 pub const APP_SERVICE_NAME: &str = "app";
 pub const DEVTOOL_SERVICE_NAME: &str = "devtool";
@@ -10,7 +12,16 @@ pub const POSTGRES_SERVICE_NAME: &str = "postgres";
 const DEVTOOL_IMAGE: &str = "lenra/devtools:beta";
 const DEVTOOL_PORT: u16 = 4000;
 
-pub fn generate_docker_compose_file(dockerfile: &PathBuf) -> String {
+/// Generates the docker-compose.yml file
+pub fn generate_docker_compose(dockerfile: Option<PathBuf>) {
+    let compose_content = generate_docker_compose_content(
+        dockerfile.unwrap_or(DOCKERFILE_DEFAULT_PATH.iter().collect()),
+    );
+    let compose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
+    fs::write(compose_path, compose_content).expect("Unable to write the docker-compose file");
+}
+
+pub fn generate_docker_compose_content(dockerfile: PathBuf) -> String {
     let postgres_envs = [
         ("POSTGRES_USER".to_string(), Some("postgres".to_string())),
         (
