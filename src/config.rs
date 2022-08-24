@@ -1,10 +1,12 @@
-use std::{fs, path::PathBuf, collections::HashMap};
+use std::{collections::HashMap, fs, path::PathBuf};
 
-use dofigen_lib::{from_file_path, generate_dockerfile, generate_dockerignore, Image, Builder, Artifact};
+use dofigen_lib::{
+    from_file_path, generate_dockerfile, generate_dockerignore, Artifact, Builder, Image,
+};
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 
-use crate::docker_compose::generate_docker_compose_file;
+use crate::docker_compose::generate_docker_compose;
 
 pub const DEFAULT_CONFIG_FILE: &str = "lenra.yml";
 pub const LENRA_CACHE_DIRECTORY: &str = ".lenra";
@@ -110,9 +112,7 @@ impl Application {
             DOCKERFILE_DEFAULT_PATH.iter().collect()
         };
 
-        let compose_content = generate_docker_compose_file(&dockerfile);
-        let compose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
-        fs::write(compose_path, compose_content).expect("Unable to write the docker-compose file");
+        generate_docker_compose(dockerfile);
     }
 
     /// Builds a Docker image from a Dofigen structure
@@ -214,8 +214,6 @@ impl Application {
     }
 }
 
-
-
 #[cfg(test)]
 mod dofigen_of_overlay_tests {
     use super::*;
@@ -247,8 +245,8 @@ mod dofigen_of_overlay_tests {
         let config = Application {
             components_api: "".to_string(),
             generator: Generator::Dofigen(Dofigen {
-                dofigen: image.clone()
-            })
+                dofigen: image.clone(),
+            }),
         };
 
         assert_eq!(config.dofigen_of_overlay(image), overlayed_image);
@@ -264,8 +262,8 @@ mod dofigen_of_overlay_tests {
         let config = Application {
             components_api: "".to_string(),
             generator: Generator::Dofigen(Dofigen {
-                dofigen: image.clone()
-            })
+                dofigen: image.clone(),
+            }),
         };
         config.dofigen_of_overlay(image);
     }

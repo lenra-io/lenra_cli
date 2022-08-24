@@ -36,9 +36,7 @@ impl Start {
     /// Starts the docker-compose
     fn start_docker_compose(&self) {
         let dockercompose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
-        if !dockercompose_path.exists() {
-            
-        }
+        if !dockercompose_path.exists() {}
 
         let mut command = Command::new("docker");
 
