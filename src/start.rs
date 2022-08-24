@@ -4,8 +4,8 @@ use std::process::{Command, Stdio};
 pub use clap::Args;
 
 use crate::cli::CliCommand;
-use crate::config::{DEFAULT_CONFIG_FILE, DOCKERCOMPOSE_DEFAULT_PATH};
-use crate::docker_compose::APP_SERVICE_NAME;
+use crate::config::{DEFAULT_CONFIG_FILE, DOCKERCOMPOSE_DEFAULT_PATH, load_config_file};
+use crate::docker_compose::{APP_SERVICE_NAME, DEVTOOL_SERVICE_NAME, POSTGRES_SERVICE_NAME};
 
 #[derive(Args)]
 pub struct Start {
@@ -36,7 +36,12 @@ impl Start {
     /// Starts the docker-compose
     fn start_docker_compose(&self) {
         let dockercompose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
-        if !dockercompose_path.exists() {}
+        if !dockercompose_path.exists() {
+            let conf = load_config_file(&self.config);
+            // TODO: check the components API version
+
+            conf.generate_files();
+        }
 
         let mut command = Command::new("docker");
 
@@ -49,8 +54,8 @@ impl Start {
             .arg("up");
         match self.attach {
             Attach::App => command.arg("--attach").arg(APP_SERVICE_NAME),
-            Attach::Devtool => command.arg("--attach").arg(APP_SERVICE_NAME),
-            Attach::Database => command.arg("--attach").arg(APP_SERVICE_NAME),
+            Attach::Devtool => command.arg("--attach").arg(DEVTOOL_SERVICE_NAME),
+            Attach::Database => command.arg("--attach").arg(POSTGRES_SERVICE_NAME),
             Attach::All => &command,
             Attach::None => command.arg("-d"),
         };

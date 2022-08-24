@@ -80,10 +80,11 @@ impl Application {
     /// Generates all the files needed to build and run the application
     pub fn generate_files(&self) {
         self.generate_docker_files();
-        self.generate_docker_compose_files();
+        self.generate_docker_compose_file();
     }
 
     pub fn generate_docker_files(&self) {
+        log::info!("Docker files generation");
         // create the `.lenra` cache directory
         fs::create_dir_all(LENRA_CACHE_DIRECTORY).unwrap();
 
@@ -102,7 +103,8 @@ impl Application {
         }
     }
 
-    pub fn generate_docker_compose_files(&self) {
+    pub fn generate_docker_compose_file(&self) {
+        log::info!("Docker Compose file generation");
         // create the `.lenra` cache directory
         fs::create_dir_all(LENRA_CACHE_DIRECTORY).unwrap();
 
