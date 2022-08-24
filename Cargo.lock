@@ -150,6 +150,7 @@ name = "docker-compose-types"
 version = "0.2.0"
 dependencies = [
  "derive_builder",
+ "indexmap",
  "serde",
  "serde_yaml 0.8.26",
 ]
@@ -227,6 +228,7 @@ checksum = "10a35a97730320ffe8e2d410b5d3b69279b98d2c14bdb8b70ea89ecf7888d41e"
 dependencies = [
  "autocfg",
  "hashbrown",
+ "serde",
 ]
 
 [[package]]

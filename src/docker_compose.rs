@@ -10,7 +10,7 @@ pub const POSTGRES_SERVICE_NAME: &str = "postgres";
 const DEVTOOL_IMAGE: &str = "lenra/devtools:beta";
 const DEVTOOL_PORT: u16 = 4000;
 
-pub fn generate_docker_compose_file(dockerfile: PathBuf) -> String {
+pub fn generate_docker_compose_file(dockerfile: &PathBuf) -> String {
     let postgres_envs = [
         ("POSTGRES_USER".to_string(), Some("postgres".to_string())),
         (

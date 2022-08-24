@@ -1,21 +1,13 @@
 use log;
-use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 use clap;
-use dofigen_lib::{
-    from_file_path, generate_dockerfile, generate_dockerignore, Artifact, Builder, Image,
-};
 
 use crate::cli::CliCommand;
-use crate::config::{load_config_file, Generator, DEFAULT_CONFIG_FILE, LENRA_CACHE_DIRECTORY, DOCKERFILE_DEFAULT_PATH, DOCKERIGNORE_DEFAULT_PATH, DOCKERCOMPOSE_DEFAULT_PATH};
+use crate::config::{load_config_file, DEFAULT_CONFIG_FILE, DOCKERFILE_DEFAULT_PATH, DOCKERCOMPOSE_DEFAULT_PATH};
 use crate::docker_compose::generate_docker_compose_file;
-
-const OF_WATCHDOG_BUILDER: &str = "of-watchdog";
-const OF_WATCHDOG_IMAGE: &str = "ghcr.io/openfaas/of-watchdog";
-const OF_WATCHDOG_VERSION: &str = "0.9.6";
 
 #[derive(clap::Args)]
 pub struct Build {
@@ -41,119 +33,6 @@ pub enum Cache {
 }
 
 impl Build {
-    /// Builds a Docker image from a Dofigen structure
-    fn build_dofigen(&self, image: Image) {
-        // Generate the Dofigen config with OpenFaaS overlay to handle the of-watchdog
-        let of_overlay = self.dofigen_of_overlay(image);
-
-        // generate the Dockerfile and .dockerignore files with Dofigen
-        let dockerfile = generate_dockerfile(&of_overlay);
-        let dockerignore = generate_dockerignore(&of_overlay);
-        self.save_docker_content(dockerfile, Some(dockerignore));
-
-        // Generate docker-compose file
-        self.generate_docker_compose(None);
-
-        // build the generated Dockerfile
-        self.build_docker_compose();
-    }
-
-    /// Add an overlay to the given Dofigen structure to manage OpenFaaS
-    fn dofigen_of_overlay(&self, image: Image) -> Image {
-        log::info!("Adding OpenFaaS overlay to the Dofigen descriptor");
-        let mut builders = if let Some(vec) = image.builders {
-            vec
-        } else {
-            Vec::new()
-        };
-        builders.push(Builder {
-            name: Some(String::from(OF_WATCHDOG_BUILDER)),
-            image: format!("{}:{}", OF_WATCHDOG_IMAGE, OF_WATCHDOG_VERSION),
-            ..Default::default()
-        });
-
-        let mut artifacts = if let Some(arts) = image.artifacts {
-            arts
-        } else {
-            Vec::new()
-        };
-        artifacts.push(Artifact {
-            builder: OF_WATCHDOG_BUILDER.to_string(),
-            source: "/fwatchdog".to_string(),
-            destination: "/fwatchdog".to_string(),
-        });
-
-        let mut envs = if let Some(envs) = image.envs {
-            envs
-        } else {
-            HashMap::new()
-        };
-
-        if let Some(ports) = image.ports {
-            if ports.len() == 1 {
-                envs.insert("mode".to_string(), "http".to_string());
-                envs.insert(
-                    "upstream_url".to_string(),
-                    format!("http://127.0.0.1:{}", ports[0]),
-                );
-            } else if ports.len() > 1 {
-                panic!("More than one port has been defined in the Dofigen descriptor");
-            }
-        };
-
-        if image.entrypoint.is_some() {
-            panic!("The Dofigen descriptor can't have entrypoint defined. Use cmd instead");
-        }
-
-        if let Some(cmd) = image.cmd {
-            envs.insert("fprocess".to_string(), cmd.join(" "));
-        } else {
-            panic!("The Dofigen cmd property is not defined");
-        }
-
-        Image {
-            image: image.image,
-            builders: Some(builders),
-            artifacts: Some(artifacts),
-            ports: Some(vec![8080]),
-            envs: Some(envs),
-            entrypoint: None,
-            cmd: Some(vec!["/fwatchdog".to_string()]),
-            user: image.user,
-            workdir: image.workdir,
-            adds: image.adds,
-            root: image.root,
-            script: image.script,
-            caches: image.caches,
-            healthcheck: image.healthcheck,
-            ignores: image.ignores,
-        }
-    }
-
-    /// Saves the Dockerfile and dockerignore (if present) files from their contents
-    fn save_docker_content(
-        &self,
-        dockerfile_content: String,
-        dockerignore_content: Option<String>,
-    ) {
-        let dockerfile_path: PathBuf = DOCKERFILE_DEFAULT_PATH.iter().collect();
-        let dockerignore_path: PathBuf = DOCKERIGNORE_DEFAULT_PATH.iter().collect();
-
-        fs::write(dockerfile_path, dockerfile_content).expect("Unable to write the Dockerfile");
-        if let Some(content) = dockerignore_content {
-            fs::write(dockerignore_path, content).expect("Unable to write the .dockerignore file");
-        }
-    }
-
-    /// Generates the docker-compose.yml file
-    fn generate_docker_compose(&self, dockerfile: Option<PathBuf>) {
-        let compose_content = generate_docker_compose_file(
-            dockerfile.unwrap_or(DOCKERFILE_DEFAULT_PATH.iter().collect()),
-        );
-        let compose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
-        fs::write(compose_path, compose_content).expect("Unable to write the docker-compose file");
-    }
-
     /// Builds a Dockerfile. If None, get's it at the default path: ./.lenra/Dockerfile
     fn build_docker_compose(&self) {
         log::info!("Build the Docker image");
@@ -187,84 +66,8 @@ impl CliCommand for Build {
         let conf = load_config_file(&self.config);
         // TODO: check the components API version
 
-        // create the `.lenra` cache directory
-        fs::create_dir_all(LENRA_CACHE_DIRECTORY).unwrap();
+        conf.generate_files();
 
-        match conf.generator {
-            Generator::Dofigen(dofigen) => self.build_dofigen(dofigen.dofigen),
-            Generator::DofigenFile(dofigen_file) => self.build_dofigen(
-                from_file_path(&dofigen_file.dofigen).expect("Failed loading the Dofigen file"),
-            ),
-            Generator::DofigenError { dofigen: _ } => {
-                panic!("Your Dofigen configuration is not correct")
-            }
-            Generator::Dockerfile(dockerfile) => {
-                // Generate docker-compose file
-                self.generate_docker_compose(Some(dockerfile.docker));
-
-                // build the Dockerfile
-                self.build_docker_compose();
-            }
-            Generator::Docker(docker) => {
-                self.save_docker_content(docker.docker, docker.ignore);
-
-                // Generate docker-compose file
-                self.generate_docker_compose(None);
-
-                // build the Dockerfile
-                self.build_docker_compose();
-            }
-        }
-    }
-}
-
-#[cfg(test)]
-mod dofigen_of_overlay_tests {
-    use super::*;
-
-    #[test]
-    fn simple_image() {
-        let build = Build {
-            config: DEFAULT_CONFIG_FILE.into(),
-            cache: Cache::Inline,
-        };
-        let image = Image {
-            image: "my-dockerimage".into(),
-            cmd: Some(vec!["/app/my-app".into()]),
-            ..Default::default()
-        };
-        let overlayed_image = Image {
-            builders: Some(vec![Builder {
-                name: Some("of-watchdog".into()),
-                image: format!("ghcr.io/openfaas/of-watchdog:{}", OF_WATCHDOG_VERSION),
-                ..Default::default()
-            }]),
-            image: String::from("my-dockerimage"),
-            envs: Some([("fprocess".to_string(), "/app/my-app".to_string())].into()),
-            artifacts: Some(vec![Artifact {
-                builder: "of-watchdog".into(),
-                source: "/fwatchdog".into(),
-                destination: "/fwatchdog".into(),
-            }]),
-            ports: Some(vec![8080]),
-            cmd: Some(vec!["/fwatchdog".into()]),
-            ..Default::default()
-        };
-
-        assert_eq!(build.dofigen_of_overlay(image), overlayed_image);
-    }
-
-    #[test]
-    #[should_panic]
-    fn no_cmd() {
-        let build = Build {
-            config: DEFAULT_CONFIG_FILE.into(),
-            cache: Cache::Inline,
-        };
-        let image = Image {
-            image: "my-dockerimage".into(),
-            ..Default::default()
-        };
-        build.dofigen_of_overlay(image);
+        self.build_docker_compose();
     }
 }
