@@ -1,13 +1,11 @@
 use log;
-use std::fs;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
 
 use clap;
 
 use crate::cli::CliCommand;
-use crate::config::{load_config_file, DEFAULT_CONFIG_FILE, DOCKERFILE_DEFAULT_PATH, DOCKERCOMPOSE_DEFAULT_PATH};
-use crate::docker_compose::generate_docker_compose_file;
+use crate::config::{load_config_file, DEFAULT_CONFIG_FILE, DOCKERCOMPOSE_DEFAULT_PATH};
 
 #[derive(clap::Args)]
 pub struct Build {
