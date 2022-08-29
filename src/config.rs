@@ -14,7 +14,7 @@ pub const LENRA_CACHE_DIRECTORY: &str = ".lenra";
 pub const DEVTOOL_TAG: &str = "beta";
 
 pub const DOCKERFILE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, "Dockerfile"];
-pub const DOCKERIGNORE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, ".dockerignore"];
+pub const DOCKERIGNORE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, "Dockerfile.dockerignore"];
 pub const DOCKERCOMPOSE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, "docker-compose.yml"];
 
 pub const OF_WATCHDOG_BUILDER: &str = "of-watchdog";
