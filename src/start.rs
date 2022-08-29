@@ -13,10 +13,6 @@ pub struct Start {
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
     pub config: std::path::PathBuf,
 
-    // /// The cache management.
-    // #[clap(long, default_value = "beta")]
-    // pub devtool_tag: String,
-
     /// The service attached.
     #[clap(value_enum, long, default_value = "app")]
     pub attach: Attach,
@@ -64,7 +60,7 @@ impl Start {
             Attach::None => command.arg("-d"),
         };
 
-        log::debug!("Start: {:?}", command);
+        log::debug!("cmd: {:?}", command);
         let output = command
             .output()
             .expect("Failed to start the docker-compose app");
@@ -82,6 +78,5 @@ impl CliCommand for Start {
     fn run(&self) {
         log::info!("Starting the app");
         self.start_docker_compose();
-        log::info!("App is stopped");
     }
 }

@@ -12,6 +12,7 @@ mod config;
 mod docker_compose;
 mod new;
 mod start;
+mod stop;
 
 fn main() {
     env_logger::init();
