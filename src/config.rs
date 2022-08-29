@@ -11,6 +11,8 @@ use crate::docker_compose::generate_docker_compose;
 pub const DEFAULT_CONFIG_FILE: &str = "lenra.yml";
 pub const LENRA_CACHE_DIRECTORY: &str = ".lenra";
 
+pub const DEVTOOL_TAG: &str = "beta";
+
 pub const DOCKERFILE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, "Dockerfile"];
 pub const DOCKERIGNORE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, ".dockerignore"];
 pub const DOCKERCOMPOSE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, "docker-compose.yml"];
@@ -33,11 +35,21 @@ pub fn load_config_file(path: &std::path::PathBuf) -> Application {
 }
 
 /** The main component of the config file */
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
+#[serde(rename_all = "camelCase")]
 pub struct Application {
     #[serde(rename = "componentsApi")]
     pub components_api: String,
     pub generator: Generator,
+    pub dev: Dev,
+}
+
+/** The dev specific configuration */
+#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct Dev {
+    #[serde(default = "devtool_default_tag")]
+    pub devtool_tag: String,
 }
 
 /** The application generator configuration */
@@ -49,6 +61,7 @@ pub enum Generator {
     DofigenError { dofigen: Value },
     Dockerfile(Dockerfile),
     Docker(Docker),
+    Unknow,
 }
 
 /** The Dofigen configuration */
@@ -100,6 +113,7 @@ impl Application {
             Generator::Docker(docker) => {
                 self.save_docker_content(docker.docker.clone(), docker.ignore.clone());
             }
+            Generator::Unknow => panic!("Not managed generator"),
         }
     }
 
@@ -114,7 +128,7 @@ impl Application {
             DOCKERFILE_DEFAULT_PATH.iter().collect()
         };
 
-        generate_docker_compose(dockerfile);
+        generate_docker_compose(dockerfile, &self.dev);
     }
 
     /// Builds a Docker image from a Dofigen structure
@@ -216,6 +230,16 @@ impl Application {
     }
 }
 
+fn devtool_default_tag() -> String {
+    DEVTOOL_TAG.to_string()
+}
+
+impl Default for Generator {
+    fn default() -> Self {
+        Generator::Unknow
+    }
+}
+
 #[cfg(test)]
 mod dofigen_of_overlay_tests {
     use super::*;
@@ -249,6 +273,7 @@ mod dofigen_of_overlay_tests {
             generator: Generator::Dofigen(Dofigen {
                 dofigen: image.clone(),
             }),
+            ..Default::default()
         };
 
         assert_eq!(config.dofigen_of_overlay(image), overlayed_image);
@@ -266,6 +291,7 @@ mod dofigen_of_overlay_tests {
             generator: Generator::Dofigen(Dofigen {
                 dofigen: image.clone(),
             }),
+            ..Default::default()
         };
         config.dofigen_of_overlay(image);
     }

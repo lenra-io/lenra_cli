@@ -5,24 +5,25 @@ use docker_compose_types::{
     Healthcheck, HealthcheckTest, Service, Services,
 };
 
-use crate::config::DOCKERCOMPOSE_DEFAULT_PATH;
+use crate::config::{DOCKERCOMPOSE_DEFAULT_PATH, Dev};
 
 pub const APP_SERVICE_NAME: &str = "app";
 pub const DEVTOOL_SERVICE_NAME: &str = "devtool";
 pub const POSTGRES_SERVICE_NAME: &str = "postgres";
-const DEVTOOL_IMAGE: &str = "lenra/devtools:beta";
-const POSTGRES_IMAGE: &str = "postgres:13";
+const DEVTOOL_IMAGE: &str = "lenra/devtools";
+const POSTGRES_IMAGE: &str = "postgres";
+const POSTGRES_IMAGE_TAG: &str = "13";
 const OF_WATCHDOG_PORT: u16 = 8080;
 const DEVTOOL_PORT: u16 = 4000;
 
 /// Generates the docker-compose.yml file
-pub fn generate_docker_compose(dockerfile: PathBuf) {
-    let compose_content = generate_docker_compose_content(dockerfile);
+pub fn generate_docker_compose(dockerfile: PathBuf, dev_conf: &Dev) {
+    let compose_content = generate_docker_compose_content(dockerfile, dev_conf);
     let compose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
     fs::write(compose_path, compose_content).expect("Unable to write the docker-compose file");
 }
 
-pub fn generate_docker_compose_content(dockerfile: PathBuf) -> String {
+fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Dev) -> String {
     let postgres_envs = [
         ("POSTGRES_USER".to_string(), Some("postgres".to_string())),
         (
@@ -75,7 +76,7 @@ pub fn generate_docker_compose_content(dockerfile: PathBuf) -> String {
                 (
                     DEVTOOL_SERVICE_NAME.into(),
                     Some(Service {
-                        image: Some(DEVTOOL_IMAGE.into()),
+                        image: Some(format!("{}:{}", DEVTOOL_IMAGE, dev_conf.devtool_tag)),
                         ports: Some(vec![format!("{}:{}", DEVTOOL_PORT, DEVTOOL_PORT)]),
                         environment: Some(Environment::KvPair(devtool_envs.into())),
                         depends_on: Some(DependsOnOptions::Conditional(
@@ -106,7 +107,7 @@ pub fn generate_docker_compose_content(dockerfile: PathBuf) -> String {
                 (
                     POSTGRES_SERVICE_NAME.into(),
                     Some(Service {
-                        image: Some(POSTGRES_IMAGE.into()),
+                        image: Some(format!("{}:{}", POSTGRES_IMAGE, POSTGRES_IMAGE_TAG)),
                         environment: Some(Environment::KvPair(postgres_envs.into())),
                         healthcheck: Some(Healthcheck {
                             test: Some(HealthcheckTest::Multiple(vec![

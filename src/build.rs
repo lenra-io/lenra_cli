@@ -5,7 +5,9 @@ use std::process::{Command, Stdio};
 use clap;
 
 use crate::cli::CliCommand;
-use crate::config::{load_config_file, DEFAULT_CONFIG_FILE, DOCKERCOMPOSE_DEFAULT_PATH};
+use crate::config::{
+    load_config_file, DEFAULT_CONFIG_FILE, DOCKERCOMPOSE_DEFAULT_PATH
+};
 
 #[derive(clap::Args)]
 pub struct Build {
@@ -40,11 +42,16 @@ impl Build {
         // TODO: display std out & err
         command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
         command
-            .arg("buildx")
-            .arg("bake")
+            .arg("compose")
             .arg("-f")
             .arg(dockercompose_path)
-            .arg("--load");
+            .arg("build");
+        // command
+        //     .arg("buildx")
+        //     .arg("bake")
+        //     .arg("-f")
+        //     .arg(dockercompose_path)
+        //     .arg("--load");
 
         log::debug!("Build: {:?}", command);
         let output = command.output().expect("Failed building the Docker image");
@@ -66,6 +73,7 @@ impl CliCommand for Build {
 
         conf.generate_files();
 
+        // self.build_docker_image(conf);
         self.build_docker_compose();
     }
 }
