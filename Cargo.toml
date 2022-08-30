@@ -26,5 +26,4 @@ env_logger = "0.9.0"
 regex = "1.6.0"
 lazy_static = "1.4.0"
 dofigen = "1"
-docker-compose-types = { version = "0.2.0", path = "../docker-compose-types" }
-# docker-compose-types = "0.2.0"
+docker-compose-types = "0.2.1"

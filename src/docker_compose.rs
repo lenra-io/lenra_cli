@@ -70,6 +70,7 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Dev) -> Strin
                             )]
                             .into(),
                         )),
+                        // TODO: Add resources management  when managed by the docker-compose-types lib
                         ..Default::default()
                     }),
                 ),

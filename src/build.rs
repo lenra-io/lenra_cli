@@ -14,22 +14,6 @@ pub struct Build {
     /// The app configuration file.
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
     pub config: std::path::PathBuf,
-
-    /// The cache management.
-    #[clap(value_enum, long, default_value = "local")]
-    pub cache: Cache,
-}
-
-#[derive(clap::ValueEnum, Clone, Debug)]
-pub enum Cache {
-    /// Handle cache with a local directory ".lenra/dockercache"
-    Local,
-    /// Handle cache in the built image "lenra/app:latest"
-    Inline,
-    /// Handle cache with a specific image "lenra/app:cache"
-    Image,
-    /// Disable cache
-    No,
 }
 
 impl Build {
