@@ -11,7 +11,7 @@ use crate::docker_compose::generate_docker_compose;
 pub const DEFAULT_CONFIG_FILE: &str = "lenra.yml";
 pub const LENRA_CACHE_DIRECTORY: &str = ".lenra";
 
-pub const DEVTOOL_TAG: &str = "beta";
+pub const DEVTOOL_DEFAULT_TAG: &str = "beta";
 
 pub const DOCKERFILE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, "Dockerfile"];
 pub const DOCKERIGNORE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, "Dockerfile.dockerignore"];
@@ -41,7 +41,7 @@ pub struct Application {
     #[serde(rename = "componentsApi")]
     pub components_api: String,
     pub generator: Generator,
-    pub dev: Dev,
+    pub dev: Option<Dev>,
 }
 
 /** The dev specific configuration */
@@ -231,7 +231,7 @@ impl Application {
 }
 
 fn devtool_default_tag() -> String {
-    DEVTOOL_TAG.to_string()
+    DEVTOOL_DEFAULT_TAG.to_string()
 }
 
 impl Default for Generator {

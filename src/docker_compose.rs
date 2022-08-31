@@ -5,7 +5,7 @@ use docker_compose_types::{
     Healthcheck, HealthcheckTest, Service, Services,
 };
 
-use crate::config::{DOCKERCOMPOSE_DEFAULT_PATH, Dev};
+use crate::config::{Dev, DEVTOOL_DEFAULT_TAG, DOCKERCOMPOSE_DEFAULT_PATH};
 
 pub const APP_SERVICE_NAME: &str = "app";
 pub const DEVTOOL_SERVICE_NAME: &str = "devtool";
@@ -17,13 +17,13 @@ const OF_WATCHDOG_PORT: u16 = 8080;
 const DEVTOOL_PORT: u16 = 4000;
 
 /// Generates the docker-compose.yml file
-pub fn generate_docker_compose(dockerfile: PathBuf, dev_conf: &Dev) {
+pub fn generate_docker_compose(dockerfile: PathBuf, dev_conf: &Option<Dev>) {
     let compose_content = generate_docker_compose_content(dockerfile, dev_conf);
     let compose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
     fs::write(compose_path, compose_content).expect("Unable to write the docker-compose file");
 }
 
-fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Dev) -> String {
+fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) -> String {
     let postgres_envs = [
         ("POSTGRES_USER".to_string(), Some("postgres".to_string())),
         (
@@ -35,7 +35,10 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Dev) -> Strin
     let devtool_envs: [(String, Option<String>); 6] = [
         postgres_envs.clone(),
         [
-            ("POSTGRES_HOST".to_string(), Some(POSTGRES_SERVICE_NAME.to_string())),
+            (
+                "POSTGRES_HOST".to_string(),
+                Some(POSTGRES_SERVICE_NAME.to_string()),
+            ),
             (
                 "OF_WATCHDOG_URL".to_string(),
                 Some(format!("http://{}:{}", APP_SERVICE_NAME, OF_WATCHDOG_PORT)),
@@ -49,6 +52,12 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Dev) -> Strin
     .concat()
     .try_into()
     .unwrap();
+
+    let devtool_tag = if let Some(conf) = dev_conf {
+        conf.devtool_tag.as_str()
+    } else {
+        DEVTOOL_DEFAULT_TAG
+    };
     let compose = Compose {
         services: Some(Services(
             [
@@ -77,7 +86,7 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Dev) -> Strin
                 (
                     DEVTOOL_SERVICE_NAME.into(),
                     Some(Service {
-                        image: Some(format!("{}:{}", DEVTOOL_IMAGE, dev_conf.devtool_tag)),
+                        image: Some(format!("{}:{}", DEVTOOL_IMAGE, devtool_tag)),
                         ports: Some(vec![format!("{}:{}", DEVTOOL_PORT, DEVTOOL_PORT)]),
                         environment: Some(Environment::KvPair(devtool_envs.into())),
                         depends_on: Some(DependsOnOptions::Conditional(
