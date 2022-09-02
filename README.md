@@ -36,7 +36,11 @@ The Lenra's command line interface.
 
 ### Prerequisites
 
-Install the Lenra's cli using one of the next possibilities.
+To build and run the Lenra elements that handle your app, the Lenra CLI needs [Docker](https://docs.docker.com/engine/install/) and [Docker Compose](https://docs.docker.com/compose/install/).
+
+You also can install the [Docker buildx command](https://docs.docker.com/build/buildx/install/) to use the [Buildkit optimization given by Dofigen](https://github.com/lenra-io/dofigen).
+
+Install the Lenra CLI using one of the next possibilities.
 
 #### Cargo install
 
@@ -52,14 +56,6 @@ cargo install lenra_cli
 
 You can download the binary from [the release page](https://github.com/lenra-io/lenra_cli/releases) and add it to your path environment variable.
 
-#### Use it with Docker
-
-You can run cli directly from it Docker image with the next command:
-
-```bash
-docker run --rm -it -v $(pwd):/app lenra/cli
-```
-
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 ### How to use it
@@ -69,7 +65,7 @@ Use the help options to understand how to use it:
 ```bash
 $ lenra --help
 lenra_cli 0.0.0
-A Dockerfile generator using a simplified description in YAML or JSON format command line tool
+The Lenra's command line interface
 
 USAGE:
     lenra <SUBCOMMAND>
@@ -83,6 +79,7 @@ SUBCOMMANDS:
     help     Print this message or the help of the given subcommand(s)
     new      Create a new Lenra app project
     start    Start your app previously built with the build command
+    stop     Stop your app previously started with the start command
 ```
 
 ### Subcommands
@@ -91,6 +88,8 @@ This tools contains many subcommands to help you doing what you need.
 
 - [new](#new): creates a new Lenra app project
 - [build](#build): builds the Lenra app of the current directory
+- [start](#start): start your app previously built with the build command
+- [stop](#stop): stop your app previously started with the start command
 
 #### new
 
@@ -130,6 +129,40 @@ Build your app in release mode
 
 USAGE:
     lenra build [OPTIONS]
+
+OPTIONS:
+        --config <CONFIG>    The app configuration file [default: lenra.yml]
+    -h, --help               Print help information
+```
+
+#### start
+
+This subcommand starts the Lenra app of the current directory previously built.
+
+```bash
+$ lenra start --help
+lenra-start 
+Start your app previously built with the build command
+
+USAGE:
+    lenra start [OPTIONS]
+
+OPTIONS:
+        --config <CONFIG>    The app configuration file [default: lenra.yml]
+    -h, --help               Print help information
+```
+
+#### stop
+
+This subcommand stops the Lenra app of the current directory and removes the Docker Compose elements.
+
+```bash
+$ lenra stop --help
+lenra-stop 
+Stop your app previously started with the start command
+
+USAGE:
+    lenra stop [OPTIONS]
 
 OPTIONS:
         --config <CONFIG>    The app configuration file [default: lenra.yml]

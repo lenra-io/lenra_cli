@@ -5,9 +5,7 @@ use std::process::{Command, Stdio};
 use clap;
 
 use crate::cli::CliCommand;
-use crate::config::{
-    load_config_file, DEFAULT_CONFIG_FILE, DOCKERCOMPOSE_DEFAULT_PATH
-};
+use crate::config::{load_config_file, DEFAULT_CONFIG_FILE, DOCKERCOMPOSE_DEFAULT_PATH};
 
 #[derive(clap::Args)]
 pub struct Build {
@@ -23,19 +21,17 @@ impl Build {
         let dockercompose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
         let mut command = Command::new("docker");
 
-        // TODO: display std out & err
-        command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
         command
             .arg("compose")
             .arg("-f")
             .arg(dockercompose_path)
             .arg("build");
-        // command
-        //     .arg("buildx")
-        //     .arg("bake")
-        //     .arg("-f")
-        //     .arg(dockercompose_path)
-        //     .arg("--load");
+
+        // Use Buildkit to improve performance
+        command.env("DOCKER_BUILDKIT", "1");
+
+        // Display std out & err
+        command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
 
         log::debug!("Build: {:?}", command);
         let output = command.output().expect("Failed building the Docker image");
