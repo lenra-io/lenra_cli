@@ -5,31 +5,12 @@ pub use clap::Args;
 
 use crate::cli::CliCommand;
 use crate::config::{DEFAULT_CONFIG_FILE, DOCKERCOMPOSE_DEFAULT_PATH, load_config_file};
-use crate::docker_compose::{APP_SERVICE_NAME, DEVTOOL_SERVICE_NAME, POSTGRES_SERVICE_NAME};
 
 #[derive(Args)]
 pub struct Start {
     /// The app configuration file.
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
     pub config: std::path::PathBuf,
-
-    /// The service attached.
-    #[clap(value_enum, long, default_value = "app")]
-    pub attach: Attach,
-}
-
-#[derive(clap::ValueEnum, Clone, Debug)]
-pub enum Attach {
-    /// Attach app service
-    App,
-    /// Attach devtool service
-    Devtool,
-    /// Attach database service
-    Database,
-    /// Attach all services
-    All,
-    /// Detach
-    None,
 }
 
 impl Start {
@@ -51,14 +32,8 @@ impl Start {
             .arg("compose")
             .arg("-f")
             .arg(dockercompose_path)
-            .arg("up");
-        match self.attach {
-            Attach::App => command.arg("--attach").arg(APP_SERVICE_NAME),
-            Attach::Devtool => command.arg("--attach").arg(DEVTOOL_SERVICE_NAME),
-            Attach::Database => command.arg("--attach").arg(POSTGRES_SERVICE_NAME),
-            Attach::All => &command,
-            Attach::None => command.arg("-d"),
-        };
+            .arg("up")
+            .arg("-d");
 
         log::debug!("cmd: {:?}", command);
         let output = command
