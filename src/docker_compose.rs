@@ -1,4 +1,8 @@
-use std::{fs, path::PathBuf};
+use std::{
+    fs,
+    path::PathBuf,
+    process::{Command, Stdio},
+};
 
 use docker_compose_types::{
     AdvancedBuildStep, BuildStep, Compose, DependsCondition, DependsOnOptions, Environment,
@@ -140,4 +144,82 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) 
         ..Default::default()
     };
     serde_yaml::to_string(&compose).expect("Error generating the docker-compose file content")
+}
+
+pub fn create_compose_command() -> Command {
+    let dockercompose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
+    let mut cmd = Command::new("docker");
+
+    cmd.arg("compose").arg("-f").arg(dockercompose_path);
+
+    cmd
+}
+
+pub fn compose_up() {
+    let mut command = create_compose_command();
+
+    command
+        .arg("up")
+        .arg("-d")
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
+
+    log::debug!("cmd: {:?}", command);
+    let output = command
+        .output()
+        .expect("Failed to start the docker-compose app");
+
+    if !output.status.success() {
+        panic!(
+            "An error occured while running the docker-compose app:\n{}\n{}",
+            String::from_utf8(output.stdout).unwrap(),
+            String::from_utf8(output.stderr).unwrap()
+        )
+    }
+}
+
+pub fn compose_build() {
+    let mut command = create_compose_command();
+        command.arg("build");
+
+        // Use Buildkit to improve performance
+        command.env("DOCKER_BUILDKIT", "1");
+
+        // Display std out & err
+        command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
+
+        log::debug!("Build: {:?}", command);
+        let output = command.output().expect("Failed building the Docker image");
+        if !output.status.success() {
+            panic!(
+                "An error occured while building the Docker image:\n{}\n{}",
+                String::from_utf8(output.stdout).unwrap(),
+                String::from_utf8(output.stderr).unwrap()
+            )
+        }
+}
+
+pub fn execute_compose_service_command(service: &str, cmd: &[&str]) {
+    let mut command = create_compose_command();
+
+    command.arg("exec").arg(service);
+
+    cmd.iter().for_each(|&part| {
+        command.arg(part);
+        ()
+    });
+
+    let output = command
+        .output()
+        .expect("Failed to execute the docker-compose exec command");
+
+    if !output.status.success() {
+        panic!(
+            "docker-compose exec exited with code {}:\n\tcmd: {:?}\n\tstdout: {}\n\tstderr: {}",
+            output.status.code().unwrap(),
+            command,
+            String::from_utf8(output.stdout).unwrap(),
+            String::from_utf8(output.stderr).unwrap()
+        )
+    }
 }

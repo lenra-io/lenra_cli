@@ -1,10 +1,10 @@
 use std::path::PathBuf;
-use std::process::{Command, Stdio};
 
 pub use clap::Args;
 
 use crate::cli::CliCommand;
-use crate::config::{DEFAULT_CONFIG_FILE, DOCKERCOMPOSE_DEFAULT_PATH, load_config_file};
+use crate::config::{load_config_file, DEFAULT_CONFIG_FILE, DOCKERCOMPOSE_DEFAULT_PATH};
+use crate::docker_compose::{compose_up, execute_compose_service_command, DEVTOOL_SERVICE_NAME};
 
 #[derive(Args)]
 pub struct Start {
@@ -24,28 +24,19 @@ impl Start {
             conf.generate_files();
         }
 
-        let mut command = Command::new("docker");
-
-        // TODO: display std out & err
-        command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
-        command
-            .arg("compose")
-            .arg("-f")
-            .arg(dockercompose_path)
-            .arg("up")
-            .arg("-d");
-
-        log::debug!("cmd: {:?}", command);
-        let output = command
-            .output()
-            .expect("Failed to start the docker-compose app");
-        if !output.status.success() {
-            panic!(
-                "An error occured while running the docker-compose app:\n{}\n{}",
-                String::from_utf8(output.stdout).unwrap(),
-                String::from_utf8(output.stderr).unwrap()
-            )
-        }
+        // Start the containers
+        compose_up();
+        // Stop the devtool app env to reset cache
+        execute_compose_service_command(
+            DEVTOOL_SERVICE_NAME,
+            &[
+                "bin/dev_tools",
+                "rpc",
+                "ApplicationRunner.Environments.Managers.stop_env(1)",
+            ],
+        );
+        // Open the app
+        open::that("http://localhost:4000").unwrap();
     }
 }
 
