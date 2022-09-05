@@ -18,7 +18,7 @@ Any technical recommandation or specific warning about this task (if needed)
 
 ## Ecological concerns
 What can be done to improve the ecological impact of this task ?
-- Can we minimize the data send to the network ? 
+- Can we minimize the data sent to the network ? 
 - Are data stored ? Can we minimize the amount of stored data ?
 - Is it CPU-intensive ? Can we reduce the CPU charge ?
 - Is it RAM-intensive ? Can we reduce the RAM load ?
