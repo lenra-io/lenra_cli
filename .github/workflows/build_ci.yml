@@ -29,15 +29,12 @@ jobs:
       with:
         node-version: 16
 
-    - name: Setup node deps
-      shell: bash
-      run: npm i conventional-changelog-conventionalcommits@4 @semantic-release/git semantic-release-export-data -D
 
     - id: get-next-version
       name: Get next version
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: npx semantic-release --dry-run
+      run: npx -p conventional-changelog-conventionalcommits@5 -p @semantic-release/git -p semantic-release-export-data -p semantic-release@19 semantic-release --dry-run
 
     outputs:
       new-release-published: ${{ steps.get-next-version.outputs.new-release-published }}
@@ -198,16 +195,12 @@ jobs:
       with:
         node-version: "16"
 
-    - name: Setup node deps
-      shell: bash
-      run: npm i conventional-changelog-conventionalcommits@4 @semantic-release/git semantic-release-export-data -D
-
     - id: release
       name: Release
       shell: bash
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: npx semantic-release@18
+      run: npx -p conventional-changelog-conventionalcommits@5 -p @semantic-release/git -p semantic-release-export-data -p semantic-release@19 semantic-release
 
     - name: Install cargo-edit
       if: ${{ steps.release.outputs.new-release-published }}
