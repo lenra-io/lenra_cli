@@ -209,21 +209,21 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: npx semantic-release@18
 
-    # - name: Install cargo-edit
-    #   if: ${{ steps.release.outputs.new-release-published }}
-    #   uses: actions-rs/cargo@v1
-    #   with:
-    #     command: install
-    #     args: cargo-edit
+    - name: Install cargo-edit
+      if: ${{ steps.release.outputs.new-release-published }}
+      uses: actions-rs/cargo@v1
+      with:
+        command: install
+        args: cargo-edit
 
-    # - name: Set version
-    #   if: ${{ steps.release.outputs.new-release-published }}
-    #   uses: actions-rs/cargo@v1
-    #   with:
-    #     command: set-version
-    #     args: ${{ env.VERSION }}
+    - name: Set version
+      if: ${{ steps.release.outputs.new-release-published }}
+      uses: actions-rs/cargo@v1
+      with:
+        command: set-version
+        args: ${{ env.VERSION }}
 
-    # - name: Publish cargo
-    #   shell: bash
-    #   if: ${{ steps.release.outputs.new-release-published }}
-    #   run: cargo publish --allow-dirty --token "${{ secrets.CARGO_TOKEN }}"
+    - name: Publish cargo
+      shell: bash
+      if: ${{ steps.release.outputs.new-release-published }}
+      run: cargo publish --allow-dirty --token "${{ secrets.CARGO_TOKEN }}"
