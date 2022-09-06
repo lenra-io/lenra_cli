@@ -88,7 +88,7 @@ This tools contains many subcommands to help you doing what you need.
 
 - [new](#new): creates a new Lenra app project
 - [build](#build): builds the Lenra app of the current directory
-- [start](#start): start your app previously built with the build command
+- [start](#start): starts your app previously built with the build command
 - [stop](#stop): stop your app previously started with the start command
 
 #### new
