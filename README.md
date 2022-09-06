@@ -79,7 +79,7 @@ SUBCOMMANDS:
     help     Print this message or the help of the given subcommand(s)
     new      Create a new Lenra app project
     start    Start your app previously built with the build command
-    stop     Stop your app previously started with the start command
+    stop     Stops your app previously started with the start command
 ```
 
 ### Subcommands
