@@ -65,7 +65,7 @@ Use the help options to understand how to use it:
 ```bash
 $ lenra --help
 lenra_cli 0.0.0
-The Lenra's command line interface
+The Lenra command line interface
 
 USAGE:
     lenra <SUBCOMMAND>
