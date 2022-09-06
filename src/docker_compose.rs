@@ -180,23 +180,23 @@ pub fn compose_up() {
 
 pub fn compose_build() {
     let mut command = create_compose_command();
-        command.arg("build");
+    command.arg("build");
 
-        // Use Buildkit to improve performance
-        command.env("DOCKER_BUILDKIT", "1");
+    // Use Buildkit to improve performance
+    command.env("DOCKER_BUILDKIT", "1");
 
-        // Display std out & err
-        command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
+    // Display std out & err
+    command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
 
-        log::debug!("Build: {:?}", command);
-        let output = command.output().expect("Failed building the Docker image");
-        if !output.status.success() {
-            panic!(
-                "An error occured while building the Docker image:\n{}\n{}",
-                String::from_utf8(output.stdout).unwrap(),
-                String::from_utf8(output.stderr).unwrap()
-            )
-        }
+    log::debug!("Build: {:?}", command);
+    let output = command.output().expect("Failed building the Docker image");
+    if !output.status.success() {
+        panic!(
+            "An error occured while building the Docker image:\n{}\n{}",
+            String::from_utf8(output.stdout).unwrap(),
+            String::from_utf8(output.stderr).unwrap()
+        )
+    }
 }
 
 pub fn execute_compose_service_command(service: &str, cmd: &[&str]) {
