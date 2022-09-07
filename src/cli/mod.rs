@@ -1,8 +1,13 @@
 pub use clap::{Args, Parser, Subcommand};
 
-use crate::{build::Build, new::New, start::Start, stop::Stop};
+use self::{build::Build, new::New, start::Start, stop::Stop};
 
-/// The Lenra CLI arguments to manage your local app development.
+mod build;
+mod new;
+mod start;
+mod stop;
+
+/// The Lenra command line interface
 #[derive(Parser)]
 #[clap(author, version, about, long_about = None)]
 pub struct Cli {

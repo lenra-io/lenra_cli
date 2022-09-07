@@ -42,6 +42,10 @@ You can also install the [Docker buildx command](https://docs.docker.com/build/b
 
 Install the Lenra CLI using one of the next possibilities.
 
+#### Download the binary
+
+You can download the binary from [the release page](https://github.com/lenra-io/lenra_cli/releases) and add it to your path environment variable.
+
 #### Cargo install
 
 First install Cargo, the Rust package manager: https://doc.rust-lang.org/cargo/getting-started/installation.html
@@ -52,9 +56,16 @@ Then use the next command to install the Lenra's cli:
 cargo install lenra_cli
 ```
 
-#### Download the binary
+#### Build it from sources
 
-You can download the binary from [the release page](https://github.com/lenra-io/lenra_cli/releases) and add it to your path environment variable.
+First install Cargo, the Rust package manager: https://doc.rust-lang.org/cargo/getting-started/installation.html
+
+Then clone this repository and install it with Cargo:
+
+```bash
+git clone https://github.com/lenra-io/lenra_cli.git
+cargo install --path .
+```
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
@@ -79,7 +90,7 @@ SUBCOMMANDS:
     help     Print this message or the help of the given subcommand(s)
     new      Create a new Lenra app project
     start    Start your app previously built with the build command
-    stop     Stops your app previously started with the start command
+    stop     Stop your app previously started with the start command
 ```
 
 ### Subcommands
@@ -142,7 +153,7 @@ This subcommand starts the Lenra app of the current directory previously built.
 ```bash
 $ lenra start --help
 lenra-start 
-Starts your app previously built with the build command
+Start your app previously built with the build command
 
 USAGE:
     lenra start [OPTIONS]
@@ -159,7 +170,7 @@ This subcommand stops the Lenra app of the current directory and removes the Doc
 ```bash
 $ lenra stop --help
 lenra-stop 
-Stops your app previously started with the start command
+Stop your app previously started with the start command
 
 USAGE:
     lenra stop [OPTIONS]
