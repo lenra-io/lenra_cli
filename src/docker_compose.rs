@@ -1,12 +1,13 @@
 use std::{
     env, fs,
+    convert::TryInto,
     path::PathBuf,
-    process::{Command, Stdio},
+    process::{self, Stdio},
 };
 
 use docker_compose_types::{
-    AdvancedBuildStep, BuildStep, Compose, DependsCondition, DependsOnOptions, Environment,
-    Healthcheck, HealthcheckTest, Service, Services,
+    AdvancedBuildStep, BuildStep, Command, Compose, DependsCondition, DependsOnOptions,
+    Environment, Healthcheck, HealthcheckTest, Service, Services,
 };
 
 use crate::{
@@ -20,12 +21,16 @@ pub const POSTGRES_SERVICE_NAME: &str = "postgres";
 const APP_BASE_IMAGE: &str = "lenra/app/";
 const APP_DEFAULT_IMAGE: &str = "my";
 const APP_DEFAULT_IMAGE_TAG: &str = "latest";
+const MONGO_SERVICE_NAME: &str = "mongodb";
 const DEVTOOL_IMAGE: &str = "lenra/devtools";
 const DEVTOOL_DEFAULT_TAG: &str = "beta";
 const POSTGRES_IMAGE: &str = "postgres";
 const POSTGRES_IMAGE_TAG: &str = "13";
+const MONGO_IMAGE: &str = "mongo";
+const MONGO_IMAGE_TAG: &str = "5.0.11-focal";
 const OF_WATCHDOG_PORT: u16 = 8080;
 const DEVTOOL_PORT: u16 = 4000;
+const MONGO_PORT: u16 = 27017;
 
 /// Generates the docker-compose.yml file
 pub fn generate_docker_compose(dockerfile: PathBuf, dev_conf: &Option<Dev>) {
@@ -35,7 +40,7 @@ pub fn generate_docker_compose(dockerfile: PathBuf, dev_conf: &Option<Dev>) {
 }
 
 fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) -> String {
-    let postgres_envs = [
+    let mut devtool_env_vec: Vec<(String, Option<String>)> = vec![
         ("POSTGRES_USER".to_string(), Some("postgres".to_string())),
         (
             "POSTGRES_PASSWORD".to_string(),
@@ -43,26 +48,39 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) 
         ),
         ("POSTGRES_DB".to_string(), Some("lenra_devtool".to_string())),
     ];
-    let devtool_envs: [(String, Option<String>); 6] = [
-        postgres_envs.clone(),
-        [
-            (
-                "POSTGRES_HOST".to_string(),
-                Some(POSTGRES_SERVICE_NAME.to_string()),
-            ),
-            (
-                "OF_WATCHDOG_URL".to_string(),
-                Some(format!("http://{}:{}", APP_SERVICE_NAME, OF_WATCHDOG_PORT)),
-            ),
-            (
-                "LENRA_API_URL".to_string(),
-                Some(format!("http://{}:{}", DEVTOOL_SERVICE_NAME, DEVTOOL_PORT)),
-            ),
-        ],
-    ]
-    .concat()
-    .try_into()
-    .unwrap();
+    let postgres_envs: [(String, Option<String>); 3] = devtool_env_vec.clone().try_into().unwrap();
+
+    devtool_env_vec.push((
+        "POSTGRES_HOST".to_string(),
+        Some(POSTGRES_SERVICE_NAME.to_string()),
+    ));
+    devtool_env_vec.push((
+        "OF_WATCHDOG_URL".to_string(),
+        Some(format!("http://{}:{}", APP_SERVICE_NAME, OF_WATCHDOG_PORT)),
+    ));
+    devtool_env_vec.push((
+        "LENRA_API_URL".to_string(),
+        Some(format!("http://{}:{}", DEVTOOL_SERVICE_NAME, DEVTOOL_PORT)),
+    ));
+    devtool_env_vec.push((
+        "MONGO_URL".to_string(),
+        Some(format!("mongodb://{}:{}", MONGO_SERVICE_NAME, MONGO_PORT)),
+    ));
+    let devtool_envs: [(String, Option<String>); 7] = devtool_env_vec.try_into().unwrap();
+
+    let mongo_envs: [(String, Option<String>); 2] = [
+        (
+            "MONGO_INITDB_DATABASE".to_string(),
+            Some("test".to_string()),
+        ),
+        (
+            "CONFIG".to_string(),
+            Some(format!(
+                r#"{{"_id" : "rs0", "members" : [{{"_id" : 0,"host" : "{}:{}"}}]}}"#,
+                MONGO_SERVICE_NAME, MONGO_PORT
+            )),
+        ),
+    ];
 
     let default_app_image = current_dir_name().unwrap_or(APP_DEFAULT_IMAGE.to_string());
     let default_app_tag = get_current_branch().unwrap_or(APP_DEFAULT_IMAGE_TAG.to_string());
@@ -138,6 +156,11 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) 
                                 DependsCondition {
                                     condition: "service_healthy".into(),
                                 },
+                            ),(
+                                MONGO_SERVICE_NAME.into(),
+                                DependsCondition {
+                                    condition: "service_healthy".into(),
+                                },
                             )]
                             .into(),
                         )),
@@ -170,12 +193,33 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) 
                                 "-U".into(),
                                 "postgres".into(),
                             ])),
+                            // TODO: not managed yet by the lib
+                            // start_period: Some("10s".into()),
+                            interval: Some("5s".into()),
+                            timeout: None,
+                            retries: 5,
+                            disable: false,
+                            start_period: None,
+                        }),
+                        ..Default::default()
+                    }),
+                ),
+                (
+                    MONGO_SERVICE_NAME.into(),
+                    Some(Service {
+                        image: Some(format!("{}:{}", MONGO_IMAGE, MONGO_IMAGE_TAG)),
+                        environment: Some(Environment::KvPair(mongo_envs.into())),
+                        healthcheck: Some(Healthcheck {
+                            test: Some(HealthcheckTest::Single(r#"test $$(echo "rs.initiate($$CONFIG).ok || rs.status().ok" | mongo --quiet) -eq 1"#.to_string())),
+                            // TODO: not managed yet by the lib
+                            // start_period: Some("10s".into()),
                             interval: Some("5s".into()),
                             start_period: None,
                             timeout: None,
                             retries: 5,
                             disable: false,
                         }),
+                        command: Some(Command::Simple("mongod --replSet rs0".into())),
                         ..Default::default()
                     }),
                 ),
@@ -187,9 +231,9 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) 
     serde_yaml::to_string(&compose).expect("Error generating the docker-compose file content")
 }
 
-pub fn create_compose_command() -> Command {
+pub fn create_compose_command() -> process::Command {
     let dockercompose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
-    let mut cmd = Command::new("docker");
+    let mut cmd = process::Command::new("docker");
 
     cmd.arg("compose").arg("-f").arg(dockercompose_path);
 
