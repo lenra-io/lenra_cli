@@ -6,11 +6,9 @@ use clap::Parser;
 use cli::{Cli, CliCommand};
 use env_logger;
 
-mod build;
 mod cli;
 mod config;
-mod new;
-mod start;
+mod docker_compose;
 
 fn main() {
     env_logger::init();
