@@ -1,0 +1,35 @@
+componentsApi: "1.0"
+generator:
+  dofigen:
+    builders:
+    - name: builder
+      image: rust
+      workdir: /app
+      envs:
+        CARGO_HOME: /root/.cargo
+      adds:
+      - "."
+      script:
+      - mkdir -p $CARGO_HOME
+      - cargo build --release
+      # copy the generated binary outside of the target directory. If not the other stages won't be able to find it since it's in a cache volume
+      - mv target/release/app /tmp/
+      caches:
+      # Cargo cache
+      - /root/.cargo
+      # build cache
+      - /app/target
+    image: debian:stable-slim
+    envs:
+      RUST_LOG: debug
+    workdir: /app
+    artifacts:
+    - builder: builder
+      source: "/tmp/app"
+      destination: "/app/"
+    cmd:
+    - /app/app
+    ignores:
+    - "**"
+    - "!/src"
+    - "!/Cargo.*"
