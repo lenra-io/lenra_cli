@@ -72,12 +72,8 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) 
             app: format!(
                 "{}{}:{}",
                 APP_BASE_IMAGE,
-                dev.app_name
-                    .clone()
-                    .unwrap_or(default_app_image),
-                dev.app_tag
-                    .clone()
-                    .unwrap_or(default_app_tag)
+                dev.app_name.clone().unwrap_or(default_app_image),
+                dev.app_tag.clone().unwrap_or(default_app_tag)
             ),
             devtool: format!(
                 "{}:{}",
