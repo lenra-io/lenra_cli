@@ -33,7 +33,7 @@ impl CliCommand for Start {
             &[
                 "bin/dev_tools",
                 "rpc",
-                "ApplicationRunner.Environments.Managers.stop_env(1)",
+                "ApplicationRunner.Environment.DynamicSupervisor.stop_env(1)",
             ],
         );
         // Open the app
