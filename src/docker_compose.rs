@@ -2,7 +2,7 @@ use std::{
     env, fs,
     convert::TryInto,
     path::PathBuf,
-    process::{self, Stdio},
+    process::{self, Output, Stdio},
 };
 
 use docker_compose_types::{
@@ -284,7 +284,10 @@ pub fn compose_build() {
     }
 }
 
-pub fn execute_compose_service_command(service: &str, cmd: &[&str]) {
+pub fn execute_compose_service_command(
+    service: &str,
+    cmd: &[&str],
+) -> Result<(), Box<dyn std::error::Error>> {
     let mut command = create_compose_command();
 
     command.arg("exec").arg(service);
@@ -294,15 +297,31 @@ pub fn execute_compose_service_command(service: &str, cmd: &[&str]) {
         ()
     });
 
-    let output = command
-        .output()
-        .expect("Failed to execute the docker-compose exec command");
+    let output = command.output()?;
 
     if !output.status.success() {
-        panic!(
+        return Err(Error { command, output }.into());
+    }
+
+    Ok(())
+}
+
+#[derive(Debug)]
+pub struct Error {
+    command: process::Command,
+    output: Output,
+}
+
+impl std::error::Error for Error {}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        let output = self.output.clone();
+        write!(
+            f,
             "docker-compose exec exited with code {}:\n\tcmd: {:?}\n\tstdout: {}\n\tstderr: {}",
             output.status.code().unwrap(),
-            command,
+            self.command,
             String::from_utf8(output.stdout).unwrap(),
             String::from_utf8(output.stderr).unwrap()
         )
