@@ -1,15 +1,16 @@
 pub use clap::{Args, Parser, Subcommand};
 
-use self::{build::Build, new::New, start::Start, stop::Stop};
+use self::{build::Build, new::New, start::Start, stop::Stop, logs::Logs};
 
 mod build;
 mod new;
 mod start;
+mod logs;
 mod stop;
 
 /// The Lenra command line interface
 #[derive(Parser)]
-#[clap(author, version, about, long_about = None)]
+#[clap(author, version, about, long_about = None, rename_all = "kebab-case")]
 pub struct Cli {
     #[clap(subcommand)]
     pub command: Command,
@@ -28,6 +29,8 @@ pub enum Command {
     Build(Build),
     /// Start your app previously built with the build command
     Start(Start),
+    /// View output from the containers
+    Logs(Logs),
     /// Stop your app previously started with the start command
     Stop(Stop),
 }
@@ -38,6 +41,7 @@ impl CliCommand for Command {
             Command::New(new) => new.run(),
             Command::Build(build) => build.run(),
             Command::Start(start) => start.run(),
+            Command::Logs(logs) => logs.run(),
             Command::Stop(stop) => stop.run(),
         };
     }
