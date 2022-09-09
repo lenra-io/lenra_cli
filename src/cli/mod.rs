@@ -1,11 +1,11 @@
 pub use clap::{Args, Parser, Subcommand};
 
-use self::{build::Build, new::New, start::Start, stop::Stop, logs::Logs};
+use self::{build::Build, logs::Logs, new::New, start::Start, stop::Stop};
 
 mod build;
+mod logs;
 mod new;
 mod start;
-mod logs;
 mod stop;
 
 /// The Lenra command line interface
