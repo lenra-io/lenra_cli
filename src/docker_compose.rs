@@ -1,5 +1,5 @@
 use std::{
-    fs,
+    env, fs,
     path::PathBuf,
     process::{Command, Stdio},
 };
@@ -9,12 +9,19 @@ use docker_compose_types::{
     Healthcheck, HealthcheckTest, Service, Services,
 };
 
-use crate::config::{Dev, DEVTOOL_DEFAULT_TAG, DOCKERCOMPOSE_DEFAULT_PATH};
+use crate::{
+    config::{Dev, DOCKERCOMPOSE_DEFAULT_PATH},
+    git::get_current_branch,
+};
 
 pub const APP_SERVICE_NAME: &str = "app";
 pub const DEVTOOL_SERVICE_NAME: &str = "devtool";
 pub const POSTGRES_SERVICE_NAME: &str = "postgres";
+const APP_BASE_IMAGE: &str = "lenra/app/";
+const APP_DEFAULT_IMAGE: &str = "my";
+const APP_DEFAULT_IMAGE_TAG: &str = "latest";
 const DEVTOOL_IMAGE: &str = "lenra/devtools";
+const DEVTOOL_DEFAULT_TAG: &str = "beta";
 const POSTGRES_IMAGE: &str = "postgres";
 const POSTGRES_IMAGE_TAG: &str = "13";
 const OF_WATCHDOG_PORT: u16 = 8080;
@@ -57,18 +64,50 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) 
     .try_into()
     .unwrap();
 
-    let devtool_tag = if let Some(conf) = dev_conf {
-        conf.devtool_tag.as_str()
+    let default_app_image = current_dir_name().unwrap_or(APP_DEFAULT_IMAGE.to_string());
+    let default_app_tag = get_current_branch().unwrap_or(APP_DEFAULT_IMAGE_TAG.to_string());
+
+    let service_images = if let Some(dev) = dev_conf {
+        ServiceImages {
+            app: format!(
+                "{}{}:{}",
+                APP_BASE_IMAGE,
+                dev.app_name.clone().unwrap_or(default_app_image),
+                dev.app_tag.clone().unwrap_or(default_app_tag)
+            ),
+            devtool: format!(
+                "{}:{}",
+                DEVTOOL_IMAGE,
+                dev.devtool_tag
+                    .clone()
+                    .unwrap_or(DEVTOOL_DEFAULT_TAG.to_string())
+            ),
+            postgres: format!(
+                "{}:{}",
+                POSTGRES_IMAGE,
+                dev.postgres_tag
+                    .clone()
+                    .unwrap_or(POSTGRES_IMAGE_TAG.to_string())
+            ),
+        }
     } else {
-        DEVTOOL_DEFAULT_TAG
+        ServiceImages {
+            app: format!(
+                "{}{}:{}",
+                APP_BASE_IMAGE, default_app_image, default_app_tag
+            ),
+            devtool: format!("{}:{}", DEVTOOL_IMAGE, DEVTOOL_DEFAULT_TAG),
+            postgres: format!("{}:{}", POSTGRES_IMAGE, POSTGRES_IMAGE_TAG),
+        }
     };
+
     let compose = Compose {
         services: Some(Services(
             [
                 (
                     APP_SERVICE_NAME.into(),
                     Some(Service {
-                        image: Some("lenra/my-app".into()),
+                        image: Some(service_images.app),
                         build_: Some(BuildStep::Advanced(AdvancedBuildStep {
                             context: "..".into(),
                             dockerfile: Some(dockerfile.to_str().unwrap().into()),
@@ -90,7 +129,7 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) 
                 (
                     DEVTOOL_SERVICE_NAME.into(),
                     Some(Service {
-                        image: Some(format!("{}:{}", DEVTOOL_IMAGE, devtool_tag)),
+                        image: Some(service_images.devtool),
                         ports: Some(vec![format!("{}:{}", DEVTOOL_PORT, DEVTOOL_PORT)]),
                         environment: Some(Environment::KvPair(devtool_envs.into())),
                         depends_on: Some(DependsOnOptions::Conditional(
@@ -122,7 +161,7 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) 
                 (
                     POSTGRES_SERVICE_NAME.into(),
                     Some(Service {
-                        image: Some(format!("{}:{}", POSTGRES_IMAGE, POSTGRES_IMAGE_TAG)),
+                        image: Some(service_images.postgres),
                         environment: Some(Environment::KvPair(postgres_envs.into())),
                         healthcheck: Some(Healthcheck {
                             test: Some(HealthcheckTest::Multiple(vec![
@@ -224,4 +263,19 @@ pub fn execute_compose_service_command(service: &str, cmd: &[&str]) {
             String::from_utf8(output.stderr).unwrap()
         )
     }
+}
+
+fn current_dir_name() -> Option<String> {
+    if let Ok(path) = env::current_dir() {
+        path.file_name()
+            .map(|name| String::from(name.to_str().unwrap()))
+    } else {
+        None
+    }
+}
+
+struct ServiceImages {
+    app: String,
+    devtool: String,
+    postgres: String,
 }

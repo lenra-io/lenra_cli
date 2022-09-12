@@ -9,6 +9,7 @@ use env_logger;
 mod cli;
 mod config;
 mod docker_compose;
+mod git;
 
 fn main() {
     env_logger::init();
