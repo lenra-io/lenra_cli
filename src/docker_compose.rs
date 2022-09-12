@@ -18,10 +18,10 @@ use crate::{
 pub const APP_SERVICE_NAME: &str = "app";
 pub const DEVTOOL_SERVICE_NAME: &str = "devtool";
 pub const POSTGRES_SERVICE_NAME: &str = "postgres";
+pub const MONGO_SERVICE_NAME: &str = "mongodb";
 const APP_BASE_IMAGE: &str = "lenra/app/";
 const APP_DEFAULT_IMAGE: &str = "my";
 const APP_DEFAULT_IMAGE_TAG: &str = "latest";
-const MONGO_SERVICE_NAME: &str = "mongodb";
 const DEVTOOL_IMAGE: &str = "lenra/devtools";
 const DEVTOOL_DEFAULT_TAG: &str = "beta";
 const POSTGRES_IMAGE: &str = "postgres";
@@ -107,6 +107,13 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) 
                     .clone()
                     .unwrap_or(POSTGRES_IMAGE_TAG.to_string())
             ),
+            mongo: format!(
+                "{}:{}",
+                MONGO_IMAGE,
+                dev.mongo_tag
+                    .clone()
+                    .unwrap_or(MONGO_IMAGE_TAG.to_string())
+            ),
         }
     } else {
         ServiceImages {
@@ -116,6 +123,7 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) 
             ),
             devtool: format!("{}:{}", DEVTOOL_IMAGE, DEVTOOL_DEFAULT_TAG),
             postgres: format!("{}:{}", POSTGRES_IMAGE, POSTGRES_IMAGE_TAG),
+            mongo: format!("{}:{}", MONGO_IMAGE, MONGO_IMAGE_TAG),
         }
     };
 
@@ -193,13 +201,11 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) 
                                 "-U".into(),
                                 "postgres".into(),
                             ])),
-                            // TODO: not managed yet by the lib
-                            // start_period: Some("10s".into()),
+                            start_period: Some("10s".into()),
                             interval: Some("5s".into()),
                             timeout: None,
                             retries: 5,
                             disable: false,
-                            start_period: None,
                         }),
                         ..Default::default()
                     }),
@@ -207,14 +213,12 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) 
                 (
                     MONGO_SERVICE_NAME.into(),
                     Some(Service {
-                        image: Some(format!("{}:{}", MONGO_IMAGE, MONGO_IMAGE_TAG)),
+                        image: Some(service_images.mongo),
                         environment: Some(Environment::KvPair(mongo_envs.into())),
                         healthcheck: Some(Healthcheck {
                             test: Some(HealthcheckTest::Single(r#"test $$(echo "rs.initiate($$CONFIG).ok || rs.status().ok" | mongo --quiet) -eq 1"#.to_string())),
-                            // TODO: not managed yet by the lib
-                            // start_period: Some("10s".into()),
+                            start_period: Some("10s".into()),
                             interval: Some("5s".into()),
-                            start_period: None,
                             timeout: None,
                             retries: 5,
                             disable: false,
@@ -341,4 +345,5 @@ struct ServiceImages {
     app: String,
     devtool: String,
     postgres: String,
+    mongo: String,
 }
