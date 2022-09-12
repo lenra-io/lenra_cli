@@ -13,9 +13,10 @@ pub struct Start {
     pub config: std::path::PathBuf,
 }
 
-impl Start {
-    /// Starts the docker-compose
-    fn start_docker_compose(&self) {
+impl CliCommand for Start {
+    fn run(&self) {
+        log::info!("Starting the app");
+
         let dockercompose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
         if !dockercompose_path.exists() {
             let conf = load_config_file(&self.config);
@@ -37,12 +38,5 @@ impl Start {
         );
         // Open the app
         open::that("http://localhost:4000").unwrap();
-    }
-}
-
-impl CliCommand for Start {
-    fn run(&self) {
-        log::info!("Starting the app");
-        self.start_docker_compose();
     }
 }

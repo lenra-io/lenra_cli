@@ -88,6 +88,7 @@ OPTIONS:
 SUBCOMMANDS:
     build    Build your app in release mode
     help     Print this message or the help of the given subcommand(s)
+    logs     View output from the containers
     new      Create a new Lenra app project
     start    Start your app previously built with the build command
     stop     Stop your app previously started with the start command
@@ -100,6 +101,7 @@ This tools contains many subcommands to help you doing what you need.
 - [new](#new): creates a new Lenra app project
 - [build](#build): builds the Lenra app of the current directory
 - [start](#start): starts your app previously built with the build command
+- [logs](#logs): displays output from the containers
 - [stop](#stop): stops your app previously started with the start command
 
 #### new
@@ -161,6 +163,36 @@ USAGE:
 OPTIONS:
         --config <CONFIG>    The app configuration file [default: lenra.yml]
     -h, --help               Print help information
+```
+
+#### logs
+
+This subcommand displays output from the containers.
+
+```bash
+$ lenra logs --help
+lenra-logs 
+View output from the containers
+
+USAGE:
+    lenra logs [OPTIONS] [SERVICES]...
+
+ARGS:
+    <SERVICES>...    The logged service list [default: app] [possible values: app, devtool,
+                     postgres]
+
+OPTIONS:
+    -f, --follow           Follow log output
+    -h, --help             Print help information
+        --no-color         Produce monochrome output
+        --no-log-prefix    Don't print prefix in logs
+        --since <SINCE>    Show logs since timestamp (e.g. 2013-01-02T13:23:37Z) or relative (e.g.
+                           42m for 42 minutes)
+    -t, --timestamps       Show timestamps
+        --tail <TAIL>      Number of lines to show from the end of the logs for each container
+                           [default: all]
+        --until <UNTIL>    Show logs before a timestamp (e.g. 2013-01-02T13:23:37Z) or relative
+                           (e.g. 42m for 42 minutes)
 ```
 
 #### stop
