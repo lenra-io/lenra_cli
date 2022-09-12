@@ -11,8 +11,6 @@ use crate::docker_compose::generate_docker_compose;
 pub const DEFAULT_CONFIG_FILE: &str = "lenra.yml";
 pub const LENRA_CACHE_DIRECTORY: &str = ".lenra";
 
-pub const DEVTOOL_DEFAULT_TAG: &str = "beta";
-
 pub const DOCKERFILE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, "Dockerfile"];
 pub const DOCKERIGNORE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, "Dockerfile.dockerignore"];
 pub const DOCKERCOMPOSE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, "docker-compose.yml"];
@@ -48,8 +46,10 @@ pub struct Application {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Dev {
-    #[serde(default = "devtool_default_tag")]
-    pub devtool_tag: String,
+    pub app_name: Option<String>,
+    pub app_tag: Option<String>,
+    pub devtool_tag: Option<String>,
+    pub postgres_tag: Option<String>,
 }
 
 /** The application generator configuration */
@@ -228,10 +228,6 @@ impl Application {
             fs::write(dockerignore_path, content).expect("Unable to write the .dockerignore file");
         }
     }
-}
-
-fn devtool_default_tag() -> String {
-    DEVTOOL_DEFAULT_TAG.to_string()
 }
 
 impl Default for Generator {
