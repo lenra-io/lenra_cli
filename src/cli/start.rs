@@ -28,14 +28,17 @@ impl CliCommand for Start {
         // Start the containers
         compose_up();
         // Stop the devtool app env to reset cache
-        execute_compose_service_command(
+        let result = execute_compose_service_command(
             DEVTOOL_SERVICE_NAME,
             &[
                 "bin/dev_tools",
                 "rpc",
-                "ApplicationRunner.Environments.Managers.stop_env(1)",
+                "ApplicationRunner.Environment.DynamicSupervisor.stop_env(1)",
             ],
         );
+        if let Err(error) = result {
+            log::info!("{}", error);
+        }
         // Open the app
         open::that("http://localhost:4000").unwrap();
     }

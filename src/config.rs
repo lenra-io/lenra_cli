@@ -50,6 +50,7 @@ pub struct Dev {
     pub app_tag: Option<String>,
     pub devtool_tag: Option<String>,
     pub postgres_tag: Option<String>,
+    pub mongo_tag: Option<String>,
 }
 
 /** The application generator configuration */
