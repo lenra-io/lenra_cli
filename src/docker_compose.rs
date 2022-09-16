@@ -1,6 +1,6 @@
 use std::{
-    env, fs,
     convert::TryInto,
+    env, fs,
     path::PathBuf,
     process::{self, Output, Stdio},
 };
@@ -110,9 +110,7 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) 
             mongo: format!(
                 "{}:{}",
                 MONGO_IMAGE,
-                dev.mongo_tag
-                    .clone()
-                    .unwrap_or(MONGO_IMAGE_TAG.to_string())
+                dev.mongo_tag.clone().unwrap_or(MONGO_IMAGE_TAG.to_string())
             ),
         }
     } else {

@@ -4,7 +4,8 @@ pub use clap::Args;
 
 use crate::cli::CliCommand;
 use crate::docker_compose::{
-    create_compose_command, APP_SERVICE_NAME, DEVTOOL_SERVICE_NAME, POSTGRES_SERVICE_NAME, MONGO_SERVICE_NAME,
+    create_compose_command, APP_SERVICE_NAME, DEVTOOL_SERVICE_NAME, MONGO_SERVICE_NAME,
+    POSTGRES_SERVICE_NAME,
 };
 
 #[derive(Args)]
