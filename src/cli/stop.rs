@@ -16,6 +16,7 @@ impl CliCommand for Stop {
 
         command
             .arg("down")
+            .arg("--volumes")
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit());
 
