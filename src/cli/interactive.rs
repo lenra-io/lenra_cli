@@ -11,7 +11,6 @@ pub fn run_interactive_command() {
     io::stdin()
         .read_line(&mut input)
         .expect("Error reading input.");
-    println!("line: {}", input);
     let args = &mut input.split_whitespace().collect::<Vec<&str>>();
 
     let first_arg = if args.len() > 0 { Some(args[0]) } else { None };
