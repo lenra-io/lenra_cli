@@ -5,6 +5,7 @@ use self::{build::Build, dev::Dev, init::Init, logs::Logs, new::New, start::Star
 mod build;
 mod dev;
 mod init;
+mod interactive;
 mod logs;
 mod new;
 mod start;
@@ -39,6 +40,8 @@ pub enum Command {
     Dev(Dev),
     /// Generates dockerfile and docker compose file with the init command
     Init(Init),
+    /// Start the app in an interactive mode
+    Dev(Dev),
 }
 
 impl CliCommand for Command {
@@ -51,6 +54,7 @@ impl CliCommand for Command {
             Command::Stop(stop) => stop.run(),
             Command::Dev(dev) => dev.run(),
             Command::Init(init) => init.run(),
+            Command::Dev(dev) => dev.run(),
         };
     }
 }
