@@ -36,12 +36,10 @@ pub enum Command {
     Logs(Logs),
     /// Stop your app previously started with the start command
     Stop(Stop),
-    /// Starts the dev mode
+    /// Start the app in an interactive mode
     Dev(Dev),
     /// Generates dockerfile and docker compose file with the init command
     Init(Init),
-    /// Start the app in an interactive mode
-    Dev(Dev),
 }
 
 impl CliCommand for Command {
@@ -54,7 +52,6 @@ impl CliCommand for Command {
             Command::Stop(stop) => stop.run(),
             Command::Dev(dev) => dev.run(),
             Command::Init(init) => init.run(),
-            Command::Dev(dev) => dev.run(),
         };
     }
 }
