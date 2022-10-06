@@ -92,9 +92,9 @@ pub struct Dockerfile {
 
 impl Application {
     /// Generates all the files needed to build and run the application
-    pub fn generate_files(&self) {
+    pub fn generate_files(&self, expose: bool) {
         self.generate_docker_files();
-        self.generate_docker_compose_file();
+        self.generate_docker_compose_file(expose);
     }
 
     pub fn generate_docker_files(&self) {
@@ -118,7 +118,7 @@ impl Application {
         }
     }
 
-    pub fn generate_docker_compose_file(&self) {
+    pub fn generate_docker_compose_file(&self, expose: bool) {
         log::info!("Docker Compose file generation");
         // create the `.lenra` cache directory
         fs::create_dir_all(LENRA_CACHE_DIRECTORY).unwrap();
@@ -129,7 +129,7 @@ impl Application {
             DOCKERFILE_DEFAULT_PATH.iter().collect()
         };
 
-        generate_docker_compose(dockerfile, &self.dev);
+        generate_docker_compose(dockerfile, &self.dev, expose);
     }
 
     /// Builds a Docker image from a Dofigen structure

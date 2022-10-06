@@ -31,15 +31,20 @@ const MONGO_IMAGE_TAG: &str = "5.0.11-focal";
 const OF_WATCHDOG_PORT: u16 = 8080;
 const DEVTOOL_PORT: u16 = 4000;
 const MONGO_PORT: u16 = 27017;
+const POSTGRES_PORT: u16 = 5432;
 
 /// Generates the docker-compose.yml file
-pub fn generate_docker_compose(dockerfile: PathBuf, dev_conf: &Option<Dev>) {
-    let compose_content = generate_docker_compose_content(dockerfile, dev_conf);
+pub fn generate_docker_compose(dockerfile: PathBuf, dev_conf: &Option<Dev>, expose: bool) {
+    let compose_content = generate_docker_compose_content(dockerfile, dev_conf, expose);
     let compose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
     fs::write(compose_path, compose_content).expect("Unable to write the docker-compose file");
 }
 
-fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) -> String {
+fn generate_docker_compose_content(
+    dockerfile: PathBuf,
+    dev_conf: &Option<Dev>,
+    expose: bool,
+) -> String {
     let mut devtool_env_vec: Vec<(String, Option<String>)> = vec![
         ("POSTGRES_USER".to_string(), Some("postgres".to_string())),
         (
@@ -189,41 +194,82 @@ fn generate_docker_compose_content(dockerfile: PathBuf, dev_conf: &Option<Dev>) 
                 ),
                 (
                     POSTGRES_SERVICE_NAME.into(),
-                    Some(Service {
-                        image: Some(service_images.postgres),
-                        environment: Some(Environment::KvPair(postgres_envs.into())),
-                        healthcheck: Some(Healthcheck {
-                            test: Some(HealthcheckTest::Multiple(vec![
-                                "CMD".into(),
-                                "pg_isready".into(),
-                                "-U".into(),
-                                "postgres".into(),
-                            ])),
-                            start_period: Some("10s".into()),
-                            interval: Some("5s".into()),
-                            timeout: None,
-                            retries: 5,
-                            disable: false,
-                        }),
-                        ..Default::default()
+                    Some(if expose {
+                        Service {
+                            image: Some(service_images.postgres),
+                            ports: Some(vec![format!("{}:{}", POSTGRES_PORT, POSTGRES_PORT)]),
+                            environment: Some(Environment::KvPair(postgres_envs.into())),
+                            healthcheck: Some(Healthcheck {
+                                test: Some(HealthcheckTest::Multiple(vec![
+                                    "CMD".into(),
+                                    "pg_isready".into(),
+                                    "-U".into(),
+                                    "postgres".into(),
+                                ])),
+                                start_period: Some("10s".into()),
+                                interval: Some("5s".into()),
+                                timeout: None,
+                                retries: 5,
+                                disable: false,
+                            }),
+                            ..Default::default()
+                        }
+                    } else {
+                        Service {
+                            image: Some(service_images.postgres),
+                            environment: Some(Environment::KvPair(postgres_envs.into())),
+                            healthcheck: Some(Healthcheck {
+                                test: Some(HealthcheckTest::Multiple(vec![
+                                    "CMD".into(),
+                                    "pg_isready".into(),
+                                    "-U".into(),
+                                    "postgres".into(),
+                                ])),
+                                start_period: Some("10s".into()),
+                                interval: Some("5s".into()),
+                                timeout: None,
+                                retries: 5,
+                                disable: false,
+                            }),
+                            ..Default::default()
+                        }
                     }),
                 ),
                 (
                     MONGO_SERVICE_NAME.into(),
-                    Some(Service {
-                        image: Some(service_images.mongo),
-                        environment: Some(Environment::KvPair(mongo_envs.into())),
-                        healthcheck: Some(Healthcheck {
-                            test: Some(HealthcheckTest::Single(r#"test $$(echo "rs.initiate($$CONFIG).ok || rs.status().ok" | mongo --quiet) -eq 1"#.to_string())),
-                            start_period: Some("10s".into()),
-                            interval: Some("5s".into()),
-                            timeout: None,
-                            retries: 5,
-                            disable: false,
-                        }),
-                        command: Some(Command::Simple("mongod --replSet rs0".into())),
-                        ..Default::default()
-                    }),
+                    Some( if expose {
+                        Service {
+                            image: Some(service_images.mongo),
+                            ports: Some(vec![format!("{}:{}", MONGO_PORT, MONGO_PORT)]),
+                            environment: Some(Environment::KvPair(mongo_envs.into())),
+                            healthcheck: Some(Healthcheck {
+                                test: Some(HealthcheckTest::Single(r#"test $$(echo "rs.initiate($$CONFIG).ok || rs.status().ok" | mongo --quiet) -eq 1"#.to_string())),
+                                start_period: Some("10s".into()),
+                                interval: Some("5s".into()),
+                                timeout: None,
+                                retries: 5,
+                                disable: false,
+                            }),
+                            command: Some(Command::Simple("mongod --replSet rs0".into())),
+                            ..Default::default()
+                        }
+                    } else {
+                        Service {
+                            image: Some(service_images.mongo),
+                            environment: Some(Environment::KvPair(mongo_envs.into())),
+                            healthcheck: Some(Healthcheck {
+                                test: Some(HealthcheckTest::Single(r#"test $$(echo "rs.initiate($$CONFIG).ok || rs.status().ok" | mongo --quiet) -eq 1"#.to_string())),
+                                start_period: Some("10s".into()),
+                                interval: Some("5s".into()),
+                                timeout: None,
+                                retries: 5,
+                                disable: false,
+                            }),
+                            command: Some(Command::Simple("mongod --replSet rs0".into())),
+                            ..Default::default()
+                        }
+                    }
+                    ),
                 ),
             ]
             .into(),
