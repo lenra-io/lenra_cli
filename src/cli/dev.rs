@@ -2,6 +2,7 @@ pub use clap::Args;
 use log::debug;
 
 use crate::cli::build::Build;
+use crate::cli::interactive::run_interactive_command;
 use crate::cli::logs::Logs;
 use crate::cli::start::Start;
 use crate::cli::stop::Stop;
@@ -46,6 +47,11 @@ impl CliCommand for Dev {
         };
         log::debug!("Run logs");
         logs.run();
+
+        let res = run_interactive_command();
+        if let Err(error) = res {
+            println!("An error occured: {}", error.to_string());
+        }
 
         let stop = Stop;
         log::debug!("Run stop");
