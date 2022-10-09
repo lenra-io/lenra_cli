@@ -1,6 +1,6 @@
 pub use clap::{Args, Parser, Subcommand};
 
-use self::{build::Build, init::Init, logs::Logs, new::New, start::Start, stop::Stop, dev::Dev};
+use self::{build::Build, dev::Dev, init::Init, logs::Logs, new::New, start::Start, stop::Stop};
 
 mod build;
 mod dev;
