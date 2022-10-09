@@ -1,8 +1,9 @@
 pub use clap::{Args, Parser, Subcommand};
 
-use self::{build::Build, init::Init, logs::Logs, new::New, start::Start, stop::Stop};
+use self::{build::Build, init::Init, logs::Logs, new::New, start::Start, stop::Stop, dev::Dev};
 
 mod build;
+mod dev;
 mod init;
 mod logs;
 mod new;
@@ -34,6 +35,8 @@ pub enum Command {
     Logs(Logs),
     /// Stop your app previously started with the start command
     Stop(Stop),
+    /// Starts the dev mode
+    Dev(Dev),
     /// Generates dockerfile and docker compose file with the init command
     Init(Init),
 }
@@ -46,6 +49,7 @@ impl CliCommand for Command {
             Command::Start(start) => start.run(),
             Command::Logs(logs) => logs.run(),
             Command::Stop(stop) => stop.run(),
+            Command::Dev(dev) => dev.run(),
             Command::Init(init) => init.run(),
         };
     }
