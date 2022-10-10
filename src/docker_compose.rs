@@ -137,6 +137,7 @@ fn generate_docker_compose_content(
                     APP_SERVICE_NAME.into(),
                     Some(Service {
                         image: Some(service_images.app),
+                        ports: if expose { Some(vec![format!("{}:{}", OF_WATCHDOG_PORT, OF_WATCHDOG_PORT)])} else {None},
                         build_: Some(BuildStep::Advanced(AdvancedBuildStep {
                             context: "..".into(),
                             dockerfile: Some(dockerfile.to_str().unwrap().into()),
@@ -194,10 +195,10 @@ fn generate_docker_compose_content(
                 ),
                 (
                     POSTGRES_SERVICE_NAME.into(),
-                    Some(if expose {
+                    Some(
                         Service {
                             image: Some(service_images.postgres),
-                            ports: Some(vec![format!("{}:{}", POSTGRES_PORT, POSTGRES_PORT)]),
+                            ports: if expose {Some(vec![format!("{}:{}", POSTGRES_PORT, POSTGRES_PORT)])} else {None},
                             environment: Some(Environment::KvPair(postgres_envs.into())),
                             healthcheck: Some(Healthcheck {
                                 test: Some(HealthcheckTest::Multiple(vec![
@@ -214,33 +215,13 @@ fn generate_docker_compose_content(
                             }),
                             ..Default::default()
                         }
-                    } else {
-                        Service {
-                            image: Some(service_images.postgres),
-                            environment: Some(Environment::KvPair(postgres_envs.into())),
-                            healthcheck: Some(Healthcheck {
-                                test: Some(HealthcheckTest::Multiple(vec![
-                                    "CMD".into(),
-                                    "pg_isready".into(),
-                                    "-U".into(),
-                                    "postgres".into(),
-                                ])),
-                                start_period: Some("10s".into()),
-                                interval: Some("5s".into()),
-                                timeout: None,
-                                retries: 5,
-                                disable: false,
-                            }),
-                            ..Default::default()
-                        }
-                    }),
+                   ),
                 ),
                 (
                     MONGO_SERVICE_NAME.into(),
-                    Some( if expose {
-                        Service {
+                    Some( Service {
                             image: Some(service_images.mongo),
-                            ports: Some(vec![format!("{}:{}", MONGO_PORT, MONGO_PORT)]),
+                            ports: if expose {Some(vec![format!("{}:{}", MONGO_PORT, MONGO_PORT)])} else {None},
                             environment: Some(Environment::KvPair(mongo_envs.into())),
                             healthcheck: Some(Healthcheck {
                                 test: Some(HealthcheckTest::Single(r#"test $$(echo "rs.initiate($$CONFIG).ok || rs.status().ok" | mongo --quiet) -eq 1"#.to_string())),
@@ -253,22 +234,6 @@ fn generate_docker_compose_content(
                             command: Some(Command::Simple("mongod --replSet rs0".into())),
                             ..Default::default()
                         }
-                    } else {
-                        Service {
-                            image: Some(service_images.mongo),
-                            environment: Some(Environment::KvPair(mongo_envs.into())),
-                            healthcheck: Some(Healthcheck {
-                                test: Some(HealthcheckTest::Single(r#"test $$(echo "rs.initiate($$CONFIG).ok || rs.status().ok" | mongo --quiet) -eq 1"#.to_string())),
-                                start_period: Some("10s".into()),
-                                interval: Some("5s".into()),
-                                timeout: None,
-                                retries: 5,
-                                disable: false,
-                            }),
-                            command: Some(Command::Simple("mongod --replSet rs0".into())),
-                            ..Default::default()
-                        }
-                    }
                     ),
                 ),
             ]
