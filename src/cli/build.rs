@@ -11,6 +11,9 @@ pub struct Build {
     /// The app configuration file.
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
     pub config: std::path::PathBuf,
+
+    #[clap(long, action)]
+    pub expose: bool,
 }
 
 impl Build {
@@ -29,7 +32,7 @@ impl CliCommand for Build {
         let conf = load_config_file(&self.config);
         // TODO: check the components API version
 
-        conf.generate_files();
+        conf.generate_files(self.expose);
 
         // self.build_docker_image(conf);
         self.build_docker_compose();
