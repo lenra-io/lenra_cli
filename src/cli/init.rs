@@ -14,7 +14,6 @@ impl CliCommand for Init {
     fn run(&self) {
         let conf = load_config_file(&self.config);
         // TODO: check the components API version
-
-        conf.generate_files();
+        conf.generate_docker_files();
     }
 }
