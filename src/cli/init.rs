@@ -8,16 +8,12 @@ pub struct Init {
     /// The app configuration file.
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
     pub config: std::path::PathBuf,
-
-    #[clap(parse(from_os_str), parse(try_from_str), default_value = "false")]
-    pub expose: bool,
 }
 
 impl CliCommand for Init {
     fn run(&self) {
         let conf = load_config_file(&self.config);
         // TODO: check the components API version
-
-        conf.generate_files(self.expose);
+        conf.generate_docker_files();
     }
 }

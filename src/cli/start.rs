@@ -12,7 +12,7 @@ pub struct Start {
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
     pub config: std::path::PathBuf,
 
-    #[clap(parse(from_os_str), parse(try_from_str), default_value = "false")]
+    #[clap(long, action)]
     pub expose: bool,
 }
 
