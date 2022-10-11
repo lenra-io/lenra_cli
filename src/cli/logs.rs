@@ -8,19 +8,19 @@ use crate::docker_compose::{
     POSTGRES_SERVICE_NAME,
 };
 
-#[derive(Args)]
+#[derive(Args, Default)]
 pub struct Logs {
     /// Follow log output
     #[clap(short, long, action)]
-    follow: bool,
+    pub follow: bool,
 
     /// Produce monochrome output
     #[clap(long, action)]
-    no_color: bool,
+    pub no_color: bool,
 
     /// Don't print prefix in logs
     #[clap(long, action)]
-    no_log_prefix: bool,
+    pub no_log_prefix: bool,
 
     /// Show logs since timestamp (e.g. 2013-01-02T13:23:37Z) or relative (e.g. 42m for 42 minutes)
     #[clap(long)]
@@ -32,7 +32,7 @@ pub struct Logs {
 
     /// Show timestamps
     #[clap(short, long, action)]
-    timestamps: bool,
+    pub timestamps: bool,
 
     /// Show logs before a timestamp (e.g. 2013-01-02T13:23:37Z) or relative (e.g. 42m for 42 minutes)
     #[clap(long)]
@@ -40,11 +40,11 @@ pub struct Logs {
 
     /// The logged service list
     #[clap(value_enum, default_value = "app")]
-    services: Vec<Service>,
+    pub services: Vec<Service>,
 }
 
 #[derive(clap::ValueEnum, Clone, Debug)]
-enum Service {
+pub enum Service {
     App,
     Devtool,
     Postgres,

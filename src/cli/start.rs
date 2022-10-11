@@ -6,7 +6,7 @@ use crate::cli::CliCommand;
 use crate::config::{load_config_file, DEFAULT_CONFIG_FILE, DOCKERCOMPOSE_DEFAULT_PATH};
 use crate::docker_compose::{compose_up, execute_compose_service_command, DEVTOOL_SERVICE_NAME};
 
-#[derive(Args)]
+#[derive(Args, Default)]
 pub struct Start {
     /// The app configuration file.
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]

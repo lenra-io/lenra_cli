@@ -87,7 +87,9 @@ OPTIONS:
 
 SUBCOMMANDS:
     build    Build your app in release mode
+    dev      Starts the dev mode
     help     Print this message or the help of the given subcommand(s)
+    init     Generates dockerfile and docker compose file with the init command
     logs     View output from the containers
     new      Create a new Lenra app project
     start    Start your app previously built with the build command
@@ -103,6 +105,8 @@ This tools contains many subcommands to help you doing what you need.
 - [start](#start): starts your app previously built with the build command
 - [logs](#logs): displays output from the containers
 - [stop](#stop): stops your app previously started with the start command
+- [dev](#dev): starts your app in dev mode
+- [init](#init): Generates Docker and Docker Compose files
 
 #### new
 
@@ -206,6 +210,40 @@ Stop your app previously started with the start command
 
 USAGE:
     lenra stop [OPTIONS]
+
+OPTIONS:
+        --config <CONFIG>    The app configuration file [default: lenra.yml]
+    -h, --help               Print help information
+```
+
+#### dev
+
+This subcommand starts the Lenra app of the current directory in dev mode.
+
+```bash
+$ lenra dev --help
+lenra-dev 
+Starts the dev mode
+
+USAGE:
+    lenra dev [OPTIONS]
+
+OPTIONS:
+        --config <CONFIG>    The app configuration file [default: lenra.yml]
+    -h, --help               Print help information
+```
+
+#### init
+
+This subcommand generates Docker and Docker Compose files.
+
+```bash
+$ lenra init --help
+lenra-init 
+Generates dockerfile and docker compose file with the init command
+
+USAGE:
+    lenra init [OPTIONS]
 
 OPTIONS:
         --config <CONFIG>    The app configuration file [default: lenra.yml]
