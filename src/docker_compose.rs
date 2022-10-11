@@ -144,15 +144,6 @@ fn generate_docker_compose_content(
                             dockerfile: Some(dockerfile.to_str().unwrap().into()),
                             ..Default::default()
                         })),
-                        depends_on: Some(DependsOnOptions::Conditional(
-                            [(
-                                DEVTOOL_SERVICE_NAME.into(),
-                                DependsCondition {
-                                    condition: "service_healthy".into(),
-                                },
-                            )]
-                            .into(),
-                        )),
                         // TODO: Add resources management  when managed by the docker-compose-types lib
                         ..Default::default()
                     }),
@@ -177,20 +168,6 @@ fn generate_docker_compose_content(
                             )]
                             .into(),
                         )),
-                        healthcheck: Some(Healthcheck {
-                            test: Some(HealthcheckTest::Multiple(vec![
-                                "CMD".into(),
-                                "wget".into(),
-                                "--spider".into(),
-                                "-q".into(),
-                                "http://localhost:4000".into(),
-                            ])),
-                            interval: Some("1s".into()),
-                            start_period: Some("10s".into()),
-                            timeout: Some("2s".into()),
-                            retries: 5,
-                            disable: false,
-                        }),
                         ..Default::default()
                     }),
                 ),
