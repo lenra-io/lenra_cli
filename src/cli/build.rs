@@ -6,7 +6,7 @@ use crate::cli::CliCommand;
 use crate::config::{load_config_file, DEFAULT_CONFIG_FILE};
 use crate::docker_compose::compose_build;
 
-#[derive(clap::Args)]
+#[derive(clap::Args, Default)]
 pub struct Build {
     /// The app configuration file.
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
