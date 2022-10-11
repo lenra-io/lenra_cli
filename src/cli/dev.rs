@@ -19,12 +19,14 @@ impl CliCommand for Dev {
 
         let build = Build {
             config: self.config.clone(),
+            ..Default::default()
         };
         log::debug!("Run build");
         build.run();
 
         let start = Start {
             config: self.config.clone(),
+            ..Default::default()
         };
         log::debug!("Run start");
         start.run();
