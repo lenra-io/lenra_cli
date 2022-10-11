@@ -43,6 +43,6 @@ impl CliCommand for Start {
             log::info!("{}", error);
         }
         // Open the app
-        open::that("http://localhost:4000").unwrap();
+        println!("Application available at: http://localhost:4000");
     }
 }
