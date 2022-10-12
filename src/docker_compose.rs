@@ -7,7 +7,7 @@ use std::{
 
 use docker_compose_types::{
     AdvancedBuildStep, BuildStep, Command, Compose, DependsCondition, DependsOnOptions,
-    Environment, Healthcheck, HealthcheckTest, Service, Services,
+    Environment, Healthcheck, HealthcheckTest, Services,
 };
 
 use crate::{
@@ -135,7 +135,7 @@ fn generate_docker_compose_content(
             [
                 (
                     APP_SERVICE_NAME.into(),
-                    Some(Service {
+                    Some(docker_compose_types::Service {
                         image: Some(service_images.app),
                         ports: if expose { Some(vec![format!("{}:{}", OF_WATCHDOG_PORT, OF_WATCHDOG_PORT)])} else {None},
                         build_: Some(BuildStep::Advanced(AdvancedBuildStep {
@@ -158,7 +158,7 @@ fn generate_docker_compose_content(
                 ),
                 (
                     DEVTOOL_SERVICE_NAME.into(),
-                    Some(Service {
+                    Some(docker_compose_types::Service {
                         image: Some(service_images.devtool),
                         ports: Some(vec![format!("{}:{}", DEVTOOL_PORT, DEVTOOL_PORT)]),
                         environment: Some(Environment::KvPair(devtool_envs.into())),
@@ -196,7 +196,7 @@ fn generate_docker_compose_content(
                 (
                     POSTGRES_SERVICE_NAME.into(),
                     Some(
-                        Service {
+                        docker_compose_types::Service {
                             image: Some(service_images.postgres),
                             ports: if expose {Some(vec![format!("{}:{}", POSTGRES_PORT, POSTGRES_PORT)])} else {None},
                             environment: Some(Environment::KvPair(postgres_envs.into())),
@@ -219,7 +219,7 @@ fn generate_docker_compose_content(
                 ),
                 (
                     MONGO_SERVICE_NAME.into(),
-                    Some( Service {
+                    Some( docker_compose_types::Service {
                             image: Some(service_images.mongo),
                             ports: if expose {Some(vec![format!("{}:{}", MONGO_PORT, MONGO_PORT)])} else {None},
                             environment: Some(Environment::KvPair(mongo_envs.into())),
@@ -347,6 +347,25 @@ fn current_dir_name() -> Option<String> {
             .map(|name| String::from(name.to_str().unwrap()))
     } else {
         None
+    }
+}
+
+#[derive(clap::ValueEnum, Clone, Debug)]
+pub enum Service {
+    App,
+    Devtool,
+    Postgres,
+    Mongo,
+}
+
+impl Service {
+    pub fn to_str(&self) -> &str {
+        match self {
+            Service::App => APP_SERVICE_NAME,
+            Service::Devtool => DEVTOOL_SERVICE_NAME,
+            Service::Postgres => POSTGRES_SERVICE_NAME,
+            Service::Mongo => MONGO_SERVICE_NAME,
+        }
     }
 }
 
