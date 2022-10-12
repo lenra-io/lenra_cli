@@ -29,10 +29,10 @@ const POSTGRES_IMAGE: &str = "postgres";
 const POSTGRES_IMAGE_TAG: &str = "13";
 const MONGO_IMAGE: &str = "mongo";
 const MONGO_IMAGE_TAG: &str = "5.0.11-focal";
-const OF_WATCHDOG_PORT: u16 = 8080;
-const DEVTOOL_PORT: u16 = 4000;
-const MONGO_PORT: u16 = 27017;
-const POSTGRES_PORT: u16 = 5432;
+pub const OF_WATCHDOG_PORT: u16 = 8080;
+pub const DEVTOOL_PORT: u16 = 4000;
+pub const MONGO_PORT: u16 = 27017;
+pub const POSTGRES_PORT: u16 = 5432;
 
 /// Generates the docker-compose.yml file
 pub fn generate_docker_compose(dockerfile: PathBuf, dev_conf: &Option<Dev>, expose: bool) {
