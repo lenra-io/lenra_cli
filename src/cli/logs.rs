@@ -83,7 +83,7 @@ impl CliCommand for Logs {
 
         if !output.status.success() {
             warn!(
-                "An error occured while display the docker-compose logs:\n{}\n{}",
+                "An error occured while displaying the docker-compose logs:\n{}\n{}",
                 String::from_utf8(output.stdout).unwrap(),
                 String::from_utf8(output.stderr).unwrap()
             )
