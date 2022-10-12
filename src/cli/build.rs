@@ -12,6 +12,7 @@ pub struct Build {
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
     pub config: std::path::PathBuf,
 
+    /// Exposes all services ports.
     #[clap(long, action)]
     pub expose: bool,
 }
