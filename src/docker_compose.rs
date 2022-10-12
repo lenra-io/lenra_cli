@@ -9,6 +9,7 @@ use docker_compose_types::{
     AdvancedBuildStep, BuildStep, Command, Compose, DependsCondition, DependsOnOptions,
     Environment, Healthcheck, HealthcheckTest, Services,
 };
+use log::warn;
 
 use crate::{
     config::{Dev, DOCKERCOMPOSE_DEFAULT_PATH},
@@ -268,7 +269,7 @@ pub fn compose_up() {
         .expect("Failed to start the docker-compose app");
 
     if !output.status.success() {
-        panic!(
+        warn!(
             "An error occured while running the docker-compose app:\n{}\n{}",
             String::from_utf8(output.stdout).unwrap(),
             String::from_utf8(output.stderr).unwrap()
@@ -289,7 +290,7 @@ pub fn compose_build() {
     log::debug!("Build: {:?}", command);
     let output = command.output().expect("Failed building the Docker image");
     if !output.status.success() {
-        panic!(
+        warn!(
             "An error occured while building the Docker image:\n{}\n{}",
             String::from_utf8(output.stdout).unwrap(),
             String::from_utf8(output.stderr).unwrap()
