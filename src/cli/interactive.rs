@@ -34,7 +34,7 @@ pub fn run_interactive_command() -> Result<(), ReadlineError> {
                     Ok(interactive) => interactive.command.run(),
                     Err(e) => {
                         e.print().expect("Could not print error");
-                    },
+                    }
                 }
             }
             Err(ReadlineError::Interrupted) => {
@@ -67,10 +67,11 @@ fn parse_command_line(line: String) -> Result<Interactive, clap::Error> {
         }
     }
     let command = <Interactive as CommandFactory>::command();
-    let mut matches = command.clone().try_get_matches_from(args.clone())
+    let mut matches = command
+        .clone()
+        .try_get_matches_from(args.clone())
         .map_err(format_error)?;
-    <Interactive as FromArgMatches>::from_arg_matches_mut(&mut matches)
-        .map_err(format_error)
+    <Interactive as FromArgMatches>::from_arg_matches_mut(&mut matches).map_err(format_error)
 }
 
 fn format_error(err: clap::Error) -> clap::Error {
