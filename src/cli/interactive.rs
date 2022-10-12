@@ -98,8 +98,8 @@ pub enum InteractiveCommand {
 impl CliCommand for InteractiveCommand {
     fn run(&self) {
         match self {
-            InteractiveCommand::Logs(_logs) => println!("logs"), //logs.run(),
-            InteractiveCommand::Stop(_stop) => println!("stop"), //stop.run(),
+            InteractiveCommand::Logs(_logs) => println!("logs is not implemented yet"), //logs.run(),
+            InteractiveCommand::Stop(_stop) => println!("stop is not implemented yet"), //stop.run(),
         };
     }
 }
