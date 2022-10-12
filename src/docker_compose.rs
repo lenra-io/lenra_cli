@@ -29,10 +29,10 @@ const POSTGRES_IMAGE: &str = "postgres";
 const POSTGRES_IMAGE_TAG: &str = "13";
 const MONGO_IMAGE: &str = "mongo";
 const MONGO_IMAGE_TAG: &str = "5.0.11-focal";
-const OF_WATCHDOG_PORT: u16 = 8080;
-const DEVTOOL_PORT: u16 = 4000;
-const MONGO_PORT: u16 = 27017;
-const POSTGRES_PORT: u16 = 5432;
+pub const OF_WATCHDOG_PORT: u16 = 8080;
+pub const DEVTOOL_PORT: u16 = 4000;
+pub const MONGO_PORT: u16 = 27017;
+pub const POSTGRES_PORT: u16 = 5432;
 
 /// Generates the docker-compose.yml file
 pub fn generate_docker_compose(dockerfile: PathBuf, dev_conf: &Option<Dev>, expose: bool) {
@@ -144,15 +144,6 @@ fn generate_docker_compose_content(
                             dockerfile: Some(dockerfile.to_str().unwrap().into()),
                             ..Default::default()
                         })),
-                        depends_on: Some(DependsOnOptions::Conditional(
-                            [(
-                                DEVTOOL_SERVICE_NAME.into(),
-                                DependsCondition {
-                                    condition: "service_healthy".into(),
-                                },
-                            )]
-                            .into(),
-                        )),
                         // TODO: Add resources management  when managed by the docker-compose-types lib
                         ..Default::default()
                     }),
@@ -177,20 +168,6 @@ fn generate_docker_compose_content(
                             )]
                             .into(),
                         )),
-                        healthcheck: Some(Healthcheck {
-                            test: Some(HealthcheckTest::Multiple(vec![
-                                "CMD".into(),
-                                "wget".into(),
-                                "--spider".into(),
-                                "-q".into(),
-                                "http://localhost:4000".into(),
-                            ])),
-                            interval: Some("10s".into()),
-                            start_period: Some("5s".into()),
-                            timeout: Some("2s".into()),
-                            retries: 5,
-                            disable: false,
-                        }),
                         ..Default::default()
                     }),
                 ),
@@ -208,8 +185,8 @@ fn generate_docker_compose_content(
                                     "-U".into(),
                                     "postgres".into(),
                                 ])),
-                                start_period: Some("10s".into()),
-                                interval: Some("5s".into()),
+                                start_period: Some("5s".into()),
+                                interval: Some("1s".into()),
                                 timeout: None,
                                 retries: 5,
                                 disable: false,
@@ -226,8 +203,8 @@ fn generate_docker_compose_content(
                             environment: Some(Environment::KvPair(mongo_envs.into())),
                             healthcheck: Some(Healthcheck {
                                 test: Some(HealthcheckTest::Single(r#"test $$(echo "rs.initiate($$CONFIG).ok || rs.status().ok" | mongo --quiet) -eq 1"#.to_string())),
-                                start_period: Some("10s".into()),
-                                interval: Some("5s".into()),
+                                start_period: Some("5s".into()),
+                                interval: Some("1s".into()),
                                 timeout: None,
                                 retries: 5,
                                 disable: false,

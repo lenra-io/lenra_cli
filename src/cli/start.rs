@@ -4,7 +4,9 @@ pub use clap::Args;
 
 use crate::cli::CliCommand;
 use crate::config::{load_config_file, DEFAULT_CONFIG_FILE, DOCKERCOMPOSE_DEFAULT_PATH};
-use crate::docker_compose::{compose_up, execute_compose_service_command, DEVTOOL_SERVICE_NAME};
+use crate::docker_compose::{
+    self, compose_up, execute_compose_service_command, DEVTOOL_SERVICE_NAME,
+};
 
 #[derive(Args, Default)]
 pub struct Start {
@@ -20,10 +22,10 @@ pub struct Start {
 impl CliCommand for Start {
     fn run(&self) {
         log::info!("Starting the app");
+        let conf = load_config_file(&self.config);
 
         let dockercompose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
         if !dockercompose_path.exists() {
-            let conf = load_config_file(&self.config);
             // TODO: check the components API version
 
             conf.generate_files(self.expose);
@@ -44,6 +46,9 @@ impl CliCommand for Start {
             log::info!("{}", error);
         }
         // Open the app
-        open::that("http://localhost:4000").unwrap();
+        println!(
+            "Application available at http://localhost:{}",
+            docker_compose::DEVTOOL_PORT
+        );
     }
 }
