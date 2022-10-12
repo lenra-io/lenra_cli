@@ -45,6 +45,9 @@ impl CliCommand for Start {
             log::info!("{}", error);
         }
         // Open the app
-        println!("Application available at http://localhost:{}", docker_compose::DEVTOOL_PORT);
+        println!(
+            "Application available at http://localhost:{}",
+            docker_compose::DEVTOOL_PORT
+        );
     }
 }
