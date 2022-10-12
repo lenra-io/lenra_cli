@@ -15,6 +15,9 @@ pub struct Dev {
     /// The app configuration file.
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
     pub config: std::path::PathBuf,
+
+    #[clap(long, action)]
+    pub expose: bool,
 }
 
 impl CliCommand for Dev {
@@ -23,6 +26,7 @@ impl CliCommand for Dev {
 
         let build = Build {
             config: self.config.clone(),
+            expose: self.expose,
             ..Default::default()
         };
         log::debug!("Run build");
@@ -30,6 +34,7 @@ impl CliCommand for Dev {
 
         let start = Start {
             config: self.config.clone(),
+            expose: self.expose,
             ..Default::default()
         };
         log::debug!("Run start");
