@@ -1,12 +1,10 @@
 use std::process::Stdio;
 
 pub use clap::Args;
+use log::warn;
 
 use crate::cli::CliCommand;
-use crate::docker_compose::{
-    create_compose_command, APP_SERVICE_NAME, DEVTOOL_SERVICE_NAME, MONGO_SERVICE_NAME,
-    POSTGRES_SERVICE_NAME,
-};
+use crate::docker_compose::{create_compose_command, Service};
 
 #[derive(Args, Default)]
 pub struct Logs {
@@ -41,25 +39,6 @@ pub struct Logs {
     /// The logged service list
     #[clap(value_enum, default_value = "app")]
     pub services: Vec<Service>,
-}
-
-#[derive(clap::ValueEnum, Clone, Debug)]
-pub enum Service {
-    App,
-    Devtool,
-    Postgres,
-    Mongo,
-}
-
-impl Service {
-    fn to_str(&self) -> &str {
-        match self {
-            Service::App => APP_SERVICE_NAME,
-            Service::Devtool => DEVTOOL_SERVICE_NAME,
-            Service::Postgres => POSTGRES_SERVICE_NAME,
-            Service::Mongo => MONGO_SERVICE_NAME,
-        }
-    }
 }
 
 impl CliCommand for Logs {
@@ -103,8 +82,8 @@ impl CliCommand for Logs {
             .expect("Failed to logs the docker-compose app");
 
         if !output.status.success() {
-            panic!(
-                "An error occured while stoping the docker-compose app:\n{}\n{}",
+            warn!(
+                "An error occured while displaying the docker-compose logs:\n{}\n{}",
                 String::from_utf8(output.stdout).unwrap(),
                 String::from_utf8(output.stderr).unwrap()
             )
