@@ -87,7 +87,7 @@ OPTIONS:
 
 SUBCOMMANDS:
     build    Build your app in release mode
-    dev      Starts the dev mode
+    dev      Start the app in an interactive mode
     help     Print this message or the help of the given subcommand(s)
     init     Generates dockerfile and docker compose file with the init command
     logs     View output from the containers
@@ -149,6 +149,7 @@ USAGE:
 
 OPTIONS:
         --config <CONFIG>    The app configuration file [default: lenra.yml]
+        --expose             Exposes all services ports
     -h, --help               Print help information
 ```
 
@@ -166,6 +167,7 @@ USAGE:
 
 OPTIONS:
         --config <CONFIG>    The app configuration file [default: lenra.yml]
+        --expose             Exposes all services ports
     -h, --help               Print help information
 ```
 
@@ -223,13 +225,14 @@ This subcommand starts the Lenra app of the current directory in dev mode.
 ```bash
 $ lenra dev --help
 lenra-dev 
-Starts the dev mode
+Start the app in an interactive mode
 
 USAGE:
     lenra dev [OPTIONS]
 
 OPTIONS:
         --config <CONFIG>    The app configuration file [default: lenra.yml]
+        --expose             Exposes all services ports
     -h, --help               Print help information
 ```
 

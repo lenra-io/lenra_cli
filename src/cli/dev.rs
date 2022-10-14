@@ -2,6 +2,7 @@ pub use clap::Args;
 use log::debug;
 
 use crate::cli::build::Build;
+use crate::cli::interactive::run_interactive_command;
 use crate::cli::logs::Logs;
 use crate::cli::start::Start;
 use crate::cli::stop::Stop;
@@ -14,6 +15,10 @@ pub struct Dev {
     /// The app configuration file.
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
     pub config: std::path::PathBuf,
+
+    /// Exposes all services ports.
+    #[clap(long, action)]
+    pub expose: bool,
 }
 
 impl CliCommand for Dev {
@@ -22,6 +27,7 @@ impl CliCommand for Dev {
 
         let build = Build {
             config: self.config.clone(),
+            expose: self.expose,
             ..Default::default()
         };
         log::debug!("Run build");
@@ -29,6 +35,7 @@ impl CliCommand for Dev {
 
         let start = Start {
             config: self.config.clone(),
+            expose: self.expose,
             ..Default::default()
         };
         log::debug!("Run start");
@@ -46,6 +53,11 @@ impl CliCommand for Dev {
         };
         log::debug!("Run logs");
         logs.run();
+
+        let res = run_interactive_command();
+        if let Err(error) = res {
+            println!("An error occured: {}", error.to_string());
+        }
 
         let stop = Stop;
         log::debug!("Run stop");
