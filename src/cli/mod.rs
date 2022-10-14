@@ -5,6 +5,7 @@ use self::{build::Build, dev::Dev, init::Init, logs::Logs, new::New, start::Star
 mod build;
 mod dev;
 mod init;
+mod interactive;
 mod logs;
 mod new;
 mod start;
@@ -35,7 +36,7 @@ pub enum Command {
     Logs(Logs),
     /// Stop your app previously started with the start command
     Stop(Stop),
-    /// Starts the dev mode
+    /// Start the app in an interactive mode
     Dev(Dev),
     /// Generates dockerfile and docker compose file with the init command
     Init(Init),
