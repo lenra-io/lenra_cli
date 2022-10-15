@@ -190,6 +190,8 @@ impl Application {
             panic!("The Dofigen descriptor can't have entrypoint defined. Use cmd instead");
         }
 
+        envs.insert("exec_timeout".to_string(), "0".to_string());
+
         if let Some(cmd) = image.cmd {
             envs.insert("fprocess".to_string(), cmd.join(" "));
         } else {
@@ -255,7 +257,13 @@ mod dofigen_of_overlay_tests {
                 ..Default::default()
             }]),
             image: String::from("my-dockerimage"),
-            envs: Some([("fprocess".to_string(), "/app/my-app".to_string())].into()),
+            envs: Some(
+                [
+                    ("exec_timeout".to_string(), "0".to_string()),
+                    ("fprocess".to_string(), "/app/my-app".to_string()),
+                ]
+                .into(),
+            ),
             artifacts: Some(vec![Artifact {
                 builder: "of-watchdog".into(),
                 source: "/fwatchdog".into(),
