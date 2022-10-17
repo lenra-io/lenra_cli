@@ -3,12 +3,10 @@ use log::debug;
 
 use crate::cli::build::Build;
 use crate::cli::interactive::run_interactive_command;
-use crate::cli::logs::Logs;
 use crate::cli::start::Start;
 use crate::cli::stop::Stop;
 use crate::cli::CliCommand;
 use crate::config::DEFAULT_CONFIG_FILE;
-use crate::docker_compose::Service;
 
 #[derive(Args)]
 pub struct Dev {
@@ -45,14 +43,6 @@ impl CliCommand for Dev {
             debug!("Stop asked");
         })
         .expect("Error setting Ctrl-C handler");
-
-        let logs = Logs {
-            services: vec![Service::App],
-            follow: true,
-            ..Default::default()
-        };
-        log::debug!("Run logs");
-        logs.run();
 
         let res = run_interactive_command();
         if let Err(error) = res {

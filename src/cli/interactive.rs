@@ -1,10 +1,13 @@
 use std::fs;
 
+use chrono::{DateTime, SecondsFormat, Utc};
 pub use clap::{Args, Parser, Subcommand};
 use clap::{CommandFactory, FromArgMatches};
 use dirs::config_dir;
-use log::debug;
+use log::{debug, warn};
 use rustyline::{error::ReadlineError, Editor};
+
+use crate::docker_compose::Service;
 
 use super::{logs::Logs, stop::Stop, CliCommand};
 
@@ -23,6 +26,13 @@ pub fn run_interactive_command() -> Result<(), ReadlineError> {
         debug!("No previous history.");
     }
 
+    let mut previous_log = Logs {
+        services: vec![Service::App],
+        follow: true,
+        ..Default::default()
+    };
+    let mut last_logs = run_logs(&previous_log, None);
+
     loop {
         let readline = rl.readline(READLINE_PROMPT);
         match readline {
@@ -31,7 +41,16 @@ pub fn run_interactive_command() -> Result<(), ReadlineError> {
                 let result = parse_command_line(line);
 
                 match result {
-                    Ok(interactive) => interactive.command.run(),
+                    Ok(interactive) => match interactive.command {
+                        InteractiveCommand::Continue => {
+                            last_logs = run_logs(&previous_log, Some(last_logs));
+                        }
+                        InteractiveCommand::Logs(logs) => {
+                            previous_log = logs.clone();
+                            last_logs = run_logs(&previous_log, Some(last_logs));
+                        }
+                        cmd => cmd.run(),
+                    },
                     Err(e) => {
                         e.print().expect("Could not print error");
                     }
@@ -54,6 +73,15 @@ pub fn run_interactive_command() -> Result<(), ReadlineError> {
     debug!("Save history to {:?}", history_path);
     fs::create_dir_all(history_path.parent().unwrap())?;
     rl.save_history(&history_path)
+}
+
+fn run_logs(logs: &Logs, last_end: Option<DateTime<Utc>>) -> DateTime<Utc> {
+    let mut clone = logs.clone();
+    if let Some(last_logs) = last_end {
+        clone.since = Some(last_logs.to_rfc3339_opts(SecondsFormat::Secs, true));
+    }
+    clone.run();
+    Utc::now()
 }
 
 fn parse_command_line(line: String) -> Result<Interactive, clap::Error> {
@@ -88,8 +116,10 @@ pub struct Interactive {
 }
 
 /// The interactive commands
-#[derive(Subcommand)]
+#[derive(Subcommand, Clone)]
 pub enum InteractiveCommand {
+    /// Continue the previous
+    Continue,
     /// View output from the containers
     Logs(Logs),
     /// Stop your app previously started with the start command
@@ -99,6 +129,7 @@ pub enum InteractiveCommand {
 impl CliCommand for InteractiveCommand {
     fn run(&self) {
         match self {
+            InteractiveCommand::Continue => warn!("The continue command should not be run"), //stop.run(),
             InteractiveCommand::Logs(_logs) => println!("logs is not implemented yet"), //logs.run(),
             InteractiveCommand::Stop(_stop) => println!("stop is not implemented yet"), //stop.run(),
         };
