@@ -142,7 +142,7 @@ impl CliCommand for InteractiveCommand {
             InteractiveCommand::Stop(stop) => {
                 warn!("Should not be called");
                 stop.run()
-            },
+            }
         };
     }
 }
