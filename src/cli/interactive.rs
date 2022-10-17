@@ -47,7 +47,7 @@ pub fn run_interactive_command() -> Result<(), ReadlineError> {
                         }
                         InteractiveCommand::Logs(logs) => {
                             previous_log = logs.clone();
-                            last_logs = run_logs(&previous_log, Some(last_logs));
+                            last_logs = run_logs(&previous_log, None);
                         }
                         cmd => cmd.run(),
                     },
@@ -118,7 +118,7 @@ pub struct Interactive {
 /// The interactive commands
 #[derive(Subcommand, Clone)]
 pub enum InteractiveCommand {
-    /// Continue the previous
+    /// Continue the previous logs command since the last displayed logs
     Continue,
     /// View output from the containers
     Logs(Logs),
