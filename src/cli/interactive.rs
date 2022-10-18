@@ -47,7 +47,7 @@ pub fn run_interactive_command() -> Result<(), ReadlineError> {
                             InteractiveCommand::Logs(logs) => {
                                 previous_log = logs.clone();
                                 None
-                            },
+                            }
                             InteractiveCommand::Stop => break,
                             cmd => {
                                 cmd.run();
@@ -139,7 +139,7 @@ impl CliCommand for InteractiveCommand {
         match self {
             InteractiveCommand::Continue => warn!("The continue command should not be run"),
             InteractiveCommand::Logs(_logs) => println!("logs is not implemented yet"),
-            InteractiveCommand::Stop => warn!("The stop command should not be run")
+            InteractiveCommand::Stop => warn!("The stop command should not be run"),
         };
     }
 }
