@@ -6,7 +6,7 @@ use log::warn;
 use crate::cli::CliCommand;
 use crate::docker_compose::{create_compose_command, Service};
 
-#[derive(Args, Default)]
+#[derive(Args, Default, Clone)]
 pub struct Logs {
     /// Follow log output
     #[clap(short, long, action)]

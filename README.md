@@ -253,6 +253,56 @@ OPTIONS:
     -h, --help               Print help information
 ```
 
+## dev interactive commands
+
+When using the [dev](#dev) sub-command, the CLI enters an interactive mode.
+The interactive mode builds and starts the app and then displays its logs.
+
+When the CLI receive a `Ctrl + C` signal in dev mode, it displays an interactive command prompt.
+Here is the `help` interactive command result:
+
+```bash
+[lenra]$ help
+lenra_cli 
+The Lenra interactive command line interface
+
+USAGE:
+    lenra <SUBCOMMAND>
+
+OPTIONS:
+    -h, --help    Print help information
+
+SUBCOMMANDS:
+    continue    Continue the previous logs command since the last displayed logs
+    help        Print this message or the help of the given subcommand(s)
+    logs        View output from the containers
+    stop        Stop your app previously started with the start command
+```
+
+### Subcommands
+
+This tools contains many subcommands to help you do what you need.
+
+- [continue](#continue): continues the previous logs command since the last displayed logs
+- [logs](#logs): displays output from the containers
+- [stop](#stop): stops your app previously started with the start command
+
+#### continue
+
+This subcommand continues the previous logs command since the last displayed logs.
+
+```bash
+[lenra]$ continue --help
+lenra-continue 
+Continue the previous logs command since the last displayed logs
+
+USAGE:
+    lenra continue
+
+OPTIONS:
+    -h, --help    Print help information
+```
+
 ### Configuration file
 
 The Lenra's configuration file describes your Lenra app configurations, like API versions or how to build it.
