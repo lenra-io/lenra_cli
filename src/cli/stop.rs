@@ -5,7 +5,7 @@ pub use clap::Args;
 use crate::cli::CliCommand;
 use crate::docker_compose::create_compose_command;
 
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct Stop;
 
 impl CliCommand for Stop {
