@@ -7,14 +7,17 @@ use dirs::config_dir;
 use log::{debug, warn};
 use rustyline::{error::ReadlineError, Editor};
 
-use crate::docker_compose::Service;
+use crate::{
+    cli::{build::Build, start::Start},
+    docker_compose::Service,
+};
 
 use super::{logs::Logs, CliCommand};
 
 const LENRA_COMMAND: &str = "lenra";
 const READLINE_PROMPT: &str = "[lenra]$ ";
 
-pub fn run_interactive_command() -> Result<(), ReadlineError> {
+pub fn run_interactive_command(context: &InteractiveContext) -> Result<(), ReadlineError> {
     let history_path = config_dir()
         .expect("Can't get the user config directory")
         .join("lenra")
@@ -50,7 +53,7 @@ pub fn run_interactive_command() -> Result<(), ReadlineError> {
                             }
                             InteractiveCommand::Stop => break,
                             cmd => {
-                                cmd.run();
+                                cmd.run(context);
                                 Some(last_logs)
                             }
                         };
@@ -115,6 +118,14 @@ fn format_error(err: clap::Error) -> clap::Error {
     err.format(&mut command)
 }
 
+pub struct InteractiveContext {
+    /// The app configuration file.
+    pub config: std::path::PathBuf,
+
+    /// Exposes all services ports.
+    pub expose: bool,
+}
+
 /// The Lenra interactive command line interface
 #[derive(Parser)]
 #[clap(rename_all = "kebab-case")]
@@ -130,16 +141,35 @@ pub enum InteractiveCommand {
     Continue,
     /// View output from the containers
     Logs(Logs),
+    /// Reload the app by rebuilding and restarting it
+    Reload,
     /// Stop your app previously started with the start command
     Stop,
 }
 
-impl CliCommand for InteractiveCommand {
-    fn run(&self) {
+impl InteractiveCommand {
+    fn run(&self, context: &InteractiveContext) {
         match self {
             InteractiveCommand::Continue => warn!("The continue command should not be run"),
             InteractiveCommand::Logs(_logs) => println!("logs is not implemented yet"),
             InteractiveCommand::Stop => warn!("The stop command should not be run"),
+            InteractiveCommand::Reload => {
+                let build = Build {
+                    config: context.config.clone(),
+                    expose: context.expose,
+                    ..Default::default()
+                };
+                log::debug!("Run build");
+                build.run();
+
+                let start = Start {
+                    config: context.config.clone(),
+                    expose: context.expose,
+                    ..Default::default()
+                };
+                log::debug!("Run start");
+                start.run();
+            }
         };
     }
 }
