@@ -2,7 +2,7 @@ pub use clap::Args;
 use log::debug;
 
 use crate::cli::build::Build;
-use crate::cli::interactive::run_interactive_command;
+use crate::cli::interactive::{run_interactive_command, InteractiveContext};
 use crate::cli::start::Start;
 use crate::cli::stop::Stop;
 use crate::cli::CliCommand;
@@ -44,7 +44,10 @@ impl CliCommand for Dev {
         })
         .expect("Error setting Ctrl-C handler");
 
-        let res = run_interactive_command();
+        let res = run_interactive_command(&InteractiveContext { 
+            config: self.config.clone(),
+            expose: self.expose
+        });
         if let Err(error) = res {
             println!("An error occured: {}", error.to_string());
         }
