@@ -41,16 +41,20 @@ pub fn run_interactive_command() -> Result<(), ReadlineError> {
                 let result = parse_command_line(line);
 
                 match result {
-                    Ok(interactive) => match interactive.command {
-                        InteractiveCommand::Continue => {
-                            last_logs = run_logs(&previous_log, Some(last_logs));
-                        }
-                        InteractiveCommand::Logs(logs) => {
-                            previous_log = logs.clone();
-                            last_logs = run_logs(&previous_log, None);
-                        }
-                        cmd => cmd.run(),
-                    },
+                    Ok(interactive) => {
+                        let logs_since = match interactive.command {
+                            InteractiveCommand::Continue => Some(last_logs),
+                            InteractiveCommand::Logs(logs) => {
+                                previous_log = logs.clone();
+                                None
+                            }
+                            cmd => {
+                                cmd.run();
+                                Some(last_logs)
+                            }
+                        };
+                        last_logs = run_logs(&previous_log, logs_since);
+                    }
                     Err(e) => {
                         e.print().expect("Could not print error");
                     }
@@ -78,7 +82,10 @@ pub fn run_interactive_command() -> Result<(), ReadlineError> {
 fn run_logs(logs: &Logs, last_end: Option<DateTime<Utc>>) -> DateTime<Utc> {
     let mut clone = logs.clone();
     if let Some(last_logs) = last_end {
+        // Only displays new logs
         clone.since = Some(last_logs.to_rfc3339_opts(SecondsFormat::Secs, true));
+        // Follows the logs
+        clone.follow = true;
     }
     clone.run();
     Utc::now()
