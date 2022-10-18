@@ -9,7 +9,7 @@ use rustyline::{error::ReadlineError, Editor};
 
 use crate::docker_compose::Service;
 
-use super::{logs::Logs, stop::Stop, CliCommand};
+use super::{logs::Logs, CliCommand};
 
 const LENRA_COMMAND: &str = "lenra";
 const READLINE_PROMPT: &str = "[lenra]$ ";
@@ -48,6 +48,7 @@ pub fn run_interactive_command() -> Result<(), ReadlineError> {
                                 previous_log = logs.clone();
                                 None
                             }
+                            InteractiveCommand::Stop => break,
                             cmd => {
                                 cmd.run();
                                 Some(last_logs)
@@ -130,15 +131,15 @@ pub enum InteractiveCommand {
     /// View output from the containers
     Logs(Logs),
     /// Stop your app previously started with the start command
-    Stop(Stop),
+    Stop,
 }
 
 impl CliCommand for InteractiveCommand {
     fn run(&self) {
         match self {
-            InteractiveCommand::Continue => warn!("The continue command should not be run"), //stop.run(),
-            InteractiveCommand::Logs(_logs) => println!("logs is not implemented yet"), //logs.run(),
-            InteractiveCommand::Stop(_stop) => println!("stop is not implemented yet"), //stop.run(),
+            InteractiveCommand::Continue => warn!("The continue command should not be run"),
+            InteractiveCommand::Logs(_logs) => println!("logs is not implemented yet"),
+            InteractiveCommand::Stop => warn!("The stop command should not be run"),
         };
     }
 }
