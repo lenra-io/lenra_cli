@@ -281,7 +281,7 @@ SUBCOMMANDS:
 
 ### Subcommands
 
-This tools contains many subcommands to help you doing what you need.
+This tools contains many subcommands to help you do what you need.
 
 - [continue](#continue): continues the previous logs command since the last displayed logs
 - [logs](#logs): displays output from the containers
