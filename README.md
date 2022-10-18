@@ -255,7 +255,7 @@ OPTIONS:
 
 ## dev interactive commands
 
-When using the [dev](#dev) sub-command, the CLI enter in an interactive mode.
+When using the [dev](#dev) sub-command, the CLI enters an interactive mode.
 The interactive mode build and start the app and then displays it logs.
 
 When the CLI receive a `Ctrl + C` signal in dev mode, it displays an interactive command promt.
