@@ -9,7 +9,7 @@ use rustyline::{error::ReadlineError, Editor};
 
 use crate::docker_compose::Service;
 
-use super::{logs::Logs, stop::Stop, CliCommand};
+use super::{logs::Logs, CliCommand};
 
 const LENRA_COMMAND: &str = "lenra";
 const READLINE_PROMPT: &str = "[lenra]$ ";
