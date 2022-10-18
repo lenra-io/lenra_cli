@@ -276,6 +276,7 @@ SUBCOMMANDS:
     continue    Continue the previous logs command since the last displayed logs
     help        Print this message or the help of the given subcommand(s)
     logs        View output from the containers
+    reload      Reload the by rebuilding and restarting it
     stop        Stop your app previously started with the start command
 ```
 
@@ -285,6 +286,7 @@ This tools contains many subcommands to help you do what you need.
 
 - [continue](#continue): continues the previous logs command since the last displayed logs
 - [logs](#logs): displays output from the containers
+- [reload](#reload): reloads the app by rebuilding and restarting it
 - [stop](#stop): stops your app previously started with the start command
 
 #### continue
@@ -298,6 +300,22 @@ Continue the previous logs command since the last displayed logs
 
 USAGE:
     lenra continue
+
+OPTIONS:
+    -h, --help    Print help information
+```
+
+#### reload
+
+This subcommand reloads the app by rebuilding and restarting it.
+
+```bash
+[lenra]$ reload --help
+lenra-reload 
+Reload the app by rebuilding and restarting it
+
+USAGE:
+    lenra reload
 
 OPTIONS:
     -h, --help    Print help information
