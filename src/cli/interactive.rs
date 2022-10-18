@@ -7,7 +7,10 @@ use dirs::config_dir;
 use log::{debug, warn};
 use rustyline::{error::ReadlineError, Editor};
 
-use crate::{docker_compose::Service, cli::{build::Build, start::Start}};
+use crate::{
+    cli::{build::Build, start::Start},
+    docker_compose::Service,
+};
 
 use super::{logs::Logs, CliCommand};
 

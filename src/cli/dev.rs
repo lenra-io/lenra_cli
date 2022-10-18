@@ -44,9 +44,9 @@ impl CliCommand for Dev {
         })
         .expect("Error setting Ctrl-C handler");
 
-        let res = run_interactive_command(&InteractiveContext { 
+        let res = run_interactive_command(&InteractiveContext {
             config: self.config.clone(),
-            expose: self.expose
+            expose: self.expose,
         });
         if let Err(error) = res {
             println!("An error occured: {}", error.to_string());
