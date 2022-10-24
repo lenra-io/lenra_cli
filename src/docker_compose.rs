@@ -144,15 +144,6 @@ fn generate_docker_compose_content(
                             dockerfile: Some(dockerfile.to_str().unwrap().into()),
                             ..Default::default()
                         })),
-                        depends_on: Some(DependsOnOptions::Conditional(
-                            [(
-                                DEVTOOL_SERVICE_NAME.into(),
-                                DependsCondition {
-                                    condition: "service_healthy".into(),
-                                },
-                            )]
-                            .into(),
-                        )),
                         // TODO: Add resources management  when managed by the docker-compose-types lib
                         ..Default::default()
                     }),
@@ -260,6 +251,7 @@ pub fn compose_up() {
     command
         .arg("up")
         .arg("-d")
+        .arg("--wait")
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
 
