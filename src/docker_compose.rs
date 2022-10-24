@@ -171,7 +171,7 @@ fn generate_docker_compose_content(
                                 "-q".into(),
                                 "http://localhost:4000/healthcheck".into(),
                             ])),
-                            start_period: Some("5s".into()),
+                            start_period: Some("10s".into()),
                             interval: Some("1s".into()),
                             timeout: None,
                             retries: 5,
