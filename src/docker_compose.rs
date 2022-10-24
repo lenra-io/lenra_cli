@@ -144,6 +144,15 @@ fn generate_docker_compose_content(
                             dockerfile: Some(dockerfile.to_str().unwrap().into()),
                             ..Default::default()
                         })),
+                        depends_on: Some(DependsOnOptions::Conditional(
+                            [(
+                                DEVTOOL_SERVICE_NAME.into(),
+                                DependsCondition {
+                                    condition: "service_healthy".into(),
+                                },
+                            )]
+                            .into(),
+                        )),
                         // TODO: Add resources management  when managed by the docker-compose-types lib
                         ..Default::default()
                     }),
@@ -154,6 +163,20 @@ fn generate_docker_compose_content(
                         image: Some(service_images.devtool),
                         ports: Some(vec![format!("{}:{}", DEVTOOL_PORT, DEVTOOL_PORT)]),
                         environment: Some(Environment::KvPair(devtool_envs.into())),
+                        healthcheck: Some(Healthcheck {
+                            test: Some(HealthcheckTest::Multiple(vec![
+                                "CMD".into(),
+                                "wget".into(),
+                                "--spider".into(),
+                                "-q".into(),
+                                "http://localhost:4000/healthcheck".into(),
+                            ])),
+                            start_period: Some("5s".into()),
+                            interval: Some("1s".into()),
+                            timeout: None,
+                            retries: 5,
+                            disable: false,
+                        }),
                         depends_on: Some(DependsOnOptions::Conditional(
                             [(
                                 POSTGRES_SERVICE_NAME.into(),
