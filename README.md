@@ -86,14 +86,15 @@ OPTIONS:
     -V, --version    Print version information
 
 SUBCOMMANDS:
-    build    Build your app in release mode
-    dev      Start the app in an interactive mode
-    help     Print this message or the help of the given subcommand(s)
-    init     Generates dockerfile and docker compose file with the init command
-    logs     View output from the containers
-    new      Create a new Lenra app project
-    start    Start your app previously built with the build command
-    stop     Stop your app previously started with the start command
+    build     Build your app in release mode
+    dev       Start the app in an interactive mode
+    help      Print this message or the help of the given subcommand(s)
+    init      Generates dockerfile and docker compose file with the init command
+    logs      View output from the containers
+    new       Create a new Lenra app project
+    start     Start your app previously built with the build command
+    stop      Stop your app previously started with the start command
+    update    Update the tools Docker images
 ```
 
 ### Subcommands
@@ -106,7 +107,8 @@ This tools contains many subcommands to help you doing what you need.
 - [logs](#logs): displays output from the containers
 - [stop](#stop): stops your app previously started with the start command
 - [dev](#dev): starts your app in dev mode
-- [init](#init): Generates Docker and Docker Compose files
+- [init](#init): generates Docker and Docker Compose files
+- [update](#update): updates the tools Docker images
 
 #### new
 
@@ -251,6 +253,22 @@ USAGE:
 OPTIONS:
         --config <CONFIG>    The app configuration file [default: lenra.yml]
     -h, --help               Print help information
+```
+
+#### update
+
+This subcommand updates the tools Docker images.
+
+```bash
+$ lenra update --help
+lenra-update 
+Update the tools Docker images
+
+USAGE:
+    lenra update
+
+OPTIONS:
+    -h, --help    Print help information
 ```
 
 ## dev interactive commands
