@@ -88,48 +88,7 @@ fn generate_docker_compose_content(
         ),
     ];
 
-    let default_app_image = current_dir_name().unwrap_or(APP_DEFAULT_IMAGE.to_string());
-    let default_app_tag = get_current_branch().unwrap_or(APP_DEFAULT_IMAGE_TAG.to_string());
-
-    let service_images = if let Some(dev) = dev_conf {
-        ServiceImages {
-            app: format!(
-                "{}{}:{}",
-                APP_BASE_IMAGE,
-                dev.app_name.clone().unwrap_or(default_app_image),
-                dev.app_tag.clone().unwrap_or(default_app_tag)
-            ),
-            devtool: format!(
-                "{}:{}",
-                DEVTOOL_IMAGE,
-                dev.devtool_tag
-                    .clone()
-                    .unwrap_or(DEVTOOL_DEFAULT_TAG.to_string())
-            ),
-            postgres: format!(
-                "{}:{}",
-                POSTGRES_IMAGE,
-                dev.postgres_tag
-                    .clone()
-                    .unwrap_or(POSTGRES_IMAGE_TAG.to_string())
-            ),
-            mongo: format!(
-                "{}:{}",
-                MONGO_IMAGE,
-                dev.mongo_tag.clone().unwrap_or(MONGO_IMAGE_TAG.to_string())
-            ),
-        }
-    } else {
-        ServiceImages {
-            app: format!(
-                "{}{}:{}",
-                APP_BASE_IMAGE, default_app_image, default_app_tag
-            ),
-            devtool: format!("{}:{}", DEVTOOL_IMAGE, DEVTOOL_DEFAULT_TAG),
-            postgres: format!("{}:{}", POSTGRES_IMAGE, POSTGRES_IMAGE_TAG),
-            mongo: format!("{}:{}", MONGO_IMAGE, MONGO_IMAGE_TAG),
-        }
-    };
+    let service_images = get_services_images(dev_conf);
 
     let compose = Compose {
         services: Some(Services(
@@ -343,6 +302,51 @@ fn current_dir_name() -> Option<String> {
     }
 }
 
+pub fn get_services_images(dev_conf: &Option<Dev>) -> ServiceImages {
+    let default_app_image = current_dir_name().unwrap_or(APP_DEFAULT_IMAGE.to_string());
+    let default_app_tag = get_current_branch().unwrap_or(APP_DEFAULT_IMAGE_TAG.to_string());
+
+    if let Some(dev) = dev_conf {
+        ServiceImages {
+            app: format!(
+                "{}{}:{}",
+                APP_BASE_IMAGE,
+                dev.app_name.clone().unwrap_or(default_app_image),
+                dev.app_tag.clone().unwrap_or(default_app_tag)
+            ),
+            devtool: format!(
+                "{}:{}",
+                DEVTOOL_IMAGE,
+                dev.devtool_tag
+                    .clone()
+                    .unwrap_or(DEVTOOL_DEFAULT_TAG.to_string())
+            ),
+            postgres: format!(
+                "{}:{}",
+                POSTGRES_IMAGE,
+                dev.postgres_tag
+                    .clone()
+                    .unwrap_or(POSTGRES_IMAGE_TAG.to_string())
+            ),
+            mongo: format!(
+                "{}:{}",
+                MONGO_IMAGE,
+                dev.mongo_tag.clone().unwrap_or(MONGO_IMAGE_TAG.to_string())
+            ),
+        }
+    } else {
+        ServiceImages {
+            app: format!(
+                "{}{}:{}",
+                APP_BASE_IMAGE, default_app_image, default_app_tag
+            ),
+            devtool: format!("{}:{}", DEVTOOL_IMAGE, DEVTOOL_DEFAULT_TAG),
+            postgres: format!("{}:{}", POSTGRES_IMAGE, POSTGRES_IMAGE_TAG),
+            mongo: format!("{}:{}", MONGO_IMAGE, MONGO_IMAGE_TAG),
+        }
+    }
+}
+
 #[derive(clap::ValueEnum, Clone, Debug)]
 pub enum Service {
     App,
@@ -360,11 +364,20 @@ impl Service {
             Service::Mongo => MONGO_SERVICE_NAME,
         }
     }
+
+    pub fn get_image(&self, images: &ServiceImages) -> String {
+        match self {
+            Service::App => images.app.clone(),
+            Service::Devtool => images.devtool.clone(),
+            Service::Postgres => images.postgres.clone(),
+            Service::Mongo => images.mongo.clone(),
+        }
+    }
 }
 
-struct ServiceImages {
-    app: String,
-    devtool: String,
-    postgres: String,
-    mongo: String,
+pub struct ServiceImages {
+    pub app: String,
+    pub devtool: String,
+    pub postgres: String,
+    pub mongo: String,
 }

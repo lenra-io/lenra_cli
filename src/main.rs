@@ -8,7 +8,9 @@ use env_logger;
 
 mod cli;
 mod config;
+mod docker;
 mod docker_compose;
+mod errors;
 mod git;
 
 fn main() {
