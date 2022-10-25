@@ -265,10 +265,15 @@ lenra-update
 Update the tools Docker images
 
 USAGE:
-    lenra update
+    lenra update [OPTIONS] [SERVICES]...
+
+ARGS:
+    <SERVICES>...    The service list to pull [default: devtool postgres mongo] [possible
+                     values: app, devtool, postgres, mongo]
 
 OPTIONS:
-    -h, --help    Print help information
+        --config <CONFIG>    The app configuration file [default: lenra.yml]
+    -h, --help               Print help information
 ```
 
 ## dev interactive commands
