@@ -3,7 +3,9 @@ use std::process::Stdio;
 pub use clap::Args;
 
 use crate::cli::CliCommand;
-use crate::docker_compose::{create_compose_command, DEVTOOL_SERVICE_NAME, POSTGRES_SERVICE_NAME, MONGO_SERVICE_NAME};
+use crate::docker_compose::{
+    create_compose_command, DEVTOOL_SERVICE_NAME, MONGO_SERVICE_NAME, POSTGRES_SERVICE_NAME,
+};
 
 #[derive(Args, Clone)]
 pub struct Update;
