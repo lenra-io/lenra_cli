@@ -30,7 +30,7 @@ impl Build {
 
 impl CliCommand for Build {
     fn run(&self) {
-        let conf = load_config_file(&self.config);
+        let conf = load_config_file(&self.config).unwrap();
         // TODO: check the components API version
 
         conf.generate_files(self.expose);
