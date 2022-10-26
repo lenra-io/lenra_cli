@@ -1,6 +1,9 @@
 pub use clap::{Args, Parser, Subcommand};
 
-use self::{build::Build, dev::Dev, init::Init, logs::Logs, new::New, start::Start, stop::Stop};
+use self::{
+    build::Build, dev::Dev, init::Init, logs::Logs, new::New, start::Start, stop::Stop,
+    update::Update,
+};
 
 mod build;
 mod dev;
@@ -10,6 +13,7 @@ mod logs;
 mod new;
 mod start;
 mod stop;
+mod update;
 
 /// The Lenra command line interface
 #[derive(Parser)]
@@ -40,6 +44,8 @@ pub enum Command {
     Dev(Dev),
     /// Generates dockerfile and docker compose file with the init command
     Init(Init),
+    /// Update the tools Docker images
+    Update(Update),
 }
 
 impl CliCommand for Command {
@@ -52,6 +58,7 @@ impl CliCommand for Command {
             Command::Stop(stop) => stop.run(),
             Command::Dev(dev) => dev.run(),
             Command::Init(init) => init.run(),
+            Command::Update(update) => update.run(),
         };
     }
 }

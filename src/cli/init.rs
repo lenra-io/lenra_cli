@@ -12,7 +12,7 @@ pub struct Init {
 
 impl CliCommand for Init {
     fn run(&self) {
-        let conf = load_config_file(&self.config);
+        let conf = load_config_file(&self.config).unwrap();
         // TODO: check the components API version
         conf.generate_docker_files();
     }

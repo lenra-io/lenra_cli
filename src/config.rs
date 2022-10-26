@@ -6,7 +6,10 @@ use dofigen_lib::{
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 
-use crate::docker_compose::generate_docker_compose;
+use crate::{
+    docker_compose::generate_docker_compose,
+    errors::{Error, Result},
+};
 
 pub const DEFAULT_CONFIG_FILE: &str = "lenra.yml";
 pub const LENRA_CACHE_DIRECTORY: &str = ".lenra";
@@ -19,16 +22,27 @@ pub const OF_WATCHDOG_BUILDER: &str = "of-watchdog";
 pub const OF_WATCHDOG_IMAGE: &str = "ghcr.io/openfaas/of-watchdog";
 pub const OF_WATCHDOG_VERSION: &str = "0.9.6";
 
-pub fn load_config_file(path: &std::path::PathBuf) -> Application {
-    let file = fs::File::open(path).unwrap();
+pub fn load_config_file(path: &std::path::PathBuf) -> Result<Application> {
+    let file = fs::File::open(path).map_err(|err| Error::OpenFile(err))?;
     match path.extension() {
         Some(os_str) => match os_str.to_str() {
-            Some("yml" | "yaml") => serde_yaml::from_reader(file).unwrap(),
-            Some("json") => serde_json::from_reader(file).unwrap(),
-            Some(ext) => panic!("Not managed config file extension {}", ext),
-            None => panic!("The config file has no extension"),
+            Some("yml" | "yaml") => {
+                Ok(serde_yaml::from_reader(file).map_err(|err| Error::DeserializeYaml(err))?)
+            }
+            Some("json") => {
+                Ok(serde_json::from_reader(file).map_err(|err| Error::DeserializeJson(err))?)
+            }
+            Some(ext) => Err(Error::Custom(format!(
+                "Not managed config file extension {}",
+                ext
+            ))),
+            None => Err(Error::Custom(
+                "The config file has no extension".to_string(),
+            )),
         },
-        None => panic!("The config file has no extension"),
+        None => Err(Error::Custom(
+            "The config file has no extension".to_string(),
+        )),
     }
 }
 
