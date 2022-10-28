@@ -7,6 +7,7 @@ use crate::config::{load_config_file, DEFAULT_CONFIG_FILE, DOCKERCOMPOSE_DEFAULT
 use crate::docker_compose::{
     self, compose_up, execute_compose_service_command, DEVTOOL_SERVICE_NAME,
 };
+use crate::errors::Result;
 
 #[derive(Args, Default)]
 pub struct Start {
@@ -20,7 +21,7 @@ pub struct Start {
 }
 
 impl CliCommand for Start {
-    fn run(&self) {
+    fn run(&self) -> Result<()> {
         log::info!("Starting the app");
         let conf = load_config_file(&self.config).unwrap();
 
@@ -50,5 +51,6 @@ impl CliCommand for Start {
             "Application available at http://localhost:{}",
             docker_compose::DEVTOOL_PORT
         );
+        Ok(())
     }
 }

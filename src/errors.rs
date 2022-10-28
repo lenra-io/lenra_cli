@@ -1,3 +1,4 @@
+use rustyline::error::ReadlineError;
 use thiserror::Error;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
@@ -10,6 +11,10 @@ pub enum Error {
     DeserializeJson(#[from] serde_json::Error),
     #[error("Error while deserializing the YAML document: {0}")]
     DeserializeYaml(#[from] serde_yaml::Error),
+    #[error("Could not read command: {0}")]
+    ReadLine(#[from] ReadlineError),
+    #[error("Could not parse command: {0}")]
+    ParseCommand(#[from] clap::Error),
     #[error("{0}")]
     Custom(String),
 }

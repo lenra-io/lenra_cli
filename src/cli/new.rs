@@ -10,6 +10,7 @@ use std::fs;
 use std::process::Command;
 
 use crate::cli::CliCommand;
+use crate::errors::Result;
 
 #[derive(Args)]
 pub struct New {
@@ -30,7 +31,7 @@ lazy_static! {
 }
 
 impl CliCommand for New {
-    fn run(&self) {
+    fn run(&self) -> Result<()> {
         if self.path.exists() {
             panic!("The path '{}' already exists", self.path.display())
         }
@@ -49,25 +50,14 @@ impl CliCommand for New {
             template,
             self.path.display()
         );
-        match Command::new("git")
+        Command::new("git")
             .arg("clone")
             .arg("--single-branch")
             .arg("--depth")
             .arg("1")
             .arg(template)
             .arg(self.path.as_os_str())
-            .spawn()
-        {
-            Ok(child) => {
-                child
-                    .wait_with_output()
-                    .expect("Failed to clone the template");
-            }
-            Err(e) => match e.kind() {
-                std::io::ErrorKind::NotFound => panic!("`git` was not found!"),
-                _ => panic!("Some unkown error occurred"),
-            },
-        }
+            .output()?;
 
         log::debug!("remove git directory");
         fs::remove_dir_all(self.path.join(".git")).unwrap();
@@ -91,5 +81,6 @@ impl CliCommand for New {
             .arg("Init project")
             .output()
             .expect("Failed during git add");
+        Ok(())
     }
 }

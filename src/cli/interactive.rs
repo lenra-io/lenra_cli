@@ -10,6 +10,7 @@ use rustyline::{error::ReadlineError, Editor};
 use crate::{
     cli::{build::Build, start::Start},
     docker_compose::Service,
+    errors::{Error, Result},
 };
 
 use super::{logs::Logs, CliCommand};
@@ -17,7 +18,7 @@ use super::{logs::Logs, CliCommand};
 const LENRA_COMMAND: &str = "lenra";
 const READLINE_PROMPT: &str = "[lenra]$ ";
 
-pub fn run_interactive_command(context: &InteractiveContext) -> Result<(), ReadlineError> {
+pub fn run_interactive_command(context: &InteractiveContext) -> Result<()> {
     let history_path = config_dir()
         .expect("Can't get the user config directory")
         .join("lenra")
@@ -34,35 +35,29 @@ pub fn run_interactive_command(context: &InteractiveContext) -> Result<(), Readl
         follow: true,
         ..Default::default()
     };
-    let mut last_logs = run_logs(&previous_log, None);
+    let mut last_logs = run_logs(&previous_log, None)?;
 
     loop {
         let readline = rl.readline(READLINE_PROMPT);
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
-                let result = parse_command_line(line);
+                let interactive =
+                    parse_command_line(line).map_err(Error::from)?;
 
-                match result {
-                    Ok(interactive) => {
-                        let logs_since = match interactive.command {
-                            InteractiveCommand::Continue => Some(last_logs),
-                            InteractiveCommand::Logs(logs) => {
-                                previous_log = logs.clone();
-                                None
-                            }
-                            InteractiveCommand::Stop => break,
-                            cmd => {
-                                cmd.run(context);
-                                Some(last_logs)
-                            }
-                        };
-                        last_logs = run_logs(&previous_log, logs_since);
+                let logs_since = match interactive.command {
+                    InteractiveCommand::Continue => Some(last_logs),
+                    InteractiveCommand::Logs(logs) => {
+                        previous_log = logs.clone();
+                        None
                     }
-                    Err(e) => {
-                        e.print().expect("Could not print error");
+                    InteractiveCommand::Stop => break,
+                    cmd => {
+                        cmd.run(context)?;
+                        Some(last_logs)
                     }
-                }
+                };
+                last_logs = run_logs(&previous_log, logs_since)?;
             }
             Err(ReadlineError::Interrupted) => {
                 debug!("CTRL-C");
@@ -80,10 +75,10 @@ pub fn run_interactive_command(context: &InteractiveContext) -> Result<(), Readl
     }
     debug!("Save history to {:?}", history_path);
     fs::create_dir_all(history_path.parent().unwrap())?;
-    rl.save_history(&history_path)
+    rl.save_history(&history_path).map_err(Error::from)
 }
 
-fn run_logs(logs: &Logs, last_end: Option<DateTime<Utc>>) -> DateTime<Utc> {
+fn run_logs(logs: &Logs, last_end: Option<DateTime<Utc>>) -> Result<DateTime<Utc>> {
     let mut clone = logs.clone();
     if let Some(last_logs) = last_end {
         // Only displays new logs
@@ -91,8 +86,8 @@ fn run_logs(logs: &Logs, last_end: Option<DateTime<Utc>>) -> DateTime<Utc> {
         // Follows the logs
         clone.follow = true;
     }
-    clone.run();
-    Utc::now()
+    clone.run()?;
+    Ok(Utc::now())
 }
 
 fn parse_command_line(line: String) -> Result<Interactive, clap::Error> {
@@ -148,7 +143,7 @@ pub enum InteractiveCommand {
 }
 
 impl InteractiveCommand {
-    fn run(&self, context: &InteractiveContext) {
+    fn run(&self, context: &InteractiveContext) -> Result<()> {
         match self {
             InteractiveCommand::Continue => warn!("The continue command should not be run"),
             InteractiveCommand::Logs(_logs) => println!("logs is not implemented yet"),
@@ -160,7 +155,7 @@ impl InteractiveCommand {
                     ..Default::default()
                 };
                 log::debug!("Run build");
-                build.run();
+                build.run()?;
 
                 let start = Start {
                     config: context.config.clone(),
@@ -168,8 +163,9 @@ impl InteractiveCommand {
                     ..Default::default()
                 };
                 log::debug!("Run start");
-                start.run();
+                start.run()?;
             }
         };
+        Ok(())
     }
 }

@@ -7,6 +7,7 @@ use crate::cli::start::Start;
 use crate::cli::stop::Stop;
 use crate::cli::CliCommand;
 use crate::config::DEFAULT_CONFIG_FILE;
+use crate::errors::Result;
 
 #[derive(Args)]
 pub struct Dev {
@@ -20,7 +21,7 @@ pub struct Dev {
 }
 
 impl CliCommand for Dev {
-    fn run(&self) {
+    fn run(&self) -> Result<()> {
         log::info!("Run dev mode");
 
         let build = Build {
@@ -29,7 +30,7 @@ impl CliCommand for Dev {
             ..Default::default()
         };
         log::debug!("Run build");
-        build.run();
+        build.run()?;
 
         let start = Start {
             config: self.config.clone(),
@@ -37,7 +38,7 @@ impl CliCommand for Dev {
             ..Default::default()
         };
         log::debug!("Run start");
-        start.run();
+        start.run()?;
 
         ctrlc::set_handler(move || {
             debug!("Stop asked");
@@ -54,8 +55,9 @@ impl CliCommand for Dev {
 
         let stop = Stop;
         log::debug!("Run stop");
-        stop.run();
+        stop.run()?;
 
         log::debug!("End of dev mode");
+        Ok(())
     }
 }

@@ -1,11 +1,14 @@
 pub use clap::{Args, Parser, Subcommand};
 
+use crate::errors::{Result, self};
+
 use self::{
     build::Build, dev::Dev, init::Init, logs::Logs, new::New, start::Start, stop::Stop,
-    update::Update,
+    update::Update, check::Check,
 };
 
 mod build;
+mod check;
 mod dev;
 mod init;
 mod interactive;
@@ -24,7 +27,7 @@ pub struct Cli {
 }
 
 pub trait CliCommand {
-    fn run(&self);
+    fn run(&self) -> Result<()>;
 }
 
 /// The subcommands
@@ -46,19 +49,23 @@ pub enum Command {
     Init(Init),
     /// Update the tools Docker images
     Update(Update),
+    /// Manage checks
+    Check(Check),
 }
 
 impl CliCommand for Command {
-    fn run(&self) {
+    fn run(&self) -> std::result::Result<(), errors::Error> {
         match self {
-            Command::New(new) => new.run(),
-            Command::Build(build) => build.run(),
-            Command::Start(start) => start.run(),
-            Command::Logs(logs) => logs.run(),
-            Command::Stop(stop) => stop.run(),
-            Command::Dev(dev) => dev.run(),
-            Command::Init(init) => init.run(),
-            Command::Update(update) => update.run(),
+            Command::New(new) => new.run()?,
+            Command::Build(build) => build.run()?,
+            Command::Start(start) => start.run()?,
+            Command::Logs(logs) => logs.run()?,
+            Command::Stop(stop) => stop.run()?,
+            Command::Dev(dev) => dev.run()?,
+            Command::Init(init) => init.run()?,
+            Command::Update(update) => update.run()?,
+            Command::Check(check) => check.run()?,
         };
+        Ok(())
     }
 }

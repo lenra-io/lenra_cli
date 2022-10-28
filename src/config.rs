@@ -23,14 +23,14 @@ pub const OF_WATCHDOG_IMAGE: &str = "ghcr.io/openfaas/of-watchdog";
 pub const OF_WATCHDOG_VERSION: &str = "0.9.6";
 
 pub fn load_config_file(path: &std::path::PathBuf) -> Result<Application> {
-    let file = fs::File::open(path).map_err(|err| Error::OpenFile(err))?;
+    let file = fs::File::open(path).map_err(Error::from)?;
     match path.extension() {
         Some(os_str) => match os_str.to_str() {
             Some("yml" | "yaml") => {
-                Ok(serde_yaml::from_reader(file).map_err(|err| Error::DeserializeYaml(err))?)
+                Ok(serde_yaml::from_reader(file).map_err(Error::from)?)
             }
             Some("json") => {
-                Ok(serde_json::from_reader(file).map_err(|err| Error::DeserializeJson(err))?)
+                Ok(serde_json::from_reader(file).map_err(Error::from)?)
             }
             Some(ext) => Err(Error::Custom(format!(
                 "Not managed config file extension {}",

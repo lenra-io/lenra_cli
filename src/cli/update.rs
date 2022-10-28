@@ -6,6 +6,7 @@ use crate::cli::CliCommand;
 use crate::config::{load_config_file, DEFAULT_CONFIG_FILE};
 use crate::docker;
 use crate::docker_compose::{get_services_images, Service};
+use crate::errors::Result;
 
 #[derive(Args, Clone)]
 pub struct Update {
@@ -19,7 +20,7 @@ pub struct Update {
 }
 
 impl CliCommand for Update {
-    fn run(&self) {
+    fn run(&self) -> Result<()> {
         log::info!("Updating Docker images");
 
         let conf = load_config_file(&self.config).ok();
@@ -51,5 +52,6 @@ impl CliCommand for Update {
                 )
             }
         });
+        Ok(())
     }
 }

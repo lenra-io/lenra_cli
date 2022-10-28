@@ -4,12 +4,13 @@ pub use clap::Args;
 
 use crate::cli::CliCommand;
 use crate::docker_compose::create_compose_command;
+use crate::errors::Result;
 
 #[derive(Args, Clone)]
 pub struct Stop;
 
 impl CliCommand for Stop {
-    fn run(&self) {
+    fn run(&self) -> Result<()> {
         log::info!("Stoping the app");
 
         let mut command = create_compose_command();
@@ -31,5 +32,6 @@ impl CliCommand for Stop {
                 String::from_utf8(output.stderr).unwrap()
             )
         }
+        Ok(())
     }
 }

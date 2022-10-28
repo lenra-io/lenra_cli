@@ -2,6 +2,7 @@ use clap;
 
 use crate::cli::CliCommand;
 use crate::config::{load_config_file, DEFAULT_CONFIG_FILE};
+use crate::errors::Result;
 
 #[derive(clap::Args)]
 pub struct Init {
@@ -11,9 +12,10 @@ pub struct Init {
 }
 
 impl CliCommand for Init {
-    fn run(&self) {
+    fn run(&self) -> Result<()> {
         let conf = load_config_file(&self.config).unwrap();
         // TODO: check the components API version
         conf.generate_docker_files();
+        Ok(())
     }
 }

@@ -5,6 +5,7 @@ use clap;
 use crate::cli::CliCommand;
 use crate::config::{load_config_file, DEFAULT_CONFIG_FILE};
 use crate::docker_compose::compose_build;
+use crate::errors::Result;
 
 #[derive(clap::Args, Default)]
 pub struct Build {
@@ -29,7 +30,7 @@ impl Build {
 }
 
 impl CliCommand for Build {
-    fn run(&self) {
+    fn run(&self) -> Result<()> {
         let conf = load_config_file(&self.config).unwrap();
         // TODO: check the components API version
 
@@ -37,5 +38,6 @@ impl CliCommand for Build {
 
         // self.build_docker_image(conf);
         self.build_docker_compose();
+        Ok(())
     }
 }

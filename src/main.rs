@@ -13,8 +13,8 @@ mod docker_compose;
 mod errors;
 mod git;
 
-fn main() {
+fn main() -> Result<(), errors::Error> {
     env_logger::init();
     let args = Cli::parse();
-    args.command.run();
+    args.command.run()
 }

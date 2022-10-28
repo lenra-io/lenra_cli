@@ -5,6 +5,7 @@ use log::warn;
 
 use crate::cli::CliCommand;
 use crate::docker_compose::{create_compose_command, Service};
+use crate::errors::Result;
 
 #[derive(Args, Default, Clone)]
 pub struct Logs {
@@ -42,7 +43,7 @@ pub struct Logs {
 }
 
 impl CliCommand for Logs {
-    fn run(&self) {
+    fn run(&self) -> Result<()> {
         log::info!("Show logs");
 
         let mut command = create_compose_command();
@@ -88,5 +89,6 @@ impl CliCommand for Logs {
                 String::from_utf8(output.stderr).unwrap()
             )
         }
+        Ok(())
     }
 }
