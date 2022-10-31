@@ -15,6 +15,8 @@ pub enum Error {
     ReadLine(#[from] ReadlineError),
     #[error("Could not parse command: {0}")]
     ParseCommand(#[from] clap::Error),
+    #[error("Error while requesting: {0}")]
+    Request(#[from] ureq::Error),
     #[error("{0}")]
     Custom(String),
 }

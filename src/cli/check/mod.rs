@@ -1,10 +1,10 @@
 use std::fmt::Debug;
 
 use clap::{Args, Subcommand};
-use log::{info, debug};
+use log::{debug, info};
 use serde_json::Value;
 
-use crate::errors::Result;
+use crate::errors::{Error, Result};
 
 use self::template::TemplateChecker;
 
@@ -62,36 +62,50 @@ pub trait AppChecker: Debug {
 
         debug!("Check list: {:?}", check_list);
 
-        check_list
-            .iter()
-            .for_each(|checker| checker.check(params.clone()))
+        let mut fail: bool = false;
+        check_list.iter().for_each(|checker| {
+            let errors = checker.check(params.clone());
+            // TODO: display ok if any no error
+            // TODO: display errors
+            println!("errors: {:?}", errors);
+        });
     }
 }
 
 #[derive(Debug)]
 pub struct Checker {
     name: String,
-    action: fn() -> Value,
+    action: fn() -> Result<Value>,
     rules: Vec<Rule<Value>>,
 }
 
 impl Checker {
-    pub fn check(&self, params: CheckParameters) {
+    pub fn check(&self, params: CheckParameters) -> Vec<RuleError> {
         let ignores = params.ignore.unwrap_or(vec![]);
         if ignore_rule(vec![self.name.clone()], ignores.clone()) {
             info!("Checker '{}' ignored", self.name);
-            return;
+            return vec![];
         }
-        let value = (self.action)();
-        self.rules.iter().for_each(|rule| {
-            if ignore_rule(vec![self.name.clone(), rule.name.clone()], ignores.clone()) {
-                info!("Rule '{}' ignored for checker '{}'", rule.name, self.name);
-                return;
-            }
+        let res = (self.action)();
+        match res {
+            Ok(value) => self
+                .rules
+                .iter()
+                .flat_map(|rule| {
+                    if ignore_rule(vec![self.name.clone(), rule.name.clone()], ignores.clone()) {
+                        info!("Rule '{}' ignored for checker '{}'", rule.name, self.name);
+                        return vec![];
+                    }
 
-            debug!("Check {}{}{}", self.name, RULE_SEPARATOR, rule.name);
-            rule.check(value.clone());
-        });
+                    debug!("Check {}{}{}", self.name, RULE_SEPARATOR, rule.name);
+                    rule.check(value.clone())
+                })
+                .collect(),
+            Err(err) => vec![RuleError::Error(format!(
+                "Error loading {} checker data: {:?}",
+                self.name, err
+            ))],
+        }
     }
 }
 
@@ -111,9 +125,9 @@ fn ignore_rule(parts: Vec<String>, ignores: Vec<String>) -> bool {
 }
 
 #[derive(Debug)]
-pub enum RuleLevel {
-    Warning,
-    Error,
+pub enum RuleError {
+    Warning(String),
+    Error(String),
 }
 
 #[derive(Debug)]
@@ -121,12 +135,19 @@ pub struct Rule<T> {
     pub name: String,
     pub description: String,
     pub examples: Vec<String>,
-    pub level: RuleLevel,
-    pub check: fn(T) -> (),
+    pub check: fn(T) -> Vec<RuleError>,
 }
 
 impl<T> Rule<T> {
-    fn check(&self, param: T) {
-        (self.check)(param);
+    fn check(&self, param: T) -> Vec<RuleError> {
+        (self.check)(param)
     }
+}
+
+pub fn call_app(request: Value) -> Result<Value> {
+    ureq::post("http://localhost:8080")
+        .send_json(request)
+        .map_err(Error::from)?
+        .into_json()
+        .map_err(Error::from)
 }
