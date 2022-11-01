@@ -1,6 +1,7 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, cmp::Ordering};
 
 use clap::{Args, Subcommand};
+use colored::{Color, Colorize};
 use log::{debug, info};
 use serde_json::Value;
 
@@ -62,13 +63,41 @@ pub trait AppChecker: Debug {
 
         debug!("Check list: {:?}", check_list);
 
-        let mut fail: bool = false;
+        let mut result: &CheckerLevel = &CheckerLevel::Ok;
         check_list.iter().for_each(|checker| {
             let errors = checker.check(params.clone());
-            // TODO: display ok if any no error
-            // TODO: display errors
-            println!("errors: {:?}", errors);
+            let name = checker.name.clone();
+
+            let mut levels: Vec<CheckerLevel> = errors.iter().map(|error| {
+                match error {
+                    RuleError::Warning(msg) => {
+                        println!("    {}", msg);
+                        CheckerLevel::Warning
+                    },
+                    RuleError::Error(msg) => {
+                        println!("    {}", msg);
+                        CheckerLevel::Error
+                    },
+                }
+            }).collect();
+            // levels.sort_by(|a, b| {
+            //     if a == &CheckerLevel::Error {
+            //         Ordering::Less
+            //     } else if b == &CheckerLevel::Error {
+            //         Ordering::Greater
+            //     } else {
+            //         Ordering::Equal
+            //     }
+            // });
+            levels.sort();
+
+            let level: &CheckerLevel = levels.get(0).unwrap_or(&CheckerLevel::Ok);
+            // if level.cmp(&result) == Ordering::Less {
+            //     result = level;
+            // }
+            println!("{}", format!("{:20}: {:?}", name, level).color(level.color()));
         });
+        
     }
 }
 
@@ -122,6 +151,23 @@ fn ignore_rule(parts: Vec<String>, ignores: Vec<String>) -> bool {
         }
     }
     return false;
+}
+
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+pub enum CheckerLevel {
+    Ok,
+    Warning,
+    Error,
+}
+
+impl CheckerLevel {
+    fn color(&self) -> Color {
+        match self {
+            CheckerLevel::Ok => Color::Green,
+            CheckerLevel::Warning => Color::Yellow,
+            CheckerLevel::Error => Color::Red,
+        }
+    }
 }
 
 #[derive(Debug)]
