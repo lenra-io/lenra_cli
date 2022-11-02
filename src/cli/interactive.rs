@@ -13,7 +13,7 @@ use crate::{
     errors::{Error, Result},
 };
 
-use super::{logs::Logs, CliCommand};
+use super::{logs::Logs, CliCommand, check::Check};
 
 const LENRA_COMMAND: &str = "lenra";
 const READLINE_PROMPT: &str = "[lenra]$ ";
@@ -140,6 +140,8 @@ pub enum InteractiveCommand {
     Reload,
     /// Stop your app previously started with the start command
     Stop,
+    /// Manage checks
+    Check(Check),
 }
 
 impl InteractiveCommand {
@@ -165,6 +167,7 @@ impl InteractiveCommand {
                 log::debug!("Run start");
                 start.run()?;
             }
+            InteractiveCommand::Check(check) => check.run()?,
         };
         Ok(())
     }

@@ -42,27 +42,17 @@ impl AppChecker for TemplateChecker {
                     examples: vec![],
                     check: |value| {
                         let allowed_keys = vec!["rootWidget".to_string()];
-                        if let Value::Object(object) = value.clone() {
-                            if let Some(manifest) = object.get("manifest") {
-                                if let Value::Object(manifest_object) = manifest.clone() {
-                                    let additionnal_keys: Vec<&String> = manifest_object.keys().into_iter().filter(|&key| !allowed_keys.contains(key)).collect();
-                                    if additionnal_keys.is_empty() {
-                                        vec![]
-                                    }
-                                    else {
-                                        additionnal_keys.iter().map(|key| RuleError::Warning(format!("The manifest field contains an unmanaged property: {}", format!("{}", key).yellow()))).collect()
-                                    }
-                                }
-                                else {
-                                    vec![RuleError::Error(format!("The manifest field is not an object: {}", format!("{}", manifest).red()))]
-                                }
+                        if let Some(manifest) = value.get("manifest").and_then(|val| val.as_object()) {
+                            let additionnal_keys: Vec<&String> = manifest.keys().into_iter().filter(|&key| !allowed_keys.contains(key)).collect();
+                            if additionnal_keys.is_empty() {
+                                vec![]
                             }
                             else {
-                                vec![RuleError::Error(format!("The manifest field is not found in the manifest: {}", format!("{}", value).red()))]
+                                additionnal_keys.iter().map(|key| RuleError::Warning(format!("The manifest field contains an unmanaged property: {}", format!("{}", key).yellow()))).collect()
                             }
                         }
                         else {
-                            vec![RuleError::Error(format!("The manifest response is not an object: {}", format!("{}", value).red()))]
+                            vec![RuleError::Error(format!("The manifest field is not found or is not an object: {}", format!("{}", value.to_string()).red()))]
                         }
                     }
                 },

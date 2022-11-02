@@ -15,7 +15,7 @@ mod template;
 
 const RULE_SEPARATOR: &str = ":";
 
-#[derive(Args)]
+#[derive(Args, Clone)]
 pub struct Check {
     #[clap(subcommand)]
     command: CheckCommandType,
