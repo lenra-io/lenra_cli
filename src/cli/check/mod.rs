@@ -182,20 +182,39 @@ pub struct ValueChecker {
 impl ValueChecker {
     pub fn rules(&self) -> Vec<Rule<Value>> {
         vec![
-            Rule {
-                name: "additional-properties".into(),
-                description: "Properties not expected in the result".into(),
-                examples: vec![],
-                check: |value, expected| {
-                    check_additional_properties(value.clone(), expected.clone())
-                },
-            },
+            // Rule {
+            //     name: "additional-properties".into(),
+            //     description: "Properties not expected in the result".into(),
+            //     examples: vec![],
+            //     check: |value, expected| {
+            //         check_additional_properties(value.clone(), expected.clone())
+            //     },
+            // },
             Rule {
                 name: "match".into(),
-                description: "Checks that the date matches the expected one (ignoring addition properties)".into(),
+                description:
+                    "Checks that the date matches the expected one (ignoring addition properties)"
+                        .into(),
                 examples: vec![],
                 check: |value, expected| {
-                    check_additional_properties(value.clone(), expected.clone())
+                    value
+                        .check_match(&expected)
+                        .iter()
+                        .map(|err| match err.error_type {
+                            MatchingErrorType::NotSameType => {
+                                RuleError::Error(format!("Not matching type for {}", err.path))
+                            }
+                            MatchingErrorType::NotSameValue => {
+                                RuleError::Error(format!("Not matching value for {}", err.path))
+                            }
+                            MatchingErrorType::AdditionnalProperty => {
+                                RuleError::Warning(format!("Additional property {}", err.path))
+                            }
+                            MatchingErrorType::MissingProperty => {
+                                RuleError::Error(format!("Missing property {}", err.path))
+                            }
+                        })
+                        .collect()
                 },
             },
         ]
@@ -229,6 +248,7 @@ impl ValueChecker {
     }
 }
 
+#[derive(Clone)]
 enum MatchingErrorType {
     NotSameType,
     NotSameValue,
@@ -236,20 +256,19 @@ enum MatchingErrorType {
     MissingProperty,
 }
 
+#[derive(Clone)]
 struct MatchingError {
     pub path: String,
     pub error_type: MatchingErrorType,
 }
 
 trait Matching {
-    fn match_type(&self, val: Value) -> bool;
-    fn check_match(&self, expected: Value) -> Vec<MatchingError>;
+    fn match_type(&self, val: &Value) -> bool;
+    fn check_match(&self, expected: &Value) -> Vec<MatchingError>;
 }
 
-
-
 impl Matching for Value {
-    fn match_type(&self, val: Value) -> bool {
+    fn match_type(&self, val: &Value) -> bool {
         match self {
             Value::Null => val.is_null(),
             Value::Bool(_) => val.is_boolean(),
@@ -260,50 +279,73 @@ impl Matching for Value {
         }
     }
 
-    fn check_match(&self, expected: Value) -> Vec<MatchingError> {
-        if &expected == self {
-            return vec![]
+    fn check_match(&self, expected: &Value) -> Vec<MatchingError> {
+        if expected == self {
+            return vec![];
         }
         if !self.match_type(expected) {
-            return vec![MatchingError { path: "".into(), error_type: MatchingErrorType::NotSameType }]
+            return vec![MatchingError {
+                path: "".into(),
+                error_type: MatchingErrorType::NotSameType,
+            }];
         }
 
         match self {
             Value::Array(array) => {
                 let expected_array = expected.as_array().unwrap();
                 let mut ret: Vec<MatchingError> = vec![];
-                let common_length = if array.len()>expected_array.len() {
+                let common_length = if array.len() > expected_array.len() {
                     expected_array.len()
-                }
-                else {
+                } else {
                     array.len()
                 };
 
                 for i in 0..common_length {
                     let v = array.get(i).unwrap();
                     let expected_v = expected_array.get(i).unwrap();
+                    v.check_match(expected_v)
+                        .iter()
+                        .map(|error| MatchingError {
+                            path: format!("{}.{}", i, error.path),
+                            error_type: error.error_type.clone(),
+                        })
+                        .for_each(|error| ret.push(error));
                 }
+                for i in common_length..array.len() {
+                    ret.push(MatchingError {
+                        path: format!("{}", i),
+                        error_type: MatchingErrorType::AdditionnalProperty,
+                    });
+                }
+                for i in common_length..expected_array.len() {
+                    ret.push(MatchingError {
+                        path: format!("{}", i),
+                        error_type: MatchingErrorType::MissingProperty,
+                    });
+                }
+
                 ret
-            },
-            Value::Object(_) => val.is_object(),
+            }
+            Value::Object(_) => {
+                // TODO: handle
+                vec![]
+            }
             // Since equality have been tested before
-            Value::Bool(_) => vec![MatchingError { path: "".into(), error_type: MatchingErrorType::NotSameValue }],
-            Value::Number(_) => vec![MatchingError { path: "".into(), error_type: MatchingErrorType::NotSameValue }],
-            Value::String(_) => vec![MatchingError { path: "".into(), error_type: MatchingErrorType::NotSameValue }],
+            Value::Bool(_) => vec![MatchingError {
+                path: "".into(),
+                error_type: MatchingErrorType::NotSameValue,
+            }],
+            Value::Number(_) => vec![MatchingError {
+                path: "".into(),
+                error_type: MatchingErrorType::NotSameValue,
+            }],
+            Value::String(_) => vec![MatchingError {
+                path: "".into(),
+                error_type: MatchingErrorType::NotSameValue,
+            }],
             _ => panic!("Should not be reached"),
         }
     }
-}
-
-fn match_value(value: Value, expected: Value) -> Vec<RuleError> {
-    if expected == value {
-        return vec![]
-    }
-    else {
-        value.
-    }
-    
-    vec![]
 }
 
 #[derive(Debug)]
