@@ -20,7 +20,7 @@ impl AppChecker for TemplateChecker {
                     name: "additionalRootProperties".into(),
                     description: "Checks if the manifest response has additional properties".into(),
                     examples: vec![],
-                    check: |value| {
+                    check: |value, expected| {
                         let allowed_keys = vec!["manifest".to_string()];
                         if let Value::Object(object) = value.clone() {
                             let additionnal_keys: Vec<&String> = object.keys().into_iter().filter(|&key| !allowed_keys.contains(key)).collect();
@@ -40,7 +40,7 @@ impl AppChecker for TemplateChecker {
                     name: "additionalManifestProperties".into(),
                     description: "Checks if the manifest field has additional properties".into(),
                     examples: vec![],
-                    check: |value| {
+                    check: |value, expected| {
                         let allowed_keys = vec!["rootWidget".to_string()];
                         if let Some(manifest) = value.get("manifest").and_then(|val| val.as_object()) {
                             let additionnal_keys: Vec<&String> = manifest.keys().into_iter().filter(|&key| !allowed_keys.contains(key)).collect();
@@ -62,7 +62,7 @@ impl AppChecker for TemplateChecker {
                     examples: vec![format!(r#"{{
 "{}": "{}"
 }}"#, "rootWidget".underline().green(), "main".underline().green())],
-                    check: |value| {
+                    check: |value, expected| {
                         if let Value::Object(object) = value.clone() {
                             if let Some(manifest) = object.get("manifest") {
                                 if let Value::Object(manifest_object) = manifest.clone() {

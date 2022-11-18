@@ -1,4 +1,4 @@
-use std::{fmt::Debug, cmp::Ordering};
+use std::{cmp::Ordering, fmt::Debug};
 
 use clap::{Args, Subcommand};
 use colored::{Color, Colorize};
@@ -68,18 +68,19 @@ pub trait AppChecker: Debug {
             let errors = checker.check(params.clone());
             let name = checker.name.clone();
 
-            let mut levels: Vec<CheckerLevel> = errors.iter().map(|error| {
-                match error {
+            let mut levels: Vec<CheckerLevel> = errors
+                .iter()
+                .map(|error| match error {
                     RuleError::Warning(msg) => {
                         println!("    {}", msg);
                         CheckerLevel::Warning
-                    },
+                    }
                     RuleError::Error(msg) => {
                         println!("    {}", msg);
                         CheckerLevel::Error
-                    },
-                }
-            }).collect();
+                    }
+                })
+                .collect();
             // levels.sort_by(|a, b| {
             //     if a == &CheckerLevel::Error {
             //         Ordering::Less
@@ -95,9 +96,11 @@ pub trait AppChecker: Debug {
             // if level.cmp(&result) == Ordering::Less {
             //     result = level;
             // }
-            println!("{}", format!("{:20}: {:?}", name, level).color(level.color()));
+            println!(
+                "{}",
+                format!("{:20}: {:?}", name, level).color(level.color())
+            );
         });
-        
     }
 }
 
@@ -127,7 +130,7 @@ impl Checker {
                     }
 
                     debug!("Check {}{}{}", self.name, RULE_SEPARATOR, rule.name);
-                    rule.check(value.clone())
+                    rule.check(value.clone(), value.clone())
                 })
                 .collect(),
             Err(err) => vec![RuleError::Error(format!(
@@ -170,6 +173,139 @@ impl CheckerLevel {
     }
 }
 
+pub struct ValueChecker {
+    name: String,
+    expected: Value,
+    loader: fn() -> Result<Value>,
+}
+
+impl ValueChecker {
+    pub fn rules(&self) -> Vec<Rule<Value>> {
+        vec![
+            Rule {
+                name: "additional-properties".into(),
+                description: "Properties not expected in the result".into(),
+                examples: vec![],
+                check: |value, expected| {
+                    check_additional_properties(value.clone(), expected.clone())
+                },
+            },
+            Rule {
+                name: "match".into(),
+                description: "Checks that the date matches the expected one (ignoring addition properties)".into(),
+                examples: vec![],
+                check: |value, expected| {
+                    check_additional_properties(value.clone(), expected.clone())
+                },
+            },
+        ]
+    }
+
+    pub fn check(&self, ignores: Vec<String>) -> Vec<RuleError> {
+        if ignore_rule(vec![self.name.clone()], ignores.clone()) {
+            info!("Checker '{}' ignored", self.name);
+            return vec![];
+        }
+        let res = (self.loader)();
+        match res {
+            Ok(value) => self
+                .rules()
+                .iter()
+                .flat_map(|rule| {
+                    if ignore_rule(vec![self.name.clone(), rule.name.clone()], ignores.clone()) {
+                        info!("Rule '{}' ignored for checker '{}'", rule.name, self.name);
+                        return vec![];
+                    }
+
+                    debug!("Check {}{}{}", self.name, RULE_SEPARATOR, rule.name);
+                    rule.check(value.clone(), self.expected.clone())
+                })
+                .collect(),
+            Err(err) => vec![RuleError::Error(format!(
+                "Error loading {} checker data: {:?}",
+                self.name, err
+            ))],
+        }
+    }
+}
+
+enum MatchingErrorType {
+    NotSameType,
+    NotSameValue,
+    AdditionnalProperty,
+    MissingProperty,
+}
+
+struct MatchingError {
+    pub path: String,
+    pub error_type: MatchingErrorType,
+}
+
+trait Matching {
+    fn match_type(&self, val: Value) -> bool;
+    fn check_match(&self, expected: Value) -> Vec<MatchingError>;
+}
+
+
+
+impl Matching for Value {
+    fn match_type(&self, val: Value) -> bool {
+        match self {
+            Value::Null => val.is_null(),
+            Value::Bool(_) => val.is_boolean(),
+            Value::Number(_) => val.is_number(),
+            Value::String(_) => val.is_string(),
+            Value::Array(_) => val.is_array(),
+            Value::Object(_) => val.is_object(),
+        }
+    }
+
+    fn check_match(&self, expected: Value) -> Vec<MatchingError> {
+        if &expected == self {
+            return vec![]
+        }
+        if !self.match_type(expected) {
+            return vec![MatchingError { path: "".into(), error_type: MatchingErrorType::NotSameType }]
+        }
+
+        match self {
+            Value::Array(array) => {
+                let expected_array = expected.as_array().unwrap();
+                let mut ret: Vec<MatchingError> = vec![];
+                let common_length = if array.len()>expected_array.len() {
+                    expected_array.len()
+                }
+                else {
+                    array.len()
+                };
+
+                for i in 0..common_length {
+                    let v = array.get(i).unwrap();
+                    let expected_v = expected_array.get(i).unwrap();
+                }
+                ret
+            },
+            Value::Object(_) => val.is_object(),
+            // Since equality have been tested before
+            Value::Bool(_) => vec![MatchingError { path: "".into(), error_type: MatchingErrorType::NotSameValue }],
+            Value::Number(_) => vec![MatchingError { path: "".into(), error_type: MatchingErrorType::NotSameValue }],
+            Value::String(_) => vec![MatchingError { path: "".into(), error_type: MatchingErrorType::NotSameValue }],
+            _ => panic!("Should not be reached"),
+        }
+    }
+}
+
+fn match_value(value: Value, expected: Value) -> Vec<RuleError> {
+    if expected == value {
+        return vec![]
+    }
+    else {
+        value.
+    }
+    
+    vec![]
+}
+
 #[derive(Debug)]
 pub enum RuleError {
     Warning(String),
@@ -181,12 +317,12 @@ pub struct Rule<T> {
     pub name: String,
     pub description: String,
     pub examples: Vec<String>,
-    pub check: fn(T) -> Vec<RuleError>,
+    pub check: fn(T, T) -> Vec<RuleError>,
 }
 
 impl<T> Rule<T> {
-    fn check(&self, param: T) -> Vec<RuleError> {
-        (self.check)(param)
+    fn check(&self, param: T, expected: T) -> Vec<RuleError> {
+        (self.check)(param, expected)
     }
 }
 
