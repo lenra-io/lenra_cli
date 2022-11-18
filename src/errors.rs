@@ -17,6 +17,8 @@ pub enum Error {
     ParseCommand(#[from] clap::Error),
     #[error("Error while requesting: {0}")]
     Request(#[from] ureq::Error),
+    #[error("Check error")]
+    CheckError,
     #[error("{0}")]
     Custom(String),
 }

@@ -23,7 +23,7 @@ pub struct Start {
 impl CliCommand for Start {
     fn run(&self) -> Result<()> {
         log::info!("Starting the app");
-        let conf = load_config_file(&self.config).unwrap();
+        let conf = load_config_file(&self.config)?;
 
         let dockercompose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
         if !dockercompose_path.exists() {
