@@ -1,7 +1,7 @@
 use std::{cmp::Ordering, fmt::Debug};
 
 use clap::{Args, Subcommand};
-use colored::{Color, Colorize};
+use colored::{Color, ColoredString, Colorize};
 use log::{debug, info};
 use serde_json::Value;
 
@@ -13,7 +13,8 @@ use super::CliCommand;
 
 mod template;
 
-const RULE_SEPARATOR: &str = ":";
+pub const RULE_SEPARATOR: &str = ":";
+pub const WIDGET: &str = "widget";
 
 #[derive(Args, Clone)]
 pub struct Check {
@@ -54,7 +55,7 @@ pub struct CheckParameters {
 }
 
 pub trait AppChecker: Debug {
-    fn check_list(&self) -> Vec<Checker>;
+    fn check_list(&self) -> Vec<ValueChecker>;
 
     fn check(&self, params: CheckParameters) {
         info!("Check with {:?}", self);
@@ -65,41 +66,35 @@ pub trait AppChecker: Debug {
 
         let mut result: &CheckerLevel = &CheckerLevel::Ok;
         check_list.iter().for_each(|checker| {
-            let errors = checker.check(params.clone());
+            let errors = checker.check(params.ignore.clone().unwrap_or(vec![]));
             let name = checker.name.clone();
+            let mut messages: Vec<ColoredString> = vec![];
 
             let mut levels: Vec<CheckerLevel> = errors
                 .iter()
                 .map(|error| match error {
-                    RuleError::Warning(msg) => {
-                        println!("    {}", msg);
+                    RuleError::Warning(err) => {
+                        messages.push(
+                            format!("    {}\n        {}", err.rule, err.message).color(CheckerLevel::Warning.color()),
+                        );
                         CheckerLevel::Warning
                     }
-                    RuleError::Error(msg) => {
-                        println!("    {}", msg);
+                    RuleError::Error(err) => {
+                        messages.push(
+                            format!("    {}\n        {}", err.rule, err.message).color(CheckerLevel::Error.color()),
+                        );
                         CheckerLevel::Error
                     }
                 })
                 .collect();
-            // levels.sort_by(|a, b| {
-            //     if a == &CheckerLevel::Error {
-            //         Ordering::Less
-            //     } else if b == &CheckerLevel::Error {
-            //         Ordering::Greater
-            //     } else {
-            //         Ordering::Equal
-            //     }
-            // });
             levels.sort();
 
             let level: &CheckerLevel = levels.get(0).unwrap_or(&CheckerLevel::Ok);
-            // if level.cmp(&result) == Ordering::Less {
-            //     result = level;
-            // }
             println!(
                 "{}",
                 format!("{:20}: {:?}", name, level).color(level.color())
             );
+            messages.iter().for_each(|msg| println!("{}", msg));
         });
     }
 }
@@ -111,35 +106,34 @@ pub struct Checker {
     rules: Vec<Rule<Value>>,
 }
 
-impl Checker {
-    pub fn check(&self, params: CheckParameters) -> Vec<RuleError> {
-        let ignores = params.ignore.unwrap_or(vec![]);
-        if ignore_rule(vec![self.name.clone()], ignores.clone()) {
-            info!("Checker '{}' ignored", self.name);
-            return vec![];
-        }
-        let res = (self.action)();
-        match res {
-            Ok(value) => self
-                .rules
-                .iter()
-                .flat_map(|rule| {
-                    if ignore_rule(vec![self.name.clone(), rule.name.clone()], ignores.clone()) {
-                        info!("Rule '{}' ignored for checker '{}'", rule.name, self.name);
-                        return vec![];
-                    }
+// impl Checker {
+//     pub fn check(&self, params: CheckParameters) -> Vec<RuleError> {
+//         let ignores = params.ignore.unwrap_or(vec![]);
+//         if ignore_rule(vec![self.name.clone()], ignores.clone()) {
+//             info!("Checker '{}' ignored", self.name);
+//             return vec![];
+//         }
+//         let res = (self.action)();
+//         match res {
+//             Ok(value) => self
+//                 .rules
+//                 .iter()
+//                 .flat_map(|rule| {
+//                     if ignore_rule(vec![self.name.clone(), rule.name.clone()], ignores.clone()) {
+//                         info!("Rule '{}' ignored for checker '{}'", rule.name, self.name);
+//                         return vec![];
+//                     }
 
-                    debug!("Check {}{}{}", self.name, RULE_SEPARATOR, rule.name);
-                    rule.check(value.clone(), value.clone())
-                })
-                .collect(),
-            Err(err) => vec![RuleError::Error(format!(
-                "Error loading {} checker data: {:?}",
-                self.name, err
-            ))],
-        }
-    }
-}
+//                     debug!("Check {}{}{}", self.name, RULE_SEPARATOR, rule.name);
+//                     rule.check(value.clone(), value.clone())
+//                 })
+//                 .collect(),
+//             Err(err) => vec![RuleError::Error(ErrorData {
+//                 message: format!("Error loading {} checker data: {:?}", self.name, err)
+//             })],
+//         }
+//     }
+// }
 
 fn ignore_rule(parts: Vec<String>, ignores: Vec<String>) -> bool {
     let mut prefix = String::new();
@@ -173,6 +167,7 @@ impl CheckerLevel {
     }
 }
 
+#[derive(Debug)]
 pub struct ValueChecker {
     name: String,
     expected: Value,
@@ -181,43 +176,35 @@ pub struct ValueChecker {
 
 impl ValueChecker {
     pub fn rules(&self) -> Vec<Rule<Value>> {
-        vec![
-            // Rule {
-            //     name: "additional-properties".into(),
-            //     description: "Properties not expected in the result".into(),
-            //     examples: vec![],
-            //     check: |value, expected| {
-            //         check_additional_properties(value.clone(), expected.clone())
-            //     },
-            // },
-            Rule {
-                name: "match".into(),
-                description:
-                    "Checks that the date matches the expected one (ignoring addition properties)"
-                        .into(),
-                examples: vec![],
-                check: |value, expected| {
-                    value
-                        .check_match(&expected)
-                        .iter()
-                        .map(|err| match err.error_type {
-                            MatchingErrorType::NotSameType => {
-                                RuleError::Error(format!("Not matching type for {}", err.path))
-                            }
-                            MatchingErrorType::NotSameValue => {
-                                RuleError::Error(format!("Not matching value for {}", err.path))
-                            }
-                            MatchingErrorType::AdditionnalProperty => {
-                                RuleError::Warning(format!("Additional property {}", err.path))
-                            }
-                            MatchingErrorType::MissingProperty => {
-                                RuleError::Error(format!("Missing property {}", err.path))
-                            }
-                        })
-                        .collect()
-                },
+        vec![Rule {
+            name: "match".into(),
+            description: "Checks that the data matches the expected one".into(),
+            examples: vec![],
+            check: |value, expected| {
+                value
+                    .check_match(&expected)
+                    .iter()
+                    .map(|err| match err.error_type {
+                        MatchingErrorType::NotSameType => RuleError::Error(ErrorData {
+                            rule: format!("{}{}{}", "sameType", RULE_SEPARATOR, err.path),
+                            message: format!("Not matching type for {}", err.path),
+                        }),
+                        MatchingErrorType::NotSameValue => RuleError::Error(ErrorData {
+                            rule: format!("{}{}{}", "sameValue", RULE_SEPARATOR, err.path),
+                            message: format!("Not matching value for {}", err.path),
+                        }),
+                        MatchingErrorType::AdditionalProperty => RuleError::Warning(ErrorData {
+                            rule: format!("{}{}{}", "additionalProperty", RULE_SEPARATOR, err.path),
+                            message: format!("Additional property {}", err.path),
+                        }),
+                        MatchingErrorType::MissingProperty => RuleError::Error(ErrorData {
+                            rule: format!("{}{}{}", "missingProperty", RULE_SEPARATOR, err.path),
+                            message: format!("Missing property {}", err.path),
+                        }),
+                    })
+                    .collect()
             },
-        ]
+        }]
     }
 
     pub fn check(&self, ignores: Vec<String>) -> Vec<RuleError> {
@@ -238,12 +225,24 @@ impl ValueChecker {
 
                     debug!("Check {}{}{}", self.name, RULE_SEPARATOR, rule.name);
                     rule.check(value.clone(), self.expected.clone())
+                        .iter()
+                        .map(|error| match error {
+                            RuleError::Warning(data) => RuleError::Warning(ErrorData {
+                                rule: format!("{}{}{}", self.name, RULE_SEPARATOR, data.rule),
+                                message: data.message.clone(),
+                            }),
+                            RuleError::Error(data) => RuleError::Error(ErrorData {
+                                rule: format!("{}{}{}", self.name, RULE_SEPARATOR, data.rule),
+                                message: data.message.clone(),
+                            }),
+                        })
+                        .collect()
                 })
                 .collect(),
-            Err(err) => vec![RuleError::Error(format!(
-                "Error loading {} checker data: {:?}",
-                self.name, err
-            ))],
+            Err(err) => vec![RuleError::Error(ErrorData {
+                rule: format!("{}{}{}", self.name, RULE_SEPARATOR, "unexpectedError"),
+                message: format!("Error loading {} checker data: {:?}", self.name, err),
+            })],
         }
     }
 }
@@ -252,7 +251,7 @@ impl ValueChecker {
 enum MatchingErrorType {
     NotSameType,
     NotSameValue,
-    AdditionnalProperty,
+    AdditionalProperty,
     MissingProperty,
 }
 
@@ -306,7 +305,11 @@ impl Matching for Value {
                     v.check_match(expected_v)
                         .iter()
                         .map(|error| MatchingError {
-                            path: format!("{}.{}", i, error.path),
+                            path: if error.path.is_empty() {
+                                format!("{}", i)
+                            } else {
+                                format!("{}.{}", i, error.path)
+                            },
                             error_type: error.error_type.clone(),
                         })
                         .for_each(|error| ret.push(error));
@@ -314,7 +317,7 @@ impl Matching for Value {
                 for i in common_length..array.len() {
                     ret.push(MatchingError {
                         path: format!("{}", i),
-                        error_type: MatchingErrorType::AdditionnalProperty,
+                        error_type: MatchingErrorType::AdditionalProperty,
                     });
                 }
                 for i in common_length..expected_array.len() {
@@ -326,9 +329,46 @@ impl Matching for Value {
 
                 ret
             }
-            Value::Object(_) => {
-                // TODO: handle
-                vec![]
+            Value::Object(object) => {
+                let expected_object = expected.as_object().unwrap();
+                let keys = object.keys();
+                let expected_keys = expected_object.keys();
+                let mut ret: Vec<MatchingError> = vec![];
+
+                expected_keys.for_each(|key| {
+                    if object.contains_key(key) {
+                        let value = object.get(key).unwrap();
+                        let expected_value = expected_object.get(key).unwrap();
+                        value
+                            .check_match(expected_value)
+                            .iter()
+                            .map(|error| MatchingError {
+                                path: if error.path.is_empty() {
+                                    key.into()
+                                } else {
+                                    format!("{}.{}", key, error.path)
+                                },
+                                error_type: error.error_type.clone(),
+                            })
+                            .for_each(|error| ret.push(error));
+                    } else {
+                        ret.push(MatchingError {
+                            path: key.into(),
+                            error_type: MatchingErrorType::MissingProperty,
+                        });
+                    }
+                });
+
+                keys.for_each(|key| {
+                    if !expected_object.contains_key(key) {
+                        ret.push(MatchingError {
+                            path: key.into(),
+                            error_type: MatchingErrorType::AdditionalProperty,
+                        });
+                    }
+                });
+
+                ret
             }
             // Since equality have been tested before
             Value::Bool(_) => vec![MatchingError {
@@ -349,9 +389,15 @@ impl Matching for Value {
 }
 
 #[derive(Debug)]
+struct ErrorData {
+    rule: String,
+    message: String,
+}
+
+#[derive(Debug)]
 pub enum RuleError {
-    Warning(String),
-    Error(String),
+    Warning(ErrorData),
+    Error(ErrorData),
 }
 
 #[derive(Debug)]
