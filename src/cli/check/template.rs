@@ -1,11 +1,10 @@
 pub use clap::Args;
-use colored::Colorize;
 
-use serde_json::{json, Value};
+use serde_json::json;
 
-use crate::{cli::check::Checker, errors::Error};
+use crate::errors::Error;
 
-use super::{call_app, AppChecker, Rule, RuleError, ValueChecker, RULE_SEPARATOR, WIDGET};
+use super::{call_app, AppChecker, ValueChecker, RULE_SEPARATOR, WIDGET};
 
 #[derive(Debug)]
 pub struct TemplateChecker;
@@ -120,6 +119,83 @@ impl AppChecker for TemplateChecker {
                     },
                 }),
             },
+            ValueChecker {
+                name: format!("{}{}{}", WIDGET, RULE_SEPARATOR, "home"),
+                loader: || {
+                    call_app(json!({
+                        "widget": "home",
+                        "data": {},
+                        "props": {},
+                        "context": {}
+                    }))
+                    .map_err(Error::from)
+                },
+                expected: json!({
+                  "type": "flex",
+                  "direction": "vertical",
+                  "spacing": 16,
+                  "mainAxisAlignment": "spaceEvenly",
+                  "crossAxisAlignment": "center",
+                  "children": [
+                    {
+                      "type": "widget",
+                      "name": "counter",
+                      "coll": "counter",
+                      "query": {
+                        "user": "@me"
+                      },
+                      "props": { "text": "My personnal counter" }
+                    },
+                    {
+                      "type": "widget",
+                      "name": "counter",
+                      "coll": "counter",
+                      "query": {
+                        "user": "global"
+                      },
+                      "props": { "text": "The common counter" }
+                    }
+                  ]
+                }),
+            },
+            ValueChecker {
+                name: format!("{}{}{}", WIDGET, RULE_SEPARATOR, "counter"),
+                loader: || {
+                    call_app(json!({
+                        "widget": "counter",
+                        "data": [{
+                          "_id": "ObjectId(my_counter_id)",
+                          "count": 2,
+                          "user": "my_user_id",
+                        }],
+                        "props": { "text": "My counter text" },
+                        "context": {}
+                    }))
+                    .map_err(Error::from)
+                },
+                expected: json!({
+                  "type": "flex",
+                  "spacing": 16,
+                  "mainAxisAlignment": "spaceEvenly",
+                  "crossAxisAlignment": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "value": "My counter text: 2",
+                    },
+                    {
+                      "type": "button",
+                      "text": "+",
+                      "onPressed": {
+                          "action": "increment",
+                          "props": {
+                              "id": "ObjectId(my_counter_id)"
+                          }
+                      }
+                    }
+                  ]
+                }),
+            },
         ]
     }
 }
@@ -127,40 +203,40 @@ impl AppChecker for TemplateChecker {
 mod test {
     use crate::cli::check::{template::TemplateChecker, AppChecker};
 
-    // #[test]
-    // fn check_list_size() {
-    //     let template_checker = TemplateChecker;
-    //     let check_list = template_checker.check_list();
-    //     assert_eq!(
-    //         check_list.len(),
-    //         1,
-    //         "The template checklist size is not correct"
-    //     );
-    // }
+    #[test]
+    fn check_list_size() {
+        let template_checker = TemplateChecker;
+        let check_list = template_checker.check_list();
+        assert_eq!(
+            check_list.len(),
+            5,
+            "The template checklist size is not correct"
+        );
+    }
 
-    // #[test]
-    // fn check_unique_names() {
-    //     let template_checker = TemplateChecker;
-    //     let check_list = template_checker.check_list();
-    //     let mut checker_names: Vec<String> = vec![];
-    //     check_list.iter().for_each(|checker| {
-    //         assert!(
-    //             !checker_names.contains(&checker.name),
-    //             "There is at least two checkers with the same name: {}",
-    //             checker.name
-    //         );
-    //         checker_names.push(checker.name.clone());
-    //         let mut rule_names: Vec<String> = vec![];
+    #[test]
+    fn check_unique_names() {
+        let template_checker = TemplateChecker;
+        let check_list = template_checker.check_list();
+        let mut checker_names: Vec<String> = vec![];
+        check_list.iter().for_each(|checker| {
+            assert!(
+                !checker_names.contains(&checker.name),
+                "There is at least two checkers with the same name: {}",
+                checker.name
+            );
+            checker_names.push(checker.name.clone());
+            let mut rule_names: Vec<String> = vec![];
 
-    //         checker.rules.iter().for_each(|rule| {
-    //             assert!(
-    //                 !rule_names.contains(&rule.name),
-    //                 "There is at least two rules with the same name in the '{}' checker: {}",
-    //                 checker.name,
-    //                 rule.name
-    //             );
-    //             rule_names.push(rule.name.clone());
-    //         });
-    //     });
-    // }
+            checker.rules().iter().for_each(|rule| {
+                assert!(
+                    !rule_names.contains(&rule.name),
+                    "There is at least two rules with the same name in the '{}' checker: {}",
+                    checker.name,
+                    rule.name
+                );
+                rule_names.push(rule.name.clone());
+            });
+        });
+    }
 }
