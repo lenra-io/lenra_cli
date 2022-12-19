@@ -25,10 +25,7 @@ impl AppChecker for TemplateChecker {
                 name: format!("{}{}{}", WIDGET, RULE_SEPARATOR, "main"),
                 loader: || {
                     call_app(json!({
-                        "widget": "main",
-                        "data": {},
-                        "props": {},
-                        "context": {}
+                        "widget": "main"
                     }))
                     .map_err(Error::from)
                 },
@@ -54,10 +51,7 @@ impl AppChecker for TemplateChecker {
                 name: format!("{}{}{}", WIDGET, RULE_SEPARATOR, "menu"),
                 loader: || {
                     call_app(json!({
-                        "widget": "menu",
-                        "data": {},
-                        "props": {},
-                        "context": {}
+                        "widget": "menu"
                     }))
                     .map_err(Error::from)
                 },
@@ -123,10 +117,7 @@ impl AppChecker for TemplateChecker {
                 name: format!("{}{}{}", WIDGET, RULE_SEPARATOR, "home"),
                 loader: || {
                     call_app(json!({
-                        "widget": "home",
-                        "data": {},
-                        "props": {},
-                        "context": {}
+                        "widget": "home"
                     }))
                     .map_err(Error::from)
                 },
@@ -168,8 +159,7 @@ impl AppChecker for TemplateChecker {
                           "count": 2,
                           "user": "my_user_id",
                         }],
-                        "props": { "text": "My counter text" },
-                        "context": {}
+                        "props": { "text": "My counter text" }
                     }))
                     .map_err(Error::from)
                 },
@@ -201,7 +191,7 @@ impl AppChecker for TemplateChecker {
 }
 
 mod test {
-    use crate::cli::check::{template::TemplateChecker, AppChecker};
+  // use super::TemplateChecker;
 
     #[test]
     fn check_list_size() {

@@ -1,4 +1,4 @@
-use std::{cmp::Ordering, fmt::Debug};
+use std::fmt::Debug;
 
 use clap::{Args, Subcommand};
 use colored::{Color, ColoredString, Colorize};
@@ -36,8 +36,7 @@ impl CliCommand for Check {
         match self.command.clone() {
             CheckCommandType::Template(params) => {
                 let template_checker = TemplateChecker;
-                template_checker.check(params);
-                Ok(())
+                template_checker.check(params)
             }
         }
     }
@@ -52,12 +51,16 @@ pub struct CheckParameters {
     /// A list of rules to ignore
     #[clap(long)]
     pub ignore: Option<Vec<String>>,
+
+    /// The rules
+    #[clap()]
+    pub rules: Vec<String>,
 }
 
 pub trait AppChecker: Debug {
     fn check_list(&self) -> Vec<ValueChecker>;
 
-    fn check(&self, params: CheckParameters) {
+    fn check(&self, params: CheckParameters) -> Result<()> {
         info!("Check with {:?}", self);
         // TODO: start app
         let check_list = self.check_list();
@@ -67,6 +70,7 @@ pub trait AppChecker: Debug {
         let mut fail: bool = false;
         check_list
             .iter()
+            .filter(|checker| params.rules.is_empty() || params.rules.contains(&checker.name))
             .for_each(|checker| {
                 let errors = checker.check(params.ignore.clone().unwrap_or(vec![]));
                 let name = checker.name.clone();
@@ -95,13 +99,16 @@ pub trait AppChecker: Debug {
                     format!("{:20}: {:?}", name, level).color(level.color())
                 );
                 messages.iter().for_each(|msg| println!("{}", msg));
-                if level == &CheckerLevel::Error || (level == &CheckerLevel::Warning && params.strict) {
+                if level == &CheckerLevel::Error
+                    || (level == &CheckerLevel::Warning && params.strict)
+                {
                     fail = true;
                 }
             });
         if fail {
-            
+            return Err(Error::CheckError);
         }
+        Ok(())
     }
 }
 
@@ -361,6 +368,27 @@ impl Matching for Value {
                 });
 
                 ret
+            }
+            Value::Number(number) => {
+                let result = if number.is_f64() || expected.is_f64() {
+                    number.as_f64().unwrap().eq(&expected.as_f64().unwrap())
+                } else if number.is_i64() || expected.is_i64() {
+                    number.as_i64().unwrap().eq(&expected.as_i64().unwrap())
+                } else {
+                    number.as_u64().unwrap().eq(&expected.as_u64().unwrap())
+                };
+
+                if !result {
+                    vec![MatchingError {
+                        path: "".into(),
+                        error_type: MatchingErrorType::NotSameValue {
+                            actual: self.clone(),
+                            expected: expected.clone(),
+                        },
+                    }]
+                } else {
+                    vec![]
+                }
             }
             Value::Null => panic!("Should not be reached"),
             // Since equality have been tested before
