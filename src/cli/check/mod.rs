@@ -14,7 +14,7 @@ use super::CliCommand;
 mod template;
 
 pub const RULE_SEPARATOR: &str = ":";
-pub const WIDGET: &str = "widget";
+pub const VIEW: &str = "view";
 
 #[derive(Args, Clone)]
 pub struct Check {

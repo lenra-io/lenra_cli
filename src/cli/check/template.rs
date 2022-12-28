@@ -4,7 +4,7 @@ use serde_json::json;
 
 use crate::errors::Error;
 
-use super::{call_app, AppChecker, ValueChecker, RULE_SEPARATOR, WIDGET};
+use super::{call_app, AppChecker, ValueChecker, RULE_SEPARATOR, VIEW};
 
 #[derive(Debug)]
 pub struct TemplateChecker;
@@ -17,15 +17,15 @@ impl AppChecker for TemplateChecker {
                 loader: || call_app(json!({})).map_err(Error::from),
                 expected: json!({
                     "manifest": {
-                        "rootWidget": "main"
+                        "rootView": "main"
                     }
                 }),
             },
             ValueChecker {
-                name: format!("{}{}{}", WIDGET, RULE_SEPARATOR, "main"),
+                name: format!("{}{}{}", VIEW, RULE_SEPARATOR, "main"),
                 loader: || {
                     call_app(json!({
-                        "widget": "main"
+                        "view": "main"
                     }))
                     .map_err(Error::from)
                 },
@@ -37,21 +37,21 @@ impl AppChecker for TemplateChecker {
                   "crossAxisAlignment": "center",
                   "children": [
                     {
-                      "type": "widget",
+                      "type": "view",
                       "name": "menu",
                     },
                     {
-                      "type": "widget",
+                      "type": "view",
                       "name": "home"
                     }
                   ]
                 }),
             },
             ValueChecker {
-                name: format!("{}{}{}", WIDGET, RULE_SEPARATOR, "menu"),
+                name: format!("{}{}{}", VIEW, RULE_SEPARATOR, "menu"),
                 loader: || {
                     call_app(json!({
-                        "widget": "menu"
+                        "view": "menu"
                     }))
                     .map_err(Error::from)
                 },
@@ -114,10 +114,10 @@ impl AppChecker for TemplateChecker {
                 }),
             },
             ValueChecker {
-                name: format!("{}{}{}", WIDGET, RULE_SEPARATOR, "home"),
+                name: format!("{}{}{}", VIEW, RULE_SEPARATOR, "home"),
                 loader: || {
                     call_app(json!({
-                        "widget": "home"
+                        "view": "home"
                     }))
                     .map_err(Error::from)
                 },
@@ -129,7 +129,7 @@ impl AppChecker for TemplateChecker {
                   "crossAxisAlignment": "center",
                   "children": [
                     {
-                      "type": "widget",
+                      "type": "view",
                       "name": "counter",
                       "coll": "counter",
                       "query": {
@@ -138,7 +138,7 @@ impl AppChecker for TemplateChecker {
                       "props": { "text": "My personnal counter" }
                     },
                     {
-                      "type": "widget",
+                      "type": "view",
                       "name": "counter",
                       "coll": "counter",
                       "query": {
@@ -150,10 +150,10 @@ impl AppChecker for TemplateChecker {
                 }),
             },
             ValueChecker {
-                name: format!("{}{}{}", WIDGET, RULE_SEPARATOR, "counter"),
+                name: format!("{}{}{}", VIEW, RULE_SEPARATOR, "counter"),
                 loader: || {
                     call_app(json!({
-                        "widget": "counter",
+                        "view": "counter",
                         "data": [{
                           "_id": "ObjectId(my_counter_id)",
                           "count": 2,
