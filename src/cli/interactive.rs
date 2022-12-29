@@ -9,16 +9,16 @@ use rustyline::{error::ReadlineError, Editor};
 
 use crate::{
     cli::{build::Build, start::Start},
-    docker_compose::Service,
-    errors::{Error, Result},
+    docker_compose::{Service, compose_up},
+    errors::{Error, Result}, config::load_config_file,
 };
 
-use super::{logs::Logs, CliCommand, check::Check};
+use super::{check::Check, logs::Logs, CliCommand};
 
 const LENRA_COMMAND: &str = "lenra";
 const READLINE_PROMPT: &str = "[lenra]$ ";
 
-pub fn run_interactive_command(context: &InteractiveContext) -> Result<()> {
+pub fn run_interactive_command(initial_context: &InteractiveContext) -> Result<()> {
     let history_path = config_dir()
         .expect("Can't get the user config directory")
         .join("lenra")
@@ -36,14 +36,14 @@ pub fn run_interactive_command(context: &InteractiveContext) -> Result<()> {
         ..Default::default()
     };
     let mut last_logs = run_logs(&previous_log, None)?;
+    let mut context = initial_context.clone();
 
     loop {
         let readline = rl.readline(READLINE_PROMPT);
         match readline {
             Ok(line) => {
                 rl.add_history_entry(line.as_str());
-                let interactive =
-                    parse_command_line(line).map_err(Error::from)?;
+                let interactive = parse_command_line(line).map_err(Error::from)?;
 
                 let logs_since = match interactive.command {
                     InteractiveCommand::Continue => Some(last_logs),
@@ -51,9 +51,13 @@ pub fn run_interactive_command(context: &InteractiveContext) -> Result<()> {
                         previous_log = logs.clone();
                         None
                     }
-                    InteractiveCommand::Stop => break,
+                    InteractiveCommand::Stop | InteractiveCommand::Exit => break,
                     cmd => {
-                        cmd.run(context)?;
+                        let res = cmd.run(&context)?;
+                        if let Some(ctx) = res {
+                            debug!("Context changed {:?}", ctx);
+                            context = ctx;
+                        }
                         Some(last_logs)
                     }
                 };
@@ -113,6 +117,7 @@ fn format_error(err: clap::Error) -> clap::Error {
     err.format(&mut command)
 }
 
+#[derive(Clone, Debug)]
 pub struct InteractiveContext {
     /// The app configuration file.
     pub config: std::path::PathBuf,
@@ -140,16 +145,22 @@ pub enum InteractiveCommand {
     Reload,
     /// Stop your app previously started with the start command
     Stop,
+    /// stop alias. Stop your app previously started with the start command
+    Exit,
     /// Manage checks
     Check(Check),
+    /// Exposes the app ports
+    Expose,
 }
 
 impl InteractiveCommand {
-    fn run(&self, context: &InteractiveContext) -> Result<()> {
+    fn run(&self, context: &InteractiveContext) -> Result<Option<InteractiveContext>> {
         match self {
             InteractiveCommand::Continue => warn!("The continue command should not be run"),
-            InteractiveCommand::Logs(_logs) => println!("logs is not implemented yet"),
-            InteractiveCommand::Stop => warn!("The stop command should not be run"),
+            InteractiveCommand::Logs(_logs) => warn!("The logs command should not be run"),
+            InteractiveCommand::Stop | InteractiveCommand::Exit => {
+                warn!("The stop command should not be run")
+            }
             InteractiveCommand::Reload => {
                 let build = Build {
                     config: context.config.clone(),
@@ -167,8 +178,24 @@ impl InteractiveCommand {
                 log::debug!("Run start");
                 start.run()?;
             }
-            InteractiveCommand::Check(check) => check.run()?,
+            InteractiveCommand::Check(check) => {
+                if context.expose {
+                    check.run()?
+                } else {
+                    println!("The check commands can't run if the ports are not exposed. Run the expose command first");
+                }
+            }
+            InteractiveCommand::Expose => {
+                let conf = load_config_file(&context.config).unwrap();
+                conf.generate_files(true);
+
+                compose_up();
+
+                let mut ctx = context.clone();
+                ctx.expose = true;
+                return Ok(Some(ctx));
+            }
         };
-        Ok(())
+        Ok(None)
     }
 }

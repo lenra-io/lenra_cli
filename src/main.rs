@@ -12,6 +12,7 @@ mod docker;
 mod docker_compose;
 mod errors;
 mod git;
+mod matching;
 
 fn main() -> Result<(), errors::Error> {
     env_logger::init();

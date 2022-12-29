@@ -190,8 +190,10 @@ impl AppChecker for TemplateChecker {
     }
 }
 
+#[cfg(test)]
 mod test {
-  // use super::TemplateChecker;
+    use crate::cli::check::AppChecker;
+    use super::TemplateChecker;
 
     #[test]
     fn check_list_size() {
