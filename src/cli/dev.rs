@@ -1,5 +1,4 @@
 pub use clap::Args;
-use log::debug;
 
 use crate::cli::build::Build;
 use crate::cli::interactive::{run_interactive_command, InteractiveContext};
@@ -39,11 +38,6 @@ impl CliCommand for Dev {
         };
         log::debug!("Run start");
         start.run()?;
-
-        ctrlc::set_handler(move || {
-            debug!("Stop asked");
-        })
-        .expect("Error setting Ctrl-C handler");
 
         let res = run_interactive_command(&InteractiveContext {
             config: self.config.clone(),

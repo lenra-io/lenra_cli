@@ -4,9 +4,8 @@ pub use clap::Args;
 
 use crate::cli::CliCommand;
 use crate::config::{load_config_file, DEFAULT_CONFIG_FILE, DOCKERCOMPOSE_DEFAULT_PATH};
-use crate::docker_compose::{
-    self, compose_up, execute_compose_service_command, DEVTOOL_SERVICE_NAME,
-};
+use crate::devtool::stop_app_env;
+use crate::docker_compose::{self, compose_up};
 use crate::errors::Result;
 
 #[derive(Args, Default)]
@@ -35,20 +34,13 @@ impl CliCommand for Start {
         // Start the containers
         compose_up();
         // Stop the devtool app env to reset cache
-        let result = execute_compose_service_command(
-            DEVTOOL_SERVICE_NAME,
-            &[
-                "bin/dev_tools",
-                "rpc",
-                "ApplicationRunner.Environment.DynamicSupervisor.stop_env(1)",
-            ],
-        );
+        let result = stop_app_env();
         if let Err(error) = result {
-            log::info!("{}", error);
+            log::info!("{:?}", error);
         }
         // Open the app
         println!(
-            "Application available at http://localhost:{}",
+            "\nApplication available at http://localhost:{}\n",
             docker_compose::DEVTOOL_PORT
         );
         Ok(())

@@ -16,14 +16,14 @@ mod template;
 pub const RULE_SEPARATOR: &str = ":";
 pub const VIEW: &str = "view";
 
-#[derive(Args, Clone)]
+#[derive(Args, Clone, Debug)]
 pub struct Check {
     #[clap(subcommand)]
     command: CheckCommandType,
 }
 
 /// The check subcommands
-#[derive(Subcommand, Clone)]
+#[derive(Subcommand, Clone, Debug)]
 pub enum CheckCommandType {
     // /// Check the current project as an app
     // App(CheckParameters),
@@ -42,7 +42,7 @@ impl CliCommand for Check {
     }
 }
 
-#[derive(Args, Default, Clone)]
+#[derive(Args, Default, Clone, Debug)]
 pub struct CheckParameters {
     /// The strict mode also fails with warning rules.
     #[clap(long, action)]

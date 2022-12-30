@@ -13,6 +13,7 @@ use log::warn;
 
 use crate::{
     config::{Dev, DOCKERCOMPOSE_DEFAULT_PATH},
+    errors::{self, Result},
     git::get_current_branch,
 };
 
@@ -249,10 +250,7 @@ pub fn compose_build() {
     }
 }
 
-pub fn execute_compose_service_command(
-    service: &str,
-    cmd: &[&str],
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn execute_compose_service_command(service: &str, cmd: &[&str]) -> Result<()> {
     let mut command = create_compose_command();
 
     command.arg("exec").arg(service);
@@ -265,7 +263,7 @@ pub fn execute_compose_service_command(
     let output = command.output()?;
 
     if !output.status.success() {
-        return Err(Error { command, output }.into());
+        return Err(errors::Error::from(Error { command, output }));
     }
 
     Ok(())

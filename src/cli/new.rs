@@ -10,7 +10,7 @@ use std::fs;
 use std::process::Command;
 
 use crate::cli::CliCommand;
-use crate::errors::Result;
+use crate::errors::{Result, Error};
 
 #[derive(Args)]
 pub struct New {
@@ -57,7 +57,8 @@ impl CliCommand for New {
             .arg("1")
             .arg(template)
             .arg(self.path.as_os_str())
-            .output()?;
+            .output()
+            .map_err(Error::from)?;
 
         log::debug!("remove git directory");
         fs::remove_dir_all(self.path.join(".git")).unwrap();

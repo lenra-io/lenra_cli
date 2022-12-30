@@ -1,5 +1,8 @@
 use rustyline::error::ReadlineError;
 use thiserror::Error;
+use tokio::task::JoinError;
+
+use crate::docker_compose;
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
@@ -17,6 +20,10 @@ pub enum Error {
     ParseCommand(#[from] clap::Error),
     #[error("Error while requesting: {0}")]
     Request(#[from] ureq::Error),
+    #[error("Error while joining an async task: {0}")]
+    JoinError(#[from] JoinError),
+    #[error("Error while running a Docker Compose command: {0}")]
+    ComposeError(#[from] docker_compose::Error),
     #[error("Check error")]
     CheckError,
     #[error("{0}")]
