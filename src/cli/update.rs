@@ -1,12 +1,13 @@
-use std::process::Stdio;
-
+use async_trait::async_trait;
 pub use clap::Args;
+use futures::future::join_all;
+use log::{warn, info};
 
 use crate::cli::CliCommand;
 use crate::config::{load_config_file, DEFAULT_CONFIG_FILE};
 use crate::docker;
 use crate::docker_compose::{get_services_images, Service};
-use crate::errors::Result;
+use crate::errors::{CommandError, Result};
 
 #[derive(Args, Clone)]
 pub struct Update {
@@ -19,8 +20,9 @@ pub struct Update {
     pub services: Vec<Service>,
 }
 
+#[async_trait]
 impl CliCommand for Update {
-    fn run(&self) -> Result<()> {
+    async fn run(&self) -> Result<()> {
         log::info!("Updating Docker images");
 
         let conf = load_config_file(&self.config).ok();
@@ -29,29 +31,31 @@ impl CliCommand for Update {
         } else {
             &None
         };
-        let images = get_services_images(dev_conf);
+        let images = get_services_images(dev_conf).await;
 
-        let processes = self.services.iter().map(|service| {
-            docker::pull(service.get_image(&images))
-                .stdout(Stdio::inherit())
-                .stderr(Stdio::inherit())
-                .spawn()
-        });
+        // Pull images in parallele
+        let processes = self.services.iter().map(|service| async move {
+            let image = service.get_image(&images);
+            info!("Start pulling {}", image);
+            let command = docker::pull(image);
 
-        processes.for_each(|p| {
-            let output = p
-                .expect("Failed to update the Docker image")
-                .wait_with_output()
-                .expect("Failed to get command output");
+            let res = command.output().await;
 
-            if !output.status.success() {
-                panic!(
-                    "An error occured while updating Docker image:\n{}\n{}",
-                    String::from_utf8(output.stdout).unwrap(),
-                    String::from_utf8(output.stderr).unwrap()
-                )
+            match res {
+                Ok(output) => {
+                    if !output.status.success() {
+                        warn!("{}", CommandError { command, output });
+                    }
+                    else {
+                        info!("Image pulled {}", image);
+                    }
+                }
+                Err(err) => warn!("{}", err),
             }
         });
+
+        // Wait for all the pull end
+        join_all(processes).await;
         Ok(())
     }
 }

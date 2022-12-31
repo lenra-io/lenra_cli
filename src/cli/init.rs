@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use clap;
 
 use crate::cli::CliCommand;
@@ -11,11 +12,11 @@ pub struct Init {
     pub config: std::path::PathBuf,
 }
 
+#[async_trait]
 impl CliCommand for Init {
-    fn run(&self) -> Result<()> {
+    async fn run(&self) -> Result<()> {
         let conf = load_config_file(&self.config).unwrap();
         // TODO: check the components API version
-        conf.generate_docker_files();
-        Ok(())
+        conf.generate_docker_files()
     }
 }

@@ -1,10 +1,11 @@
+use async_trait::async_trait;
 pub use clap::{Args, Parser, Subcommand};
 
-use crate::errors::{Result, self};
+use crate::errors::Result;
 
 use self::{
-    build::Build, dev::Dev, init::Init, logs::Logs, new::New, start::Start, stop::Stop,
-    update::Update, check::Check,
+    build::Build, check::Check, dev::Dev, init::Init, logs::Logs, new::New, start::Start,
+    stop::Stop, update::Update,
 };
 
 mod build;
@@ -26,8 +27,9 @@ pub struct Cli {
     pub command: Command,
 }
 
+#[async_trait]
 pub trait CliCommand {
-    fn run(&self) -> Result<()>;
+    async fn run(&self) -> Result<()>;
 }
 
 /// The subcommands
@@ -53,19 +55,20 @@ pub enum Command {
     Check(Check),
 }
 
+#[async_trait]
 impl CliCommand for Command {
-    fn run(&self) -> std::result::Result<(), errors::Error> {
+    async fn run(&self) -> Result<()> {
         match self {
-            Command::New(new) => new.run()?,
-            Command::Build(build) => build.run()?,
-            Command::Start(start) => start.run()?,
-            Command::Logs(logs) => logs.run()?,
-            Command::Stop(stop) => stop.run()?,
-            Command::Dev(dev) => dev.run()?,
-            Command::Init(init) => init.run()?,
-            Command::Update(update) => update.run()?,
-            Command::Check(check) => check.run()?,
-        };
-        Ok(())
+            Command::New(new) => new.run(),
+            Command::Build(build) => build.run(),
+            Command::Start(start) => start.run(),
+            Command::Logs(logs) => logs.run(),
+            Command::Stop(stop) => stop.run(),
+            Command::Dev(dev) => dev.run(),
+            Command::Init(init) => init.run(),
+            Command::Update(update) => update.run(),
+            Command::Check(check) => check.run(),
+        }
+        .await
     }
 }

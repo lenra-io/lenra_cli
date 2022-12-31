@@ -1,19 +1,17 @@
-use std::{
-    convert::TryInto,
-    env, fs,
-    path::PathBuf,
-    process::{self, Output, Stdio},
-};
-
 use docker_compose_types::{
     AdvancedBuildStep, BuildStep, Command, Compose, DependsCondition, DependsOnOptions,
     Environment, Healthcheck, HealthcheckTest, Services,
 };
+// use futures::FutureExt;
 use log::warn;
+use std::process::Stdio;
+use std::{convert::TryInto, env, fs, path::PathBuf};
+use tokio::process;
 
+use crate::errors::Error;
 use crate::{
     config::{Dev, DOCKERCOMPOSE_DEFAULT_PATH},
-    errors::{self, Result},
+    errors::{CommandError, Result},
     git::get_current_branch,
 };
 
@@ -36,17 +34,22 @@ pub const MONGO_PORT: u16 = 27017;
 pub const POSTGRES_PORT: u16 = 5432;
 
 /// Generates the docker-compose.yml file
-pub fn generate_docker_compose(dockerfile: PathBuf, dev_conf: &Option<Dev>, expose: bool) {
-    let compose_content = generate_docker_compose_content(dockerfile, dev_conf, expose);
-    let compose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
-    fs::write(compose_path, compose_content).expect("Unable to write the docker-compose file");
-}
-
-fn generate_docker_compose_content(
+pub async fn generate_docker_compose(
     dockerfile: PathBuf,
     dev_conf: &Option<Dev>,
     expose: bool,
-) -> String {
+) -> Result<()> {
+    let compose_content = generate_docker_compose_content(dockerfile, dev_conf, expose).await?;
+    let compose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
+    fs::write(compose_path, compose_content).map_err(Error::from)?;
+    Ok(())
+}
+
+async fn generate_docker_compose_content(
+    dockerfile: PathBuf,
+    dev_conf: &Option<Dev>,
+    expose: bool,
+) -> Result<String> {
     let mut devtool_env_vec: Vec<(String, Option<String>)> = vec![
         ("POSTGRES_USER".to_string(), Some("postgres".to_string())),
         (
@@ -89,7 +92,7 @@ fn generate_docker_compose_content(
         ),
     ];
 
-    let service_images = get_services_images(dev_conf);
+    let service_images = get_services_images(dev_conf).await;
 
     let compose = Compose {
         services: Some(Services(
@@ -193,7 +196,7 @@ fn generate_docker_compose_content(
         )),
         ..Default::default()
     };
-    serde_yaml::to_string(&compose).expect("Error generating the docker-compose file content")
+    serde_yaml::to_string(&compose).map_err(Error::from)
 }
 
 pub fn create_compose_command() -> process::Command {
@@ -205,7 +208,7 @@ pub fn create_compose_command() -> process::Command {
     cmd
 }
 
-pub fn compose_up() {
+pub async fn compose_up() -> Result<()> {
     let mut command = create_compose_command();
 
     command
@@ -216,20 +219,18 @@ pub fn compose_up() {
         .stderr(Stdio::inherit());
 
     log::debug!("cmd: {:?}", command);
-    let output = command
-        .output()
-        .expect("Failed to start the docker-compose app");
+    let output = command.output().await?;
 
     if !output.status.success() {
         warn!(
-            "An error occured while running the docker-compose app:\n{}\n{}",
-            String::from_utf8(output.stdout).unwrap(),
-            String::from_utf8(output.stderr).unwrap()
+            "An error occured while running the docker-compose app:\n{}",
+            CommandError { command, output }
         )
     }
+    Ok(())
 }
 
-pub fn compose_build() {
+pub async fn compose_build() -> Result<()> {
     let mut command = create_compose_command();
     command.arg("build");
 
@@ -240,17 +241,18 @@ pub fn compose_build() {
     command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
 
     log::debug!("Build: {:?}", command);
-    let output = command.output().expect("Failed building the Docker image");
+    let output = command.output().await?;
+
     if !output.status.success() {
         warn!(
-            "An error occured while building the Docker image:\n{}\n{}",
-            String::from_utf8(output.stdout).unwrap(),
-            String::from_utf8(output.stderr).unwrap()
+            "An error occured while building the Docker image:\n{}",
+            CommandError { command, output }
         )
     }
+    Ok(())
 }
 
-pub fn execute_compose_service_command(service: &str, cmd: &[&str]) -> Result<()> {
+pub async fn execute_compose_service_command(service: &str, cmd: &[&str]) -> Result<()> {
     let mut command = create_compose_command();
 
     command.arg("exec").arg(service);
@@ -260,35 +262,13 @@ pub fn execute_compose_service_command(service: &str, cmd: &[&str]) -> Result<()
         ()
     });
 
-    let output = command.output()?;
+    let output = command.output().await.map_err(Error::from)?;
 
     if !output.status.success() {
-        return Err(errors::Error::from(Error { command, output }));
+        return Err(Error::from(CommandError { command, output }));
     }
 
     Ok(())
-}
-
-#[derive(Debug)]
-pub struct Error {
-    command: process::Command,
-    output: Output,
-}
-
-impl std::error::Error for Error {}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-        let output = self.output.clone();
-        write!(
-            f,
-            "docker-compose exec exited with code {}:\n\tcmd: {:?}\n\tstdout: {}\n\tstderr: {}",
-            output.status.code().unwrap(),
-            self.command,
-            String::from_utf8(output.stdout).unwrap(),
-            String::from_utf8(output.stderr).unwrap()
-        )
-    }
 }
 
 fn current_dir_name() -> Option<String> {
@@ -300,9 +280,11 @@ fn current_dir_name() -> Option<String> {
     }
 }
 
-pub fn get_services_images(dev_conf: &Option<Dev>) -> ServiceImages {
+pub async fn get_services_images(dev_conf: &Option<Dev>) -> ServiceImages {
     let default_app_image = current_dir_name().unwrap_or(APP_DEFAULT_IMAGE.to_string());
-    let default_app_tag = get_current_branch().unwrap_or(APP_DEFAULT_IMAGE_TAG.to_string());
+    let default_app_tag = get_current_branch()
+        .await
+        .unwrap_or(APP_DEFAULT_IMAGE_TAG.to_string());
 
     if let Some(dev) = dev_conf {
         ServiceImages {

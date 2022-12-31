@@ -1,16 +1,19 @@
 use std::process::Stdio;
 
+use async_trait::async_trait;
 pub use clap::Args;
+use log::warn;
 
 use crate::cli::CliCommand;
 use crate::docker_compose::create_compose_command;
-use crate::errors::Result;
+use crate::errors::{CommandError, Error, Result};
 
 #[derive(Args, Clone)]
 pub struct Stop;
 
+#[async_trait]
 impl CliCommand for Stop {
-    fn run(&self) -> Result<()> {
+    async fn run(&self) -> Result<()> {
         log::info!("Stoping the app");
 
         let mut command = create_compose_command();
@@ -22,15 +25,10 @@ impl CliCommand for Stop {
             .stderr(Stdio::inherit());
 
         log::debug!("cmd: {:?}", command);
-        let output = command
-            .output()
-            .expect("Failed to stop the docker-compose app");
+        let output = command.output().await?;
         if !output.status.success() {
-            panic!(
-                "An error occured while stoping the docker-compose app:\n{}\n{}",
-                String::from_utf8(output.stdout).unwrap(),
-                String::from_utf8(output.stderr).unwrap()
-            )
+            warn!("An error occured while stoping the docker-compose app");
+            return Err(Error::Command(CommandError { command, output }));
         }
         Ok(())
     }

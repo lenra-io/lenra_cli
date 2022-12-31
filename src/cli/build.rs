@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 use log;
 
 use clap;
@@ -29,9 +30,10 @@ impl Build {
     }
 }
 
+#[async_trait]
 impl CliCommand for Build {
-    fn run(&self) -> Result<()> {
-        let conf = load_config_file(&self.config).unwrap();
+    async fn run(&self) -> Result<()> {
+        let conf = load_config_file(&self.config)?;
         // TODO: check the components API version
 
         conf.generate_files(self.expose);

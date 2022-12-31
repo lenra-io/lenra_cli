@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 
+use async_trait::async_trait;
 pub use clap::Args;
 
 use crate::cli::CliCommand;
@@ -19,8 +20,9 @@ pub struct Start {
     pub expose: bool,
 }
 
+#[async_trait]
 impl CliCommand for Start {
-    fn run(&self) -> Result<()> {
+    async fn run(&self) -> Result<()> {
         log::info!("Starting the app");
         let conf = load_config_file(&self.config)?;
 
@@ -34,7 +36,7 @@ impl CliCommand for Start {
         // Start the containers
         compose_up();
         // Stop the devtool app env to reset cache
-        let result = stop_app_env();
+        let result = stop_app_env().await;
         if let Err(error) = result {
             log::info!("{:?}", error);
         }

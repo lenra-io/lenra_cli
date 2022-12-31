@@ -6,7 +6,7 @@ use clap::{CommandFactory, FromArgMatches};
 use dirs::config_dir;
 use log::{debug, warn};
 use rustyline::{error::ReadlineError, Editor};
-use tokio::{runtime::Runtime, select, spawn};
+use tokio::{runtime::Runtime, select};
 
 use crate::{
     config::load_config_file,
@@ -20,108 +20,105 @@ use super::{check::Check, logs::Logs, CliCommand};
 const LENRA_COMMAND: &str = "lenra";
 const READLINE_PROMPT: &str = "[lenra]$ ";
 
-pub fn run_interactive_command(initial_context: &InteractiveContext) -> Result<()> {
-    ctrlc::set_handler(move || {
-        debug!("Stop asked");
-    })
-    .expect("Error setting Ctrl-C handler");
+pub async fn run_interactive_command(initial_context: &InteractiveContext) -> Result<()> {
+    // ctrlc::set_handler(move || {
+    //     debug!("Stop asked");
+    // })
+    // .expect("Error setting Ctrl-C handler");
     let rt = Runtime::new()?;
 
     // Spawn the root task
-    rt.block_on(async {
-        let history_path = config_dir()
-            .expect("Can't get the user config directory")
-            .join("lenra")
-            .join("dev.history");
-        let mut rl = Editor::<()>::new()?;
 
-        debug!("Load history from {:?}", history_path);
-        if rl.load_history(&history_path).is_err() {
-            debug!("No previous history.");
-        }
+    let history_path = config_dir()
+        .ok_or(Error::Custom("Can't get the user config directory".into()))?
+        .join("lenra")
+        .join("dev.history");
+    let mut rl = Editor::<()>::new()?;
 
-        let mut previous_log = Logs {
-            services: vec![Service::App],
-            follow: true,
-            ..Default::default()
-        };
-        let mut last_logs = run_logs(&previous_log, None).await?;
-        let mut context = initial_context.clone();
+    debug!("Load history from {:?}", history_path);
+    if rl.load_history(&history_path).is_err() {
+        debug!("No previous history.");
+    }
 
-        loop {
-            let readline = rl.readline(READLINE_PROMPT);
-            match readline {
-                Ok(line) => {
-                    if line.trim().is_empty() {
-                        continue;
-                    }
+    let mut previous_log = Logs {
+        services: vec![Service::App],
+        follow: true,
+        ..Default::default()
+    };
+    let mut last_logs = run_logs(&previous_log, None).await?;
+    let mut context = initial_context.clone();
 
-                    rl.add_history_entry(line.as_str());
+    loop {
+        let readline = rl.readline(READLINE_PROMPT);
+        match readline {
+            Ok(line) => {
+                if line.trim().is_empty() {
+                    continue;
+                }
 
-                    let command = parse_command_line(line.clone()).map_err(Error::from);
-                    if let Ok(interactive) = command {
-                        debug!("Run command {:#?}", interactive.command);
-                        match interactive.command {
-                            InteractiveCommand::Continue => {
-                                last_logs = run_logs(&previous_log, Some(last_logs)).await?;
-                            }
-                            InteractiveCommand::Logs(logs) => {
-                                previous_log = logs.clone();
-                                last_logs = run_logs(&previous_log, None).await?;
-                            }
-                            InteractiveCommand::Stop | InteractiveCommand::Exit => break,
-                            cmd => {
-                                let ctx = context.clone();
-                                let ctx_opt = cmd.run(&ctx).await?;
-                                // let ctx_opt = select! {
-                                //     result = cmd.run(&ctx) => {
-                                //         result
-                                //     }
-                                //     _ = tokio::signal::ctrl_c() => {
-                                //         Ok(None)
-                                //     }
-                                // }?;
-                                if let Some(ctx) = ctx_opt {
-                                    context = ctx.clone();
-                                }
+                rl.add_history_entry(line.as_str());
+
+                let command = parse_command_line(line.clone()).map_err(Error::from);
+                if let Ok(interactive) = command {
+                    debug!("Run command {:#?}", interactive.command);
+                    match interactive.command {
+                        InteractiveCommand::Continue => {
+                            last_logs = run_logs(&previous_log, Some(last_logs)).await?;
+                        }
+                        InteractiveCommand::Logs(logs) => {
+                            previous_log = logs.clone();
+                            last_logs = run_logs(&previous_log, None).await?;
+                        }
+                        InteractiveCommand::Stop | InteractiveCommand::Exit => break,
+                        cmd => {
+                            let ctx = context.clone();
+                            let ctx_opt = cmd.run(&ctx).await?;
+                            // let ctx_opt = select! {
+                            //     result = cmd.run(&ctx) => {
+                            //         result
+                            //     }
+                            //     _ = tokio::signal::ctrl_c() => {
+                            //         Ok(None)
+                            //     }
+                            // }?;
+                            if let Some(ctx) = ctx_opt {
+                                context = ctx.clone();
                             }
                         }
-                    } else {
-                        debug!("not a valid command {}", line);
                     }
-                }
-                Err(ReadlineError::Interrupted) => {
-                    debug!("CTRL-C");
-                    break;
-                }
-                Err(ReadlineError::Eof) => {
-                    debug!("CTRL-D");
-                    break;
-                }
-                Err(err) => {
-                    println!("Error: {:?}", err);
-                    break;
+                } else {
+                    debug!("not a valid command {}", line);
                 }
             }
+            Err(ReadlineError::Interrupted) => {
+                debug!("CTRL-C");
+                break;
+            }
+            Err(ReadlineError::Eof) => {
+                debug!("CTRL-D");
+                break;
+            }
+            Err(err) => {
+                println!("Error: {:?}", err);
+                break;
+            }
         }
-        debug!("Save history to {:?}", history_path);
-        fs::create_dir_all(history_path.parent().unwrap())?;
-        rl.save_history(&history_path).map_err(Error::from)
-    })
+    }
+    debug!("Save history to {:?}", history_path);
+    fs::create_dir_all(history_path.parent().unwrap())?;
+    rl.save_history(&history_path).map_err(Error::from)
 }
 
 async fn run_logs(logs: &Logs, last_end: Option<DateTime<Utc>>) -> Result<DateTime<Utc>> {
     let mut clone = logs.clone();
+    if let Some(last_logs) = last_end {
+        // Only displays new logs
+        clone.since = Some(last_logs.to_rfc3339_opts(SecondsFormat::Secs, true));
+        // Follows the logs
+        clone.follow = true;
+    }
     select! {
-        _ = spawn(async move {
-            if let Some(last_logs) = last_end {
-                // Only displays new logs
-                clone.since = Some(last_logs.to_rfc3339_opts(SecondsFormat::Secs, true));
-                // Follows the logs
-                clone.follow = true;
-            }
-            clone.run()
-         }) => {}
+        res = clone.run() => {res?}
         _ = tokio::signal::ctrl_c() => {}
     }
     Ok(Utc::now())
@@ -206,14 +203,14 @@ impl InteractiveCommand {
                 compose_up();
 
                 log::debug!("Stop the devtool app env to reset cache");
-                let result = stop_app_env();
+                let result = stop_app_env().await;
                 if let Err(error) = result {
                     log::info!("{:?}", error);
                 }
             }
             InteractiveCommand::Check(check) => {
                 if context.expose {
-                    check.run()?
+                    check.run().await?
                 } else {
                     println!("The check commands can't run if the ports are not exposed. Run the expose command first");
                 }
@@ -221,7 +218,7 @@ impl InteractiveCommand {
             InteractiveCommand::Expose => {
                 conf.generate_files(true);
 
-                compose_up();
+                compose_up().await;
 
                 let mut ctx = context.clone();
                 ctx.expose = true;

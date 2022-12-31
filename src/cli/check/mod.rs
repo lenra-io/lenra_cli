@@ -1,9 +1,10 @@
 use std::fmt::Debug;
 
+use async_trait::async_trait;
 use clap::{Args, Subcommand};
 use colored::{Color, ColoredString, Colorize};
 use log::{debug, info};
-use serde_json::Value;
+use serde_yaml::Value;
 
 use crate::{errors::{Error, Result}, matching::{MatchingErrorType, Matching}};
 
@@ -31,8 +32,9 @@ pub enum CheckCommandType {
     Template(CheckParameters),
 }
 
+#[async_trait]
 impl CliCommand for Check {
-    fn run(&self) -> Result<()> {
+    async fn run(&self) -> Result<()> {
         match self.command.clone() {
             CheckCommandType::Template(params) => {
                 let template_checker = TemplateChecker;
@@ -108,7 +110,7 @@ pub trait AppChecker: Debug {
                 }
             });
         if fail {
-            return Err(Error::CheckError);
+            return Err(Error::Check);
         }
         Ok(())
     }
@@ -177,7 +179,7 @@ impl ValueChecker {
                         MatchingErrorType::NotSameValue { actual, expected } => RuleError {
                             rule: format!("{}{}{}", "sameValue", RULE_SEPARATOR, err.path),
                             message: format!(
-                                "Not matching value for {}: got {} but expected {}",
+                                "Not matching value for {}: got {:?} but expected {:?}",
                                 err.path, actual, expected
                             ),
                             level: RuleErrorLevel::Error,

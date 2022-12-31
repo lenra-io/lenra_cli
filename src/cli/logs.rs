@@ -1,5 +1,6 @@
 use std::process::Stdio;
 
+use async_trait::async_trait;
 pub use clap::Args;
 use log::warn;
 
@@ -42,8 +43,9 @@ pub struct Logs {
     pub services: Vec<Service>,
 }
 
+#[async_trait]
 impl CliCommand for Logs {
-    fn run(&self) -> Result<()> {
+    async fn run(&self) -> Result<()> {
         log::info!("Show logs");
 
         let mut command = create_compose_command();
@@ -80,7 +82,7 @@ impl CliCommand for Logs {
         log::debug!("cmd: {:?}", command);
         let output = command
             .output()
-            .expect("Failed to logs the docker-compose app");
+            .await?;
 
         if !output.status.success() {
             warn!(

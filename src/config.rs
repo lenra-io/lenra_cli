@@ -26,11 +26,8 @@ pub fn load_config_file(path: &std::path::PathBuf) -> Result<Application> {
     let file = fs::File::open(path).map_err(Error::from)?;
     match path.extension() {
         Some(os_str) => match os_str.to_str() {
-            Some("yml" | "yaml") => {
+            Some("yml" | "yaml" | "json") => {
                 Ok(serde_yaml::from_reader(file).map_err(Error::from)?)
-            }
-            Some("json") => {
-                Ok(serde_json::from_reader(file).map_err(Error::from)?)
             }
             Some(ext) => Err(Error::Custom(format!(
                 "Not managed config file extension {}",
@@ -106,36 +103,37 @@ pub struct Dockerfile {
 
 impl Application {
     /// Generates all the files needed to build and run the application
-    pub fn generate_files(&self, expose: bool) {
-        self.generate_docker_files();
-        self.generate_docker_compose_file(expose);
+    pub async fn generate_files(&self, expose: bool) -> Result<()> {
+        self.generate_docker_files()?;
+        self.generate_docker_compose_file(expose).await?;
+        Ok(())
     }
 
-    pub fn generate_docker_files(&self) {
+    pub fn generate_docker_files(&self) -> Result<()> {
         log::info!("Docker files generation");
         // create the `.lenra` cache directory
         fs::create_dir_all(LENRA_CACHE_DIRECTORY).unwrap();
 
         match &self.generator {
             Generator::Dofigen(dofigen) => self.build_dofigen(dofigen.dofigen.clone()),
-            Generator::DofigenFile(dofigen_file) => self.build_dofigen(
-                from_file_path(&dofigen_file.dofigen).expect("Failed loading the Dofigen file"),
-            ),
-            Generator::DofigenError { dofigen: _ } => {
-                panic!("Your Dofigen configuration is not correct")
+            Generator::DofigenFile(dofigen_file) => {
+                self.build_dofigen(from_file_path(&dofigen_file.dofigen).map_err(Error::from)?)
             }
-            Generator::Dockerfile(_dockerfile) => (),
+            Generator::DofigenError { dofigen: _ } => Err(Error::Custom(
+                "Your Dofigen configuration is not correct".into(),
+            )),
+            Generator::Dockerfile(_dockerfile) => Ok(()),
             Generator::Docker(docker) => {
-                self.save_docker_content(docker.docker.clone(), docker.ignore.clone());
+                self.save_docker_content(docker.docker.clone(), docker.ignore.clone())
             }
-            Generator::Unknow => panic!("Not managed generator"),
+            Generator::Unknow => Err(Error::Custom("Not managed generator".into())),
         }
     }
 
-    pub fn generate_docker_compose_file(&self, expose: bool) {
+    pub async fn generate_docker_compose_file(&self, expose: bool) -> Result<()> {
         log::info!("Docker Compose file generation");
         // create the `.lenra` cache directory
-        fs::create_dir_all(LENRA_CACHE_DIRECTORY).unwrap();
+        fs::create_dir_all(LENRA_CACHE_DIRECTORY).map_err(Error::from)?;
 
         let dockerfile: PathBuf = if let Generator::Dockerfile(file_conf) = &self.generator {
             file_conf.docker.clone()
@@ -143,22 +141,25 @@ impl Application {
             DOCKERFILE_DEFAULT_PATH.iter().collect()
         };
 
-        generate_docker_compose(dockerfile, &self.dev, expose);
+        generate_docker_compose(dockerfile, &self.dev, expose)
+            .await
+            .map_err(Error::from)?;
+        Ok(())
     }
 
     /// Builds a Docker image from a Dofigen structure
-    fn build_dofigen(&self, image: Image) {
+    fn build_dofigen(&self, image: Image) -> Result<()> {
         // Generate the Dofigen config with OpenFaaS overlay to handle the of-watchdog
-        let of_overlay = self.dofigen_of_overlay(image);
+        let of_overlay = self.dofigen_of_overlay(image)?;
 
         // generate the Dockerfile and .dockerignore files with Dofigen
         let dockerfile = generate_dockerfile(&of_overlay);
         let dockerignore = generate_dockerignore(&of_overlay);
-        self.save_docker_content(dockerfile, Some(dockerignore));
+        self.save_docker_content(dockerfile, Some(dockerignore))
     }
 
     /// Add an overlay to the given Dofigen structure to manage OpenFaaS
-    fn dofigen_of_overlay(&self, image: Image) -> Image {
+    fn dofigen_of_overlay(&self, image: Image) -> Result<Image> {
         log::info!("Adding OpenFaaS overlay to the Dofigen descriptor");
         let mut builders = if let Some(vec) = image.builders {
             vec
@@ -196,7 +197,9 @@ impl Application {
                     format!("http://127.0.0.1:{}", ports[0]),
                 );
             } else if ports.len() > 1 {
-                panic!("More than one port has been defined in the Dofigen descriptor");
+                return Err(Error::Custom(
+                    "More than one port has been defined in the Dofigen descriptor".into(),
+                ));
             }
         };
 
@@ -212,7 +215,7 @@ impl Application {
             panic!("The Dofigen cmd property is not defined");
         }
 
-        Image {
+        Ok(Image {
             image: image.image,
             builders: Some(builders),
             artifacts: Some(artifacts),
@@ -228,7 +231,7 @@ impl Application {
             caches: image.caches,
             healthcheck: image.healthcheck,
             ignores: image.ignores,
-        }
+        })
     }
 
     /// Saves the Dockerfile and dockerignore (if present) files from their contents
@@ -236,14 +239,15 @@ impl Application {
         &self,
         dockerfile_content: String,
         dockerignore_content: Option<String>,
-    ) {
+    ) -> Result<()> {
         let dockerfile_path: PathBuf = DOCKERFILE_DEFAULT_PATH.iter().collect();
         let dockerignore_path: PathBuf = DOCKERIGNORE_DEFAULT_PATH.iter().collect();
 
-        fs::write(dockerfile_path, dockerfile_content).expect("Unable to write the Dockerfile");
+        fs::write(dockerfile_path, dockerfile_content)?;
         if let Some(content) = dockerignore_content {
-            fs::write(dockerignore_path, content).expect("Unable to write the .dockerignore file");
+            fs::write(dockerignore_path, content)?;
         }
+        Ok(())
     }
 }
 
@@ -295,7 +299,7 @@ mod dofigen_of_overlay_tests {
             ..Default::default()
         };
 
-        assert_eq!(config.dofigen_of_overlay(image), overlayed_image);
+        assert_eq!(config.dofigen_of_overlay(image).unwrap(), overlayed_image);
     }
 
     #[test]

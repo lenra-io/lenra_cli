@@ -2,15 +2,16 @@
 //!
 //! The new subcommand creates a new Lenra app project from a given template and into a given path
 
+use async_trait::async_trait;
 pub use clap::Args;
 use lazy_static::lazy_static;
 use log;
 use regex::Regex;
 use std::fs;
-use std::process::Command;
+use tokio::process::Command;
 
 use crate::cli::CliCommand;
-use crate::errors::{Result, Error};
+use crate::errors::{Error, Result};
 
 #[derive(Args)]
 pub struct New {
@@ -30,8 +31,9 @@ lazy_static! {
         Regex::new(r"^(template-)?([0-9a-zA-Z]+([_-][0-9a-zA-Z]+)*)$").unwrap();
 }
 
+#[async_trait]
 impl CliCommand for New {
-    fn run(&self) -> Result<()> {
+    async fn run(&self) -> Result<()> {
         if self.path.exists() {
             panic!("The path '{}' already exists", self.path.display())
         }
@@ -58,6 +60,7 @@ impl CliCommand for New {
             .arg(template)
             .arg(self.path.as_os_str())
             .output()
+            .await
             .map_err(Error::from)?;
 
         log::debug!("remove git directory");
@@ -68,20 +71,23 @@ impl CliCommand for New {
             .current_dir(self.path.as_os_str())
             .arg("init")
             .output()
-            .expect("Failed initiating git project");
+            .await
+            .map_err(Error::from)?;
         Command::new("git")
             .current_dir(self.path.as_os_str())
             .arg("add")
             .arg(".")
             .output()
-            .expect("Failed during git add");
+            .await
+            .map_err(Error::from)?;
         Command::new("git")
             .current_dir(self.path.as_os_str())
             .arg("commit")
             .arg("-m")
             .arg("Init project")
             .output()
-            .expect("Failed during git add");
+            .await
+            .map_err(Error::from)?;
         Ok(())
     }
 }

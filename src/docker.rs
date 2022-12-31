@@ -1,9 +1,5 @@
-use std::process;
+use tokio::process::Command;
 
-pub fn pull(image: String) -> process::Command {
-    let mut cmd = process::Command::new("docker");
-
-    cmd.arg("pull").arg(image);
-
-    cmd
+pub fn pull(image: String) -> Command {
+    *Command::new("docker").arg("pull").arg(image)
 }

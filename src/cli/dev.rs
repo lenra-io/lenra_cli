@@ -1,3 +1,4 @@
+use async_trait::async_trait;
 pub use clap::Args;
 
 use crate::cli::build::Build;
@@ -19,8 +20,9 @@ pub struct Dev {
     pub expose: bool,
 }
 
+#[async_trait]
 impl CliCommand for Dev {
-    fn run(&self) -> Result<()> {
+    async fn run(&self) -> Result<()> {
         log::info!("Run dev mode");
 
         let build = Build {
@@ -29,7 +31,7 @@ impl CliCommand for Dev {
             ..Default::default()
         };
         log::debug!("Run build");
-        build.run()?;
+        build.run().await?;
 
         let start = Start {
             config: self.config.clone(),
@@ -37,19 +39,17 @@ impl CliCommand for Dev {
             ..Default::default()
         };
         log::debug!("Run start");
-        start.run()?;
+        start.run().await?;
 
-        let res = run_interactive_command(&InteractiveContext {
+        run_interactive_command(&InteractiveContext {
             config: self.config.clone(),
             expose: self.expose,
-        });
-        if let Err(error) = res {
-            println!("An error occured: {}", error.to_string());
-        }
+        })
+        .await?;
 
         let stop = Stop;
         log::debug!("Run stop");
-        stop.run()?;
+        stop.run().await?;
 
         log::debug!("End of dev mode");
         Ok(())

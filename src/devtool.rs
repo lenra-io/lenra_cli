@@ -3,7 +3,7 @@ use crate::{
     errors::Result,
 };
 
-pub fn stop_app_env() -> Result<()> {
+pub async fn stop_app_env() -> Result<()> {
     execute_compose_service_command(
         DEVTOOL_SERVICE_NAME,
         &[
@@ -12,4 +12,5 @@ pub fn stop_app_env() -> Result<()> {
             "ApplicationRunner.Environment.DynamicSupervisor.stop_env(1)",
         ],
     )
+    .await
 }
