@@ -81,7 +81,7 @@ impl CliCommand for Logs {
 
         log::debug!("cmd: {:?}", command);
         let output = command
-            .output()
+            .spawn()?.wait_with_output()
             .await?;
 
         if !output.status.success() {

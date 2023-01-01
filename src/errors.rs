@@ -1,4 +1,4 @@
-use std::process::Output;
+use std::{process::Output, string::FromUtf8Error};
 
 use rustyline::error::ReadlineError;
 use thiserror::Error;
@@ -24,6 +24,8 @@ pub enum Error {
     Join(#[from] JoinError),
     #[error("The command execution failed: {0}")]
     Command(#[from] CommandError),
+    #[error("{0}")]
+    FromUtf8(#[from] FromUtf8Error),
     #[error("Check error")]
     Check,
     #[error("{0}")]
@@ -32,8 +34,8 @@ pub enum Error {
 
 #[derive(Debug)]
 pub struct CommandError {
-    command: Command,
-    output: Output,
+    pub command: Command,
+    pub output: Output,
 }
 
 impl std::error::Error for CommandError {}

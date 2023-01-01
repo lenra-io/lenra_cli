@@ -25,7 +25,7 @@ impl CliCommand for Stop {
             .stderr(Stdio::inherit());
 
         log::debug!("cmd: {:?}", command);
-        let output = command.output().await?;
+        let output = command.spawn()?.wait_with_output().await?;
         if !output.status.success() {
             warn!("An error occured while stoping the docker-compose app");
             return Err(Error::Command(CommandError { command, output }));

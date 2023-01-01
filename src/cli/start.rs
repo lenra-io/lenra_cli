@@ -30,11 +30,11 @@ impl CliCommand for Start {
         if !dockercompose_path.exists() {
             // TODO: check the components API version
 
-            conf.generate_files(self.expose);
+            conf.generate_files(self.expose).await?;
         }
 
         // Start the containers
-        compose_up();
+        compose_up().await?;
         // Stop the devtool app env to reset cache
         let result = stop_app_env().await;
         if let Err(error) = result {

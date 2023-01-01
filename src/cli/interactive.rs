@@ -6,7 +6,7 @@ use clap::{CommandFactory, FromArgMatches};
 use dirs::config_dir;
 use log::{debug, warn};
 use rustyline::{error::ReadlineError, Editor};
-use tokio::{runtime::Runtime, select};
+use tokio::select;
 
 use crate::{
     config::load_config_file,
@@ -25,9 +25,6 @@ pub async fn run_interactive_command(initial_context: &InteractiveContext) -> Re
     //     debug!("Stop asked");
     // })
     // .expect("Error setting Ctrl-C handler");
-    let rt = Runtime::new()?;
-
-    // Spawn the root task
 
     let history_path = config_dir()
         .ok_or(Error::Custom("Can't get the user config directory".into()))?
@@ -194,13 +191,13 @@ impl InteractiveCommand {
             }
             InteractiveCommand::Reload => {
                 log::debug!("Generates files");
-                conf.generate_files(context.expose);
+                conf.generate_files(context.expose).await?;
 
                 log::debug!("Docker compose build");
-                compose_build();
+                compose_build().await?;
 
                 log::debug!("Starts the containers");
-                compose_up();
+                compose_up().await?;
 
                 log::debug!("Stop the devtool app env to reset cache");
                 let result = stop_app_env().await;
@@ -216,9 +213,9 @@ impl InteractiveCommand {
                 }
             }
             InteractiveCommand::Expose => {
-                conf.generate_files(true);
+                conf.generate_files(true).await?;
 
-                compose_up().await;
+                compose_up().await?;
 
                 let mut ctx = context.clone();
                 ctx.expose = true;

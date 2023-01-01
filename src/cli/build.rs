@@ -21,12 +21,13 @@ pub struct Build {
 
 impl Build {
     /// Builds a Dockerfile. If None, get's it at the default path: ./.lenra/Dockerfile
-    fn build_docker_compose(&self) {
+    async fn build_docker_compose(&self) -> Result<()> {
         log::info!("Build the Docker image");
 
-        compose_build();
+        compose_build().await?;
 
         log::info!("Image built");
+        Ok(())
     }
 }
 
@@ -36,10 +37,10 @@ impl CliCommand for Build {
         let conf = load_config_file(&self.config)?;
         // TODO: check the components API version
 
-        conf.generate_files(self.expose);
+        conf.generate_files(self.expose).await?;
 
         // self.build_docker_image(conf);
-        self.build_docker_compose();
+        self.build_docker_compose().await?;
         Ok(())
     }
 }

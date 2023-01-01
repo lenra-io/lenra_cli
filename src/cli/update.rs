@@ -1,13 +1,13 @@
 use async_trait::async_trait;
 pub use clap::Args;
 use futures::future::join_all;
-use log::{warn, info};
+use log::{info, warn};
 
 use crate::cli::CliCommand;
 use crate::config::{load_config_file, DEFAULT_CONFIG_FILE};
 use crate::docker;
-use crate::docker_compose::{get_services_images, Service};
-use crate::errors::{CommandError, Result};
+use crate::docker_compose::{get_services_images, Service, ServiceImages};
+use crate::errors::{CommandError, Error, Result};
 
 #[derive(Args, Clone)]
 pub struct Update {
@@ -34,28 +34,43 @@ impl CliCommand for Update {
         let images = get_services_images(dev_conf).await;
 
         // Pull images in parallele
-        let processes = self.services.iter().map(|service| async move {
-            let image = service.get_image(&images);
-            info!("Start pulling {}", image);
-            let command = docker::pull(image);
-
-            let res = command.output().await;
-
-            match res {
-                Ok(output) => {
-                    if !output.status.success() {
-                        warn!("{}", CommandError { command, output });
-                    }
-                    else {
-                        info!("Image pulled {}", image);
-                    }
-                }
-                Err(err) => warn!("{}", err),
-            }
-        });
+        let processes = self
+            .services
+            .iter()
+            .filter(|&service| match service {
+                Service::App => false,
+                _ => true,
+            })
+            .map(|service| pull_service_image(&images, service));
 
         // Wait for all the pull end
         join_all(processes).await;
         Ok(())
+    }
+}
+
+async fn pull_service_image(images: &ServiceImages, service: &Service) {
+    let image = images.get(service);
+    info!("Start pulling {}", image);
+    let mut command = docker::pull(image.clone());
+
+    let spawn_res = command.spawn().map_err(Error::from);
+    if let Err(err) = &spawn_res {
+        warn!("{}", err)
+    }
+    let res = spawn_res
+        .unwrap()
+        .wait_with_output()
+        .await
+        .map_err(Error::from);
+    if let Err(err) = &res {
+        warn!("{}", err)
+    }
+
+    let output = res.unwrap();
+    if !output.status.success() {
+        warn!("{}", CommandError { command, output });
+    } else {
+        info!("Image pulled {}", image);
     }
 }

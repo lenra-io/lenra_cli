@@ -1,4 +1,4 @@
-use serde_yaml::Value;
+use serde_json::Value;
 
 #[derive(Clone)]
 pub enum MatchingErrorType {
@@ -24,12 +24,11 @@ impl Matching for Value {
     fn match_type(&self, val: &Value) -> bool {
         match self {
             Value::Null => val.is_null(),
-            Value::Bool(_) => val.is_bool(),
+            Value::Bool(_) => val.is_boolean(),
             Value::Number(_) => val.is_number(),
             Value::String(_) => val.is_string(),
-            Value::Sequence(_) => val.is_sequence(),
-            Value::Mapping(_) => val.is_mapping(),
-            Value::Tagged(_) => false,
+            Value::Array(_) => val.is_array(),
+            Value::Object(_) => val.is_object(),
         }
     }
 
@@ -48,8 +47,8 @@ impl Matching for Value {
         }
 
         match self {
-            Value::Sequence(array) => {
-                let expected_array = expected.as_sequence().unwrap();
+            Value::Array(array) => {
+                let expected_array = expected.as_array().unwrap();
                 let mut ret: Vec<MatchingError> = vec![];
                 let common_length = if array.len() > expected_array.len() {
                     expected_array.len()
@@ -87,15 +86,14 @@ impl Matching for Value {
 
                 ret
             }
-            Value::Mapping(object) => {
-                let expected_object = expected.as_mapping().unwrap();
+            Value::Object(object) => {
+                let expected_object = expected.as_object().unwrap();
                 let keys = object.keys();
                 let expected_keys = expected_object.keys();
                 let mut ret: Vec<MatchingError> = vec![];
 
-                expected_keys.for_each(|key_value| {
-                    let key = key_value.as_str().unwrap();
-                    if object.contains_key(key_value) {
+                expected_keys.for_each(|key| {
+                    if object.contains_key(key) {
                         let value = object.get(key).unwrap();
                         let expected_value = expected_object.get(key).unwrap();
                         value
@@ -118,9 +116,8 @@ impl Matching for Value {
                     }
                 });
 
-                keys.for_each(|key_value| {
-                    let key = key_value.as_str().unwrap();
-                    if !expected_object.contains_key(key_value) {
+                keys.for_each(|key| {
+                    if !expected_object.contains_key(key) {
                         ret.push(MatchingError {
                             path: key.into(),
                             error_type: MatchingErrorType::AdditionalProperty,
@@ -169,9 +166,8 @@ impl Matching for Value {
             Value::Bool(_) => "bool",
             Value::Number(_) => "number",
             Value::String(_) => "string",
-            Value::Sequence(_) => "array",
-            Value::Mapping(_) => "object",
-            Value::Tagged(_) => "tagged",
+            Value::Array(_) => "array",
+            Value::Object(_) => "object",
         }
     }
 }

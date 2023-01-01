@@ -362,8 +362,9 @@ dependencies = [
 
 [[package]]
 name = "dofigen"
-version = "0.0.0"
-source = "git+https://github.com/lenra-io/dofigen?branch=expose-errors#5a7a8e9b617730c6cd13cfd01eb9eaf5ad053b70"
+version = "1.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "77b39d241f5d272b78696bfc0fa06b94d92fcb0cb8b6cfd316f412fe8dd6cf72"
 dependencies = [
  "serde",
  "serde_json",

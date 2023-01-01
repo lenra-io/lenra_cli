@@ -1,21 +1,21 @@
 use tokio::process::Command;
 
-pub async fn get_current_branch() -> Option<String> {
-    let result = Command::new("git")
+use crate::errors::{CommandError, Error, Result};
+
+pub async fn get_current_branch() -> Result<String> {
+    let mut command = Command::new("git");
+    let output = command
         .arg("rev-parse")
         .arg("--abbrev-ref")
         .arg("HEAD")
-        .output()
-        .await;
-    match result {
-        Ok(out) => {
-            if out.status.success() {
-                return String::from_utf8(out.stdout)
-                    .map(|name| name.trim().to_string())
-                    .ok();
-            }
-            None
-        }
-        Err(_) => None,
+        .spawn()?
+        .wait_with_output()
+        .await?;
+
+    if !output.status.success() {
+        return Err(Error::Command(CommandError { command, output }));
     }
+    String::from_utf8(output.stdout)
+        .map(|name| name.trim().to_string())
+        .map_err(Error::from)
 }

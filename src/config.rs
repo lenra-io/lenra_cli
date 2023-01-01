@@ -204,7 +204,9 @@ impl Application {
         };
 
         if image.entrypoint.is_some() {
-            panic!("The Dofigen descriptor can't have entrypoint defined. Use cmd instead");
+            return Err(Error::Custom(
+                "The Dofigen descriptor can't have entrypoint defined. Use cmd instead".into(),
+            ));
         }
 
         envs.insert("exec_timeout".to_string(), "0".to_string());
@@ -212,7 +214,9 @@ impl Application {
         if let Some(cmd) = image.cmd {
             envs.insert("fprocess".to_string(), cmd.join(" "));
         } else {
-            panic!("The Dofigen cmd property is not defined");
+            return Err(Error::Custom(
+                "The Dofigen cmd property is not defined".into(),
+            ));
         }
 
         Ok(Image {
@@ -316,6 +320,6 @@ mod dofigen_of_overlay_tests {
             }),
             ..Default::default()
         };
-        config.dofigen_of_overlay(image);
+        config.dofigen_of_overlay(image).unwrap();
     }
 }

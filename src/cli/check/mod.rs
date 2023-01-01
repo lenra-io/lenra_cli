@@ -4,7 +4,7 @@ use async_trait::async_trait;
 use clap::{Args, Subcommand};
 use colored::{Color, ColoredString, Colorize};
 use log::{debug, info};
-use serde_yaml::Value;
+use serde_json::Value;
 
 use crate::{errors::{Error, Result}, matching::{MatchingErrorType, Matching}};
 

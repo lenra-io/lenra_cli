@@ -35,7 +35,10 @@ lazy_static! {
 impl CliCommand for New {
     async fn run(&self) -> Result<()> {
         if self.path.exists() {
-            panic!("The path '{}' already exists", self.path.display())
+            return Err(Error::Custom(format!(
+                "The path '{}' already exists",
+                self.path.display()
+            )));
         }
 
         let template = if TEMPLATE_SHORT_REGEX.is_match(self.template.as_str()) {
@@ -59,7 +62,7 @@ impl CliCommand for New {
             .arg("1")
             .arg(template)
             .arg(self.path.as_os_str())
-            .output()
+            .spawn()?.wait_with_output()
             .await
             .map_err(Error::from)?;
 
@@ -70,14 +73,14 @@ impl CliCommand for New {
         Command::new("git")
             .current_dir(self.path.as_os_str())
             .arg("init")
-            .output()
+            .spawn()?.wait_with_output()
             .await
             .map_err(Error::from)?;
         Command::new("git")
             .current_dir(self.path.as_os_str())
             .arg("add")
             .arg(".")
-            .output()
+            .spawn()?.wait_with_output()
             .await
             .map_err(Error::from)?;
         Command::new("git")
@@ -85,7 +88,7 @@ impl CliCommand for New {
             .arg("commit")
             .arg("-m")
             .arg("Init project")
-            .output()
+            .spawn()?.wait_with_output()
             .await
             .map_err(Error::from)?;
         Ok(())

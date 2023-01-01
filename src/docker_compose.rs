@@ -219,7 +219,7 @@ pub async fn compose_up() -> Result<()> {
         .stderr(Stdio::inherit());
 
     log::debug!("cmd: {:?}", command);
-    let output = command.output().await?;
+    let output = command.spawn()?.wait_with_output().await?;
 
     if !output.status.success() {
         warn!(
@@ -241,7 +241,7 @@ pub async fn compose_build() -> Result<()> {
     command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
 
     log::debug!("Build: {:?}", command);
-    let output = command.output().await?;
+    let output = command.spawn()?.wait_with_output().await?;
 
     if !output.status.success() {
         warn!(
@@ -262,7 +262,7 @@ pub async fn execute_compose_service_command(service: &str, cmd: &[&str]) -> Res
         ()
     });
 
-    let output = command.output().await.map_err(Error::from)?;
+    let output = command.spawn()?.wait_with_output().await.map_err(Error::from)?;
 
     if !output.status.success() {
         return Err(Error::from(CommandError { command, output }));
@@ -344,20 +344,23 @@ impl Service {
             Service::Mongo => MONGO_SERVICE_NAME,
         }
     }
-
-    pub fn get_image(&self, images: &ServiceImages) -> String {
-        match self {
-            Service::App => images.app.clone(),
-            Service::Devtool => images.devtool.clone(),
-            Service::Postgres => images.postgres.clone(),
-            Service::Mongo => images.mongo.clone(),
-        }
-    }
 }
 
+#[derive(Clone, Debug)]
 pub struct ServiceImages {
     pub app: String,
     pub devtool: String,
     pub postgres: String,
     pub mongo: String,
+}
+
+impl ServiceImages {
+    pub fn get(&self, service: &Service) -> String {
+        match service {
+            Service::App => self.app.clone(),
+            Service::Devtool => self.devtool.clone(),
+            Service::Postgres => self.postgres.clone(),
+            Service::Mongo => self.mongo.clone(),
+        }
+    }
 }
