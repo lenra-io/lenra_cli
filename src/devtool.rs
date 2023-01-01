@@ -12,5 +12,6 @@ pub async fn stop_app_env() -> Result<()> {
             "ApplicationRunner.Environment.DynamicSupervisor.stop_env(1)",
         ],
     )
-    .await
+    .await?;
+    Ok(())
 }

@@ -252,7 +252,7 @@ pub async fn compose_build() -> Result<()> {
     Ok(())
 }
 
-pub async fn execute_compose_service_command(service: &str, cmd: &[&str]) -> Result<()> {
+pub async fn execute_compose_service_command(service: &str, cmd: &[&str]) -> Result<String> {
     let mut command = create_compose_command();
 
     command.arg("exec").arg(service);
@@ -262,13 +262,15 @@ pub async fn execute_compose_service_command(service: &str, cmd: &[&str]) -> Res
         ()
     });
 
-    let output = command.spawn()?.wait_with_output().await.map_err(Error::from)?;
+    let output = command.output().await.map_err(Error::from)?;
 
     if !output.status.success() {
         return Err(Error::from(CommandError { command, output }));
     }
 
-    Ok(())
+    String::from_utf8(output.stdout)
+        .map(|name| name.trim().to_string())
+        .map_err(Error::from)
 }
 
 fn current_dir_name() -> Option<String> {
@@ -284,6 +286,7 @@ pub async fn get_services_images(dev_conf: &Option<Dev>) -> ServiceImages {
     let default_app_image = current_dir_name().unwrap_or(APP_DEFAULT_IMAGE.to_string());
     let default_app_tag = get_current_branch()
         .await
+        .ok()
         .unwrap_or(APP_DEFAULT_IMAGE_TAG.to_string());
 
     if let Some(dev) = dev_conf {
