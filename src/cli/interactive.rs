@@ -56,35 +56,34 @@ pub async fn run_interactive_command(initial_context: &InteractiveContext) -> Re
                 rl.add_history_entry(line.as_str());
 
                 let command = parse_command_line(line.clone()).map_err(Error::from);
-                if let Ok(interactive) = command {
-                    debug!("Run command {:#?}", interactive.command);
-                    match interactive.command {
-                        InteractiveCommand::Continue => {
-                            last_logs = run_logs(&previous_log, Some(last_logs)).await?;
-                        }
-                        InteractiveCommand::Logs(logs) => {
-                            previous_log = logs.clone();
-                            last_logs = run_logs(&previous_log, None).await?;
-                        }
-                        InteractiveCommand::Stop | InteractiveCommand::Exit => break,
-                        cmd => {
-                            let ctx = context.clone();
-                            let ctx_opt = cmd.run(&ctx).await?;
-                            // let ctx_opt = select! {
-                            //     result = cmd.run(&ctx) => {
-                            //         result
-                            //     }
-                            //     _ = tokio::signal::ctrl_c() => {
-                            //         Ok(None)
-                            //     }
-                            // }?;
-                            if let Some(ctx) = ctx_opt {
-                                context = ctx.clone();
+                match command {
+                    Ok(interactive) => {
+                        debug!("Run command {:#?}", interactive.command);
+                        match interactive.command {
+                            InteractiveCommand::Continue => {
+                                last_logs = run_logs(&previous_log, Some(last_logs)).await?;
+                            }
+                            InteractiveCommand::Logs(logs) => {
+                                previous_log = logs.clone();
+                                last_logs = run_logs(&previous_log, None).await?;
+                            }
+                            InteractiveCommand::Stop | InteractiveCommand::Exit => break,
+                            cmd => {
+                                let ctx = context.clone();
+                                let ctx_opt = cmd.run(&ctx).await?;
+                                if let Some(ctx) = ctx_opt {
+                                    context = ctx.clone();
+                                }
                             }
                         }
                     }
-                } else {
-                    debug!("not a valid command {}", line);
+                    Err(Error::ParseCommand(clap_error)) => {
+                        clap_error.print()?;
+                    }
+                    Err(err) => {
+                        debug!("Parse command error: {}", err);
+                        warn!("not a valid command {}", line);
+                    }
                 }
             }
             Err(ReadlineError::Interrupted) => {
@@ -131,6 +130,8 @@ fn parse_command_line(line: String) -> Result<Interactive, clap::Error> {
             args.rotate_right(1);
         }
     }
+    debug!("Try to parse interactive command: {:?}", args);
+
     let command = <Interactive as CommandFactory>::command();
     let mut matches = command
         .clone()
