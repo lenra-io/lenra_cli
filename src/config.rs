@@ -20,7 +20,7 @@ pub const DOCKERCOMPOSE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, "docke
 
 pub const OF_WATCHDOG_BUILDER: &str = "of-watchdog";
 pub const OF_WATCHDOG_IMAGE: &str = "ghcr.io/openfaas/of-watchdog";
-pub const OF_WATCHDOG_VERSION: &str = "0.9.6";
+pub const OF_WATCHDOG_VERSION: &str = "0.9.10";
 
 pub fn load_config_file(path: &std::path::PathBuf) -> Result<Application> {
     let file = fs::File::open(path).map_err(Error::from)?;
