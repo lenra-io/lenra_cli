@@ -62,7 +62,8 @@ impl CliCommand for New {
             .arg("1")
             .arg(template)
             .arg(self.path.as_os_str())
-            .spawn()?.wait_with_output()
+            .spawn()?
+            .wait_with_output()
             .await
             .map_err(Error::from)?;
 
@@ -73,14 +74,16 @@ impl CliCommand for New {
         Command::new("git")
             .current_dir(self.path.as_os_str())
             .arg("init")
-            .spawn()?.wait_with_output()
+            .spawn()?
+            .wait_with_output()
             .await
             .map_err(Error::from)?;
         Command::new("git")
             .current_dir(self.path.as_os_str())
             .arg("add")
             .arg(".")
-            .spawn()?.wait_with_output()
+            .spawn()?
+            .wait_with_output()
             .await
             .map_err(Error::from)?;
         Command::new("git")
@@ -88,7 +91,8 @@ impl CliCommand for New {
             .arg("commit")
             .arg("-m")
             .arg("Init project")
-            .spawn()?.wait_with_output()
+            .spawn()?
+            .wait_with_output()
             .await
             .map_err(Error::from)?;
         Ok(())

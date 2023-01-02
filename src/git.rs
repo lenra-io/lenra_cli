@@ -14,7 +14,7 @@ pub async fn get_current_branch() -> Result<String> {
     if !output.status.success() {
         return Err(Error::Command(CommandError { command, output }));
     }
-    
+
     String::from_utf8(output.stdout)
         .map(|name| name.trim().to_string())
         .map_err(Error::from)

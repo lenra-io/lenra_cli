@@ -6,7 +6,10 @@ use colored::{Color, ColoredString, Colorize};
 use log::{debug, info};
 use serde_json::Value;
 
-use crate::{errors::{Error, Result}, matching::{MatchingErrorType, Matching}};
+use crate::{
+    errors::{Error, Result},
+    matching::{Matching, MatchingErrorType},
+};
 
 use self::template::TemplateChecker;
 
@@ -65,7 +68,6 @@ pub trait AppChecker: Debug {
     fn check(&self, params: CheckParameters) -> Result<()> {
         info!("Check with {:?}", self);
         // TODO: start app
-        
 
         let check_list = self.check_list();
 
@@ -245,7 +247,6 @@ impl ValueChecker {
         }
     }
 }
-
 
 #[derive(Debug, Clone)]
 pub struct RuleError {

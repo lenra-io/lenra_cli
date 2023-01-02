@@ -45,9 +45,7 @@ impl CliCommand for Update {
             .for_each(|service| {
                 let imgs = images.clone();
                 let serv = service.clone();
-                processes.spawn(async move {
-                    pull_service_image(&imgs, &serv).await
-                });
+                processes.spawn(async move { pull_service_image(&imgs, &serv).await });
             });
 
         // Wait for all the pull end
