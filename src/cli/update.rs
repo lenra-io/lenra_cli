@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 pub use clap::Args;
-use futures::future::join_all;
 use log::{info, warn};
+use tokio::task::JoinSet;
 
 use crate::cli::CliCommand;
 use crate::config::{load_config_file, DEFAULT_CONFIG_FILE};
@@ -34,17 +34,27 @@ impl CliCommand for Update {
         let images = get_services_images(dev_conf).await;
 
         // Pull images in parallele
-        let processes = self
-            .services
+        let mut processes = JoinSet::new();
+
+        self.services
             .iter()
             .filter(|&service| match service {
                 Service::App => false,
                 _ => true,
             })
-            .map(|service| pull_service_image(&images, service));
+            .for_each(|service| {
+                let imgs = images.clone();
+                let serv = service.clone();
+                processes.spawn(async move {
+                    pull_service_image(&imgs, &serv).await
+                });
+            });
 
         // Wait for all the pull end
-        join_all(processes).await;
+        while let Some(res) = processes.join_next().await {
+            res?;
+        }
+
         Ok(())
     }
 }

@@ -2,7 +2,6 @@ use docker_compose_types::{
     AdvancedBuildStep, BuildStep, Command, Compose, DependsCondition, DependsOnOptions,
     Environment, Healthcheck, HealthcheckTest, Services,
 };
-// use futures::FutureExt;
 use log::warn;
 use std::process::Stdio;
 use std::{convert::TryInto, env, fs, path::PathBuf};
