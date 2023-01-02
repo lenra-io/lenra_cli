@@ -79,7 +79,7 @@ impl AppChecker for TemplateChecker {
                         "fillParent": true,
                         "mainAxisAlignment": "spaceBetween",
                         "crossAxisAlignment": "center",
-                        "padding": { "right": 32, "top": 0, "bottom": 0, "left": 0 },
+                        "padding": { "right": 32 },
                         "children": [
                             {
                               "type": "container",

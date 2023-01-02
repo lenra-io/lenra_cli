@@ -70,15 +70,19 @@ pub async fn run_interactive_command(initial_context: &InteractiveContext) -> Re
                             InteractiveCommand::Stop | InteractiveCommand::Exit => break,
                             cmd => {
                                 let ctx = context.clone();
-                                let ctx_opt = cmd.run(&ctx).await?;
-                                if let Some(ctx) = ctx_opt {
-                                    context = ctx.clone();
+                                match cmd.run(&ctx).await {
+                                    Ok(ctx_opt) => {
+                                        if let Some(ctx) = ctx_opt {
+                                            context = ctx.clone();
+                                        }
+                                    }
+                                    Err(error) => eprintln!("{}", error),
                                 }
                             }
                         }
                     }
                     Err(Error::ParseCommand(clap_error)) => {
-                        clap_error.print()?;
+                        clap_error.print().ok();
                     }
                     Err(err) => {
                         debug!("Parse command error: {}", err);
@@ -180,7 +184,6 @@ pub enum InteractiveCommand {
     /// Exposes the app ports
     Expose(Expose),
 }
-
 
 #[derive(Args, Clone, Debug)]
 pub struct Expose {
