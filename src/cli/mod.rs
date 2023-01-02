@@ -51,7 +51,7 @@ pub enum Command {
     Init(Init),
     /// Update the tools Docker images
     Update(Update),
-    /// Manage checks
+    /// Checks the running app
     Check(Check),
 }
 

@@ -175,7 +175,7 @@ pub enum InteractiveCommand {
     Stop,
     /// stop alias. Stop your app previously started with the start command
     Exit,
-    /// Manage checks
+    /// Checks the running app
     Check(Check),
     /// Exposes the app ports
     Expose,

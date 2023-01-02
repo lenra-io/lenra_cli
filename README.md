@@ -87,6 +87,7 @@ OPTIONS:
 
 SUBCOMMANDS:
     build     Build your app in release mode
+    check     Checks the running app
     dev       Start the app in an interactive mode
     help      Print this message or the help of the given subcommand(s)
     init      Generates dockerfile and docker compose file with the init command
@@ -97,254 +98,26 @@ SUBCOMMANDS:
     update    Update the tools Docker images
 ```
 
-### Subcommands
+<p align="right">(<a href="#top">back to top</a>)</p>
 
-This tools contains many subcommands to help you doing what you need.
+## Subcommands
 
-- [new](#new): creates a new Lenra app project
-- [build](#build): builds the Lenra app of the current directory
-- [start](#start): starts your app previously built with the build command
-- [logs](#logs): displays output from the containers
-- [stop](#stop): stops your app previously started with the start command
-- [dev](#dev): starts your app in dev mode
-- [init](#init): generates Docker and Docker Compose files
-- [update](#update): updates the tools Docker images
+This tool contains many subcommands to help you doing what you need.
 
-#### new
+- [new](docs/new.md): creates a new Lenra app project
+- [dev](docs/dev.md): starts your app in dev mode
+- [update](docs/update.md): updates the tools Docker images
+- [build](docs/build.md): builds the Lenra app of the current directory
+- [start](docs/start.md): starts your app previously built with the build command
+- [logs](docs/logs.md): displays output from the containers
+- [stop](docs/stop.md): stops your app previously started with the start command
+- [check](docs/check.md): checks the running app
+- [init](docs/init.md): generates Docker and Docker Compose files
 
-This subcommand creates a new Lenra app project from a given template and in a given directory.
-The target directory must not exist.
 
-```bash
-$ lenra new --help
-lenra-new 
-Create a new Lenra app project
+<p align="right">(<a href="#top">back to top</a>)</p>
 
-USAGE:
-    lenra new <TEMPLATE> <PATH>
-
-ARGS:
-    <TEMPLATE>    The project template from which your project will be created. For example,
-                  defining `rust` or `template-rust` will use the next one:
-                  https://github.com/lenra-io/template-rust You can find all our templates at
-                  this url:
-                  https://github.com/orgs/lenra-io/repositories?q=&type=template&language=&sort=stargazers
-                  You also can set the template project full url to use custom ones
-    <PATH>        The project path
-
-OPTIONS:
-    -h, --help    Print help information
-```
-
-#### build
-
-This subcommand builds the Lenra app of the current directory.
-The app configuration are defined by a [configuration file](#configuration-file).
-
-```bash
-$ lenra build --help
-lenra-build 
-Build your app in release mode
-
-USAGE:
-    lenra build [OPTIONS]
-
-OPTIONS:
-        --config <CONFIG>    The app configuration file [default: lenra.yml]
-        --expose             Exposes all services ports
-    -h, --help               Print help information
-```
-
-#### start
-
-This subcommand starts the Lenra app of the current directory previously built.
-
-```bash
-$ lenra start --help
-lenra-start 
-Start your app previously built with the build command
-
-USAGE:
-    lenra start [OPTIONS]
-
-OPTIONS:
-        --config <CONFIG>    The app configuration file [default: lenra.yml]
-        --expose             Exposes all services ports
-    -h, --help               Print help information
-```
-
-#### logs
-
-This subcommand displays output from the containers.
-
-```bash
-$ lenra logs --help
-lenra-logs 
-View output from the containers
-
-USAGE:
-    lenra logs [OPTIONS] [SERVICES]...
-
-ARGS:
-    <SERVICES>...    The logged service list [default: app] [possible values: app, devtool,
-                     postgres]
-
-OPTIONS:
-    -f, --follow           Follow log output
-    -h, --help             Print help information
-        --no-color         Produce monochrome output
-        --no-log-prefix    Don't print prefix in logs
-        --since <SINCE>    Show logs since timestamp (e.g. 2013-01-02T13:23:37Z) or relative (e.g.
-                           42m for 42 minutes)
-    -t, --timestamps       Show timestamps
-        --tail <TAIL>      Number of lines to show from the end of the logs for each container
-                           [default: all]
-        --until <UNTIL>    Show logs before a timestamp (e.g. 2013-01-02T13:23:37Z) or relative
-                           (e.g. 42m for 42 minutes)
-```
-
-#### stop
-
-This subcommand stops the Lenra app of the current directory and removes the Docker Compose elements.
-
-```bash
-$ lenra stop --help
-lenra-stop 
-Stop your app previously started with the start command
-
-USAGE:
-    lenra stop [OPTIONS]
-
-OPTIONS:
-        --config <CONFIG>    The app configuration file [default: lenra.yml]
-    -h, --help               Print help information
-```
-
-#### dev
-
-This subcommand starts the Lenra app of the current directory in dev mode.
-
-```bash
-$ lenra dev --help
-lenra-dev 
-Start the app in an interactive mode
-
-USAGE:
-    lenra dev [OPTIONS]
-
-OPTIONS:
-        --config <CONFIG>    The app configuration file [default: lenra.yml]
-        --expose             Exposes all services ports
-    -h, --help               Print help information
-```
-
-#### init
-
-This subcommand generates Docker and Docker Compose files.
-
-```bash
-$ lenra init --help
-lenra-init 
-Generates dockerfile and docker compose file with the init command
-
-USAGE:
-    lenra init [OPTIONS]
-
-OPTIONS:
-        --config <CONFIG>    The app configuration file [default: lenra.yml]
-    -h, --help               Print help information
-```
-
-#### update
-
-This subcommand updates the tools Docker images.
-
-```bash
-$ lenra update --help
-lenra-update 
-Update the tools Docker images
-
-USAGE:
-    lenra update [OPTIONS] [SERVICES]...
-
-ARGS:
-    <SERVICES>...    The service list to pull [default: devtool postgres mongo] [possible
-                     values: app, devtool, postgres, mongo]
-
-OPTIONS:
-        --config <CONFIG>    The app configuration file [default: lenra.yml]
-    -h, --help               Print help information
-```
-
-## dev interactive commands
-
-When using the [dev](#dev) sub-command, the CLI enters an interactive mode.
-The interactive mode builds and starts the app and then displays its logs.
-
-When the CLI receive a `Ctrl + C` signal in dev mode, it displays an interactive command prompt.
-Here is the `help` interactive command result:
-
-```bash
-[lenra]$ help
-lenra_cli 
-The Lenra interactive command line interface
-
-USAGE:
-    lenra <SUBCOMMAND>
-
-OPTIONS:
-    -h, --help    Print help information
-
-SUBCOMMANDS:
-    continue    Continue the previous logs command since the last displayed logs
-    help        Print this message or the help of the given subcommand(s)
-    logs        View output from the containers
-    reload      Reload the by rebuilding and restarting it
-    stop        Stop your app previously started with the start command
-```
-
-### Subcommands
-
-This tools contains many subcommands to help you do what you need.
-
-- [continue](#continue): continues the previous logs command since the last displayed logs
-- [logs](#logs): displays output from the containers
-- [reload](#reload): reloads the app by rebuilding and restarting it
-- [stop](#stop): stops your app previously started with the start command
-
-#### continue
-
-This subcommand continues the previous logs command since the last displayed logs.
-
-```bash
-[lenra]$ continue --help
-lenra-continue 
-Continue the previous logs command since the last displayed logs
-
-USAGE:
-    lenra continue
-
-OPTIONS:
-    -h, --help    Print help information
-```
-
-#### reload
-
-This subcommand reloads the app by rebuilding and restarting it.
-
-```bash
-[lenra]$ reload --help
-lenra-reload 
-Reload the app by rebuilding and restarting it
-
-USAGE:
-    lenra reload
-
-OPTIONS:
-    -h, --help    Print help information
-```
-
-### Configuration file
+## Configuration file
 
 The Lenra's configuration file describes your Lenra app configurations, like API versions or how to build it.
 
@@ -356,7 +129,7 @@ generator:
   dofigen: dofigen.yml
 ```
 
-#### Configuration
+### Configuration
 
 The configuration is the main element of the file:
 
@@ -365,20 +138,20 @@ The configuration is the main element of the file:
 | `componentsApi`  | String           | The components API version    |
 | `generator`      | [Generator](#generator)  The generator configuration |
 
-#### Generator
+### Generator
 
 The generator define your application is built. There are many configurators:
 
 - [Dofigen](#dofigen)
 - [Docker](#docker)
 
-##### Dofigen
+#### Dofigen
 
 The Dofigen generator use a [Dofigen](https://github.com/lenra-io/dofigen) configuration to generate the Docker image.
 
 The Dofigen configuration can be the path to a Dofigen file or it content directly.
 
-##### Docker
+#### Docker
 
 The Docker generator use a Dockerfile to generate the Docker image.
 

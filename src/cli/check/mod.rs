@@ -26,9 +26,9 @@ pub struct Check {
 /// The check subcommands
 #[derive(Subcommand, Clone, Debug)]
 pub enum CheckCommandType {
-    // /// Check the current project as an app
+    // /// Checks the current project as an app
     // App(CheckParameters),
-    /// Check the current project as a template
+    /// Checks the current project as a template
     Template(CheckParameters),
 }
 
