@@ -8,7 +8,11 @@ lenra-expose
 Exposes the app ports
 
 USAGE:
-    lenra expose
+    lenra expose [SERVICES]...
+
+ARGS:
+    <SERVICES>...    The service list to expose [default: app postgres mongo] [possible values:
+                     app, devtool, postgres, mongo]
 
 OPTIONS:
     -h, --help    Print help information

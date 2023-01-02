@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 
 use crate::{
-    docker_compose::generate_docker_compose,
+    docker_compose::{generate_docker_compose, Service},
     errors::{Error, Result},
 };
 
@@ -103,9 +103,9 @@ pub struct Dockerfile {
 
 impl Application {
     /// Generates all the files needed to build and run the application
-    pub async fn generate_files(&self, expose: bool) -> Result<()> {
+    pub async fn generate_files(&self, exposed_services: Vec<Service>) -> Result<()> {
         self.generate_docker_files()?;
-        self.generate_docker_compose_file(expose).await?;
+        self.generate_docker_compose_file(exposed_services).await?;
         Ok(())
     }
 
@@ -130,7 +130,7 @@ impl Application {
         }
     }
 
-    pub async fn generate_docker_compose_file(&self, expose: bool) -> Result<()> {
+    pub async fn generate_docker_compose_file(&self, exposed_services: Vec<Service>) -> Result<()> {
         log::info!("Docker Compose file generation");
         // create the `.lenra` cache directory
         fs::create_dir_all(LENRA_CACHE_DIRECTORY).map_err(Error::from)?;
@@ -141,7 +141,7 @@ impl Application {
             DOCKERFILE_DEFAULT_PATH.iter().collect()
         };
 
-        generate_docker_compose(dockerfile, &self.dev, expose)
+        generate_docker_compose(dockerfile, &self.dev, exposed_services)
             .await
             .map_err(Error::from)?;
         Ok(())

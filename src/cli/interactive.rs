@@ -151,7 +151,7 @@ pub struct InteractiveContext {
     pub config: std::path::PathBuf,
 
     /// Exposes all services ports.
-    pub expose: bool,
+    pub expose: Vec<Service>,
 }
 
 /// The Lenra interactive command line interface
@@ -178,7 +178,15 @@ pub enum InteractiveCommand {
     /// Checks the running app
     Check(Check),
     /// Exposes the app ports
-    Expose,
+    Expose(Expose),
+}
+
+
+#[derive(Args, Clone, Debug)]
+pub struct Expose {
+    /// The service list to expose
+    #[clap(value_enum, default_values = &["app", "postgres", "mongo"])]
+    pub services: Vec<Service>,
 }
 
 impl InteractiveCommand {
@@ -192,7 +200,7 @@ impl InteractiveCommand {
             }
             InteractiveCommand::Reload => {
                 log::debug!("Generates files");
-                conf.generate_files(context.expose).await?;
+                conf.generate_files(context.expose.clone()).await?;
 
                 log::debug!("Docker compose build");
                 compose_build().await?;
@@ -207,19 +215,19 @@ impl InteractiveCommand {
                 }
             }
             InteractiveCommand::Check(check) => {
-                if context.expose {
+                if context.expose.contains(&Service::App) {
                     check.run().await?
                 } else {
                     println!("The check commands can't run if the ports are not exposed. Run the expose command first");
                 }
             }
-            InteractiveCommand::Expose => {
-                conf.generate_files(true).await?;
+            InteractiveCommand::Expose(expose) => {
+                conf.generate_files(expose.services.clone()).await?;
 
                 compose_up().await?;
 
                 let mut ctx = context.clone();
-                ctx.expose = true;
+                ctx.expose = expose.services.clone();
                 return Ok(Some(ctx));
             }
         };

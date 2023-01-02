@@ -36,9 +36,9 @@ pub const POSTGRES_PORT: u16 = 5432;
 pub async fn generate_docker_compose(
     dockerfile: PathBuf,
     dev_conf: &Option<Dev>,
-    expose: bool,
+    exposed_services: Vec<Service>,
 ) -> Result<()> {
-    let compose_content = generate_docker_compose_content(dockerfile, dev_conf, expose).await?;
+    let compose_content = generate_docker_compose_content(dockerfile, dev_conf, exposed_services).await?;
     let compose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
     fs::write(compose_path, compose_content).map_err(Error::from)?;
     Ok(())
@@ -47,7 +47,7 @@ pub async fn generate_docker_compose(
 async fn generate_docker_compose_content(
     dockerfile: PathBuf,
     dev_conf: &Option<Dev>,
-    expose: bool,
+    exposed_services: Vec<Service>,
 ) -> Result<String> {
     let mut devtool_env_vec: Vec<(String, Option<String>)> = vec![
         ("POSTGRES_USER".to_string(), Some("postgres".to_string())),
@@ -100,7 +100,7 @@ async fn generate_docker_compose_content(
                     APP_SERVICE_NAME.into(),
                     Some(docker_compose_types::Service {
                         image: Some(service_images.app),
-                        ports: if expose { Some(vec![format!("{}:{}", OF_WATCHDOG_PORT, OF_WATCHDOG_PORT)])} else {None},
+                        ports: if exposed_services.contains(&Service::App) { Some(vec![format!("{}:{}", OF_WATCHDOG_PORT, OF_WATCHDOG_PORT)])} else {None},
                         build_: Some(BuildStep::Advanced(AdvancedBuildStep {
                             context: "..".into(),
                             dockerfile: Some(dockerfile.to_str().unwrap().into()),
@@ -152,7 +152,7 @@ async fn generate_docker_compose_content(
                     Some(
                         docker_compose_types::Service {
                             image: Some(service_images.postgres),
-                            ports: if expose {Some(vec![format!("{}:{}", POSTGRES_PORT, POSTGRES_PORT)])} else {None},
+                            ports: if exposed_services.contains(&Service::Postgres) {Some(vec![format!("{}:{}", POSTGRES_PORT, POSTGRES_PORT)])} else {None},
                             environment: Some(Environment::KvPair(postgres_envs.into())),
                             healthcheck: Some(Healthcheck {
                                 test: Some(HealthcheckTest::Multiple(vec![
@@ -175,7 +175,7 @@ async fn generate_docker_compose_content(
                     MONGO_SERVICE_NAME.into(),
                     Some( docker_compose_types::Service {
                             image: Some(service_images.mongo),
-                            ports: if expose {Some(vec![format!("{}:{}", MONGO_PORT, MONGO_PORT)])} else {None},
+                            ports: if exposed_services.contains(&Service::Mongo) {Some(vec![format!("{}:{}", MONGO_PORT, MONGO_PORT)])} else {None},
                             environment: Some(Environment::KvPair(mongo_envs.into())),
                             healthcheck: Some(Healthcheck {
                                 test: Some(HealthcheckTest::Single(r#"test $$(echo "rs.initiate($$CONFIG).ok || rs.status().ok" | mongo --quiet) -eq 1"#.to_string())),
@@ -329,7 +329,7 @@ pub async fn get_services_images(dev_conf: &Option<Dev>) -> ServiceImages {
     }
 }
 
-#[derive(clap::ValueEnum, Clone, Debug)]
+#[derive(clap::ValueEnum, Clone, Debug, PartialEq)]
 pub enum Service {
     App,
     Devtool,

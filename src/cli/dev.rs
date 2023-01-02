@@ -7,6 +7,7 @@ use crate::cli::start::Start;
 use crate::cli::stop::Stop;
 use crate::cli::CliCommand;
 use crate::config::DEFAULT_CONFIG_FILE;
+use crate::docker_compose::Service;
 use crate::errors::Result;
 
 #[derive(Args)]
@@ -15,9 +16,9 @@ pub struct Dev {
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
     pub config: std::path::PathBuf,
 
-    /// Exposes all services ports.
-    #[clap(long, action)]
-    pub expose: bool,
+    /// Exposes services ports.
+    #[clap(long, value_enum, default_values = &["app", "postgres", "mongo"])]
+    pub expose: Vec<Service>,
 }
 
 #[async_trait]
@@ -27,7 +28,7 @@ impl CliCommand for Dev {
 
         let build = Build {
             config: self.config.clone(),
-            expose: self.expose,
+            expose: self.expose.clone(),
             ..Default::default()
         };
         log::debug!("Run build");
@@ -35,7 +36,7 @@ impl CliCommand for Dev {
 
         let start = Start {
             config: self.config.clone(),
-            expose: self.expose,
+            expose: self.expose.clone(),
             ..Default::default()
         };
         log::debug!("Run start");
@@ -43,7 +44,7 @@ impl CliCommand for Dev {
 
         run_interactive_command(&InteractiveContext {
             config: self.config.clone(),
-            expose: self.expose,
+            expose: self.expose.clone(),
         })
         .await?;
 

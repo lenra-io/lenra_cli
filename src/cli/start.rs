@@ -6,7 +6,7 @@ pub use clap::Args;
 use crate::cli::CliCommand;
 use crate::config::{load_config_file, DEFAULT_CONFIG_FILE, DOCKERCOMPOSE_DEFAULT_PATH};
 use crate::devtool::stop_app_env;
-use crate::docker_compose::{self, compose_up};
+use crate::docker_compose::{self, compose_up, Service};
 use crate::errors::Result;
 
 #[derive(Args, Default)]
@@ -15,9 +15,9 @@ pub struct Start {
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
     pub config: std::path::PathBuf,
 
-    /// Exposes all services ports.
-    #[clap(long, action)]
-    pub expose: bool,
+    /// Exposes services ports.
+    #[clap(long, value_enum, default_values = &["app", "postgres", "mongo"])]
+    pub expose: Vec<Service>,
 }
 
 #[async_trait]
@@ -30,7 +30,7 @@ impl CliCommand for Start {
         if !dockercompose_path.exists() {
             // TODO: check the components API version
 
-            conf.generate_files(self.expose).await?;
+            conf.generate_files(self.expose.clone()).await?;
         }
 
         // Start the containers
