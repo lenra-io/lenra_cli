@@ -2,5 +2,5 @@
 blank_issues_enabled: true
 contact_links:
   - name: Feature request
-    url: https://github.com/lenra-io/Lenra/discussions/categories/ideas
+    url: https://github.com/orgs/lenra-io/discussions/categories/ideas?discussions_q=category%3AIdeas+is%3Aunlocked+is%3Aunanswered
     about: Please send your feature request in the discussion tab !
