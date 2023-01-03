@@ -38,7 +38,8 @@ pub async fn generate_docker_compose(
     dev_conf: &Option<Dev>,
     exposed_services: Vec<Service>,
 ) -> Result<()> {
-    let compose_content = generate_docker_compose_content(dockerfile, dev_conf, exposed_services).await?;
+    let compose_content =
+        generate_docker_compose_content(dockerfile, dev_conf, exposed_services).await?;
     let compose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
     fs::write(compose_path, compose_content).map_err(Error::from)?;
     Ok(())
