@@ -69,8 +69,8 @@ fn generate_docker_compose_content(
         Some(format!("http://{}:{}", DEVTOOL_SERVICE_NAME, DEVTOOL_PORT)),
     ));
     devtool_env_vec.push((
-        "MONGO_URL".to_string(),
-        Some(format!("mongodb://{}:{}", MONGO_SERVICE_NAME, MONGO_PORT)),
+        "MONGO_HOSTNAME".to_string(),
+        Some(MONGO_SERVICE_NAME.to_string()),
     ));
     let devtool_envs: [(String, Option<String>); 7] = devtool_env_vec.try_into().unwrap();
 
