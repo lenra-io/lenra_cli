@@ -113,11 +113,11 @@ jobs:
           arch: x86_64
           runner: windows-2022
           file_extension: '.exe'
-        - target: aarch64-pc-windows-msvc
-          os: windows
-          arch: aarch64
-          runner: windows-2022
-          file_extension: '.exe'
+        # - target: aarch64-pc-windows-msvc
+        #   os: windows
+        #   arch: aarch64
+        #   runner: windows-2022
+        #   file_extension: '.exe'
         - target: x86_64-apple-darwin
           os: macos
           arch: x86_64
