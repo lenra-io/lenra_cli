@@ -6,20 +6,28 @@ use clap::{CommandFactory, FromArgMatches};
 use dirs::config_dir;
 use log::{debug, warn};
 use rustyline::{error::ReadlineError, Editor};
+use tokio::select;
 
 use crate::{
-    cli::{build::Build, start::Start},
-    docker_compose::Service,
+    config::load_config_file,
+    devtool::stop_app_env,
+    docker_compose::{compose_build, compose_up, Service},
+    errors::{Error, Result},
 };
 
-use super::{logs::Logs, CliCommand};
+use super::{check::Check, logs::Logs, CliCommand};
 
 const LENRA_COMMAND: &str = "lenra";
 const READLINE_PROMPT: &str = "[lenra]$ ";
 
-pub fn run_interactive_command(context: &InteractiveContext) -> Result<(), ReadlineError> {
+pub async fn run_interactive_command(initial_context: &InteractiveContext) -> Result<()> {
+    // ctrlc::set_handler(move || {
+    //     debug!("Stop asked");
+    // })
+    // .expect("Error setting Ctrl-C handler");
+
     let history_path = config_dir()
-        .expect("Can't get the user config directory")
+        .ok_or(Error::Custom("Can't get the user config directory".into()))?
         .join("lenra")
         .join("dev.history");
     let mut rl = Editor::<()>::new()?;
@@ -34,33 +42,51 @@ pub fn run_interactive_command(context: &InteractiveContext) -> Result<(), Readl
         follow: true,
         ..Default::default()
     };
-    let mut last_logs = run_logs(&previous_log, None);
+    let mut last_logs = run_logs(&previous_log, None).await?;
+    let mut context = initial_context.clone();
 
     loop {
         let readline = rl.readline(READLINE_PROMPT);
         match readline {
             Ok(line) => {
-                rl.add_history_entry(line.as_str());
-                let result = parse_command_line(line);
+                if line.trim().is_empty() {
+                    continue;
+                }
 
-                match result {
+                rl.add_history_entry(line.as_str());
+
+                let command = parse_command_line(line.clone()).map_err(Error::from);
+                match command {
                     Ok(interactive) => {
-                        let logs_since = match interactive.command {
-                            InteractiveCommand::Continue => Some(last_logs),
+                        debug!("Run command {:#?}", interactive.command);
+                        match interactive.command {
+                            InteractiveCommand::Continue => {
+                                last_logs = run_logs(&previous_log, Some(last_logs)).await?;
+                            }
                             InteractiveCommand::Logs(logs) => {
                                 previous_log = logs.clone();
-                                None
+                                last_logs = run_logs(&previous_log, None).await?;
                             }
-                            InteractiveCommand::Stop => break,
+                            InteractiveCommand::Stop | InteractiveCommand::Exit => break,
                             cmd => {
-                                cmd.run(context);
-                                Some(last_logs)
+                                let ctx = context.clone();
+                                match cmd.run(&ctx).await {
+                                    Ok(ctx_opt) => {
+                                        if let Some(ctx) = ctx_opt {
+                                            context = ctx.clone();
+                                        }
+                                    }
+                                    Err(error) => eprintln!("{}", error),
+                                }
                             }
-                        };
-                        last_logs = run_logs(&previous_log, logs_since);
+                        }
                     }
-                    Err(e) => {
-                        e.print().expect("Could not print error");
+                    Err(Error::ParseCommand(clap_error)) => {
+                        clap_error.print().ok();
+                    }
+                    Err(err) => {
+                        debug!("Parse command error: {}", err);
+                        warn!("not a valid command {}", line);
                     }
                 }
             }
@@ -80,10 +106,10 @@ pub fn run_interactive_command(context: &InteractiveContext) -> Result<(), Readl
     }
     debug!("Save history to {:?}", history_path);
     fs::create_dir_all(history_path.parent().unwrap())?;
-    rl.save_history(&history_path)
+    rl.save_history(&history_path).map_err(Error::from)
 }
 
-fn run_logs(logs: &Logs, last_end: Option<DateTime<Utc>>) -> DateTime<Utc> {
+async fn run_logs(logs: &Logs, last_end: Option<DateTime<Utc>>) -> Result<DateTime<Utc>> {
     let mut clone = logs.clone();
     if let Some(last_logs) = last_end {
         // Only displays new logs
@@ -91,8 +117,11 @@ fn run_logs(logs: &Logs, last_end: Option<DateTime<Utc>>) -> DateTime<Utc> {
         // Follows the logs
         clone.follow = true;
     }
-    clone.run();
-    Utc::now()
+    select! {
+        res = clone.run() => {res?}
+        _ = tokio::signal::ctrl_c() => {}
+    }
+    Ok(Utc::now())
 }
 
 fn parse_command_line(line: String) -> Result<Interactive, clap::Error> {
@@ -105,6 +134,8 @@ fn parse_command_line(line: String) -> Result<Interactive, clap::Error> {
             args.rotate_right(1);
         }
     }
+    debug!("Try to parse interactive command: {:?}", args);
+
     let command = <Interactive as CommandFactory>::command();
     let mut matches = command
         .clone()
@@ -118,16 +149,17 @@ fn format_error(err: clap::Error) -> clap::Error {
     err.format(&mut command)
 }
 
+#[derive(Clone, Debug)]
 pub struct InteractiveContext {
     /// The app configuration file.
     pub config: std::path::PathBuf,
 
     /// Exposes all services ports.
-    pub expose: bool,
+    pub expose: Vec<Service>,
 }
 
 /// The Lenra interactive command line interface
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 #[clap(rename_all = "kebab-case")]
 pub struct Interactive {
     #[clap(subcommand)]
@@ -135,7 +167,7 @@ pub struct Interactive {
 }
 
 /// The interactive commands
-#[derive(Subcommand, Clone)]
+#[derive(Subcommand, Clone, Debug)]
 pub enum InteractiveCommand {
     /// Continue the previous logs command since the last displayed logs
     Continue,
@@ -145,31 +177,63 @@ pub enum InteractiveCommand {
     Reload,
     /// Stop your app previously started with the start command
     Stop,
+    /// stop alias. Stop your app previously started with the start command
+    Exit,
+    /// Checks the running app
+    Check(Check),
+    /// Exposes the app ports
+    Expose(Expose),
+}
+
+#[derive(Args, Clone, Debug)]
+pub struct Expose {
+    /// The service list to expose
+    #[clap(value_enum, default_values = &["app", "postgres", "mongo"])]
+    pub services: Vec<Service>,
 }
 
 impl InteractiveCommand {
-    fn run(&self, context: &InteractiveContext) {
+    async fn run(&self, context: &InteractiveContext) -> Result<Option<InteractiveContext>> {
+        let conf = load_config_file(&context.config).unwrap();
         match self {
             InteractiveCommand::Continue => warn!("The continue command should not be run"),
-            InteractiveCommand::Logs(_logs) => println!("logs is not implemented yet"),
-            InteractiveCommand::Stop => warn!("The stop command should not be run"),
+            InteractiveCommand::Logs(_logs) => warn!("The logs command should not be run"),
+            InteractiveCommand::Stop | InteractiveCommand::Exit => {
+                warn!("The stop command should not be run")
+            }
             InteractiveCommand::Reload => {
-                let build = Build {
-                    config: context.config.clone(),
-                    expose: context.expose,
-                    ..Default::default()
-                };
-                log::debug!("Run build");
-                build.run();
+                log::debug!("Generates files");
+                conf.generate_files(context.expose.clone()).await?;
 
-                let start = Start {
-                    config: context.config.clone(),
-                    expose: context.expose,
-                    ..Default::default()
-                };
-                log::debug!("Run start");
-                start.run();
+                log::debug!("Docker compose build");
+                compose_build().await?;
+
+                log::debug!("Starts the containers");
+                compose_up().await?;
+
+                log::debug!("Stop the devtool app env to reset cache");
+                let result = stop_app_env().await;
+                if let Err(error) = result {
+                    log::info!("{:?}", error);
+                }
+            }
+            InteractiveCommand::Check(check) => {
+                if context.expose.contains(&Service::App) {
+                    check.run().await?
+                } else {
+                    println!("The check commands can't run if the ports are not exposed. Run the expose command first");
+                }
+            }
+            InteractiveCommand::Expose(expose) => {
+                conf.generate_files(expose.services.clone()).await?;
+
+                compose_up().await?;
+
+                let mut ctx = context.clone();
+                ctx.expose = expose.services.clone();
+                return Ok(Some(ctx));
             }
         };
+        Ok(None)
     }
 }

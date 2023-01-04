@@ -1,5 +1,5 @@
+use async_trait::async_trait;
 pub use clap::Args;
-use log::debug;
 
 use crate::cli::build::Build;
 use crate::cli::interactive::{run_interactive_command, InteractiveContext};
@@ -7,6 +7,8 @@ use crate::cli::start::Start;
 use crate::cli::stop::Stop;
 use crate::cli::CliCommand;
 use crate::config::DEFAULT_CONFIG_FILE;
+use crate::docker_compose::Service;
+use crate::errors::Result;
 
 #[derive(Args)]
 pub struct Dev {
@@ -14,48 +16,43 @@ pub struct Dev {
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
     pub config: std::path::PathBuf,
 
-    /// Exposes all services ports.
-    #[clap(long, action)]
-    pub expose: bool,
+    /// Exposes services ports.
+    #[clap(long, value_enum, default_values = &[], default_missing_values = &["app", "postgres", "mongo"])]
+    pub expose: Vec<Service>,
 }
 
+#[async_trait]
 impl CliCommand for Dev {
-    fn run(&self) {
+    async fn run(&self) -> Result<()> {
         log::info!("Run dev mode");
 
         let build = Build {
             config: self.config.clone(),
-            expose: self.expose,
+            expose: self.expose.clone(),
             ..Default::default()
         };
         log::debug!("Run build");
-        build.run();
+        build.run().await?;
 
         let start = Start {
             config: self.config.clone(),
-            expose: self.expose,
+            expose: self.expose.clone(),
             ..Default::default()
         };
         log::debug!("Run start");
-        start.run();
+        start.run().await?;
 
-        ctrlc::set_handler(move || {
-            debug!("Stop asked");
-        })
-        .expect("Error setting Ctrl-C handler");
-
-        let res = run_interactive_command(&InteractiveContext {
+        run_interactive_command(&InteractiveContext {
             config: self.config.clone(),
-            expose: self.expose,
-        });
-        if let Err(error) = res {
-            println!("An error occured: {}", error.to_string());
-        }
+            expose: self.expose.clone(),
+        })
+        .await?;
 
         let stop = Stop;
         log::debug!("Run stop");
-        stop.run();
+        stop.run().await?;
 
         log::debug!("End of dev mode");
+        Ok(())
     }
 }

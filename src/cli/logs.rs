@@ -1,12 +1,14 @@
 use std::process::Stdio;
 
+use async_trait::async_trait;
 pub use clap::Args;
 use log::warn;
 
 use crate::cli::CliCommand;
 use crate::docker_compose::{create_compose_command, Service};
+use crate::errors::Result;
 
-#[derive(Args, Default, Clone)]
+#[derive(Args, Default, Clone, Debug)]
 pub struct Logs {
     /// Follow log output
     #[clap(short, long, action)]
@@ -41,8 +43,9 @@ pub struct Logs {
     pub services: Vec<Service>,
 }
 
+#[async_trait]
 impl CliCommand for Logs {
-    fn run(&self) {
+    async fn run(&self) -> Result<()> {
         log::info!("Show logs");
 
         let mut command = create_compose_command();
@@ -77,9 +80,7 @@ impl CliCommand for Logs {
         });
 
         log::debug!("cmd: {:?}", command);
-        let output = command
-            .output()
-            .expect("Failed to logs the docker-compose app");
+        let output = command.spawn()?.wait_with_output().await?;
 
         if !output.status.success() {
             warn!(
@@ -88,5 +89,6 @@ impl CliCommand for Logs {
                 String::from_utf8(output.stderr).unwrap()
             )
         }
+        Ok(())
     }
 }

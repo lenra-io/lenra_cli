@@ -2,14 +2,16 @@
 //!
 //! The new subcommand creates a new Lenra app project from a given template and into a given path
 
+use async_trait::async_trait;
 pub use clap::Args;
 use lazy_static::lazy_static;
 use log;
 use regex::Regex;
 use std::fs;
-use std::process::Command;
+use tokio::process::Command;
 
 use crate::cli::CliCommand;
+use crate::errors::{Error, Result};
 
 #[derive(Args)]
 pub struct New {
@@ -29,10 +31,14 @@ lazy_static! {
         Regex::new(r"^(template-)?([0-9a-zA-Z]+([_-][0-9a-zA-Z]+)*)$").unwrap();
 }
 
+#[async_trait]
 impl CliCommand for New {
-    fn run(&self) {
+    async fn run(&self) -> Result<()> {
         if self.path.exists() {
-            panic!("The path '{}' already exists", self.path.display())
+            return Err(Error::Custom(format!(
+                "The path '{}' already exists",
+                self.path.display()
+            )));
         }
 
         let template = if TEMPLATE_SHORT_REGEX.is_match(self.template.as_str()) {
@@ -49,25 +55,17 @@ impl CliCommand for New {
             template,
             self.path.display()
         );
-        match Command::new("git")
+        Command::new("git")
             .arg("clone")
             .arg("--single-branch")
             .arg("--depth")
             .arg("1")
             .arg(template)
             .arg(self.path.as_os_str())
-            .spawn()
-        {
-            Ok(child) => {
-                child
-                    .wait_with_output()
-                    .expect("Failed to clone the template");
-            }
-            Err(e) => match e.kind() {
-                std::io::ErrorKind::NotFound => panic!("`git` was not found!"),
-                _ => panic!("Some unkown error occurred"),
-            },
-        }
+            .spawn()?
+            .wait_with_output()
+            .await
+            .map_err(Error::from)?;
 
         log::debug!("remove git directory");
         fs::remove_dir_all(self.path.join(".git")).unwrap();
@@ -76,20 +74,27 @@ impl CliCommand for New {
         Command::new("git")
             .current_dir(self.path.as_os_str())
             .arg("init")
-            .output()
-            .expect("Failed initiating git project");
+            .spawn()?
+            .wait_with_output()
+            .await
+            .map_err(Error::from)?;
         Command::new("git")
             .current_dir(self.path.as_os_str())
             .arg("add")
             .arg(".")
-            .output()
-            .expect("Failed during git add");
+            .spawn()?
+            .wait_with_output()
+            .await
+            .map_err(Error::from)?;
         Command::new("git")
             .current_dir(self.path.as_os_str())
             .arg("commit")
             .arg("-m")
             .arg("Init project")
-            .output()
-            .expect("Failed during git add");
+            .spawn()?
+            .wait_with_output()
+            .await
+            .map_err(Error::from)?;
+        Ok(())
     }
 }

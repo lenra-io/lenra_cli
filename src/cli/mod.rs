@@ -1,11 +1,15 @@
+use async_trait::async_trait;
 pub use clap::{Args, Parser, Subcommand};
 
+use crate::errors::Result;
+
 use self::{
-    build::Build, dev::Dev, init::Init, logs::Logs, new::New, start::Start, stop::Stop,
-    update::Update,
+    build::Build, check::Check, dev::Dev, init::Init, logs::Logs, new::New, start::Start,
+    stop::Stop, update::Update,
 };
 
 mod build;
+mod check;
 mod dev;
 mod init;
 mod interactive;
@@ -23,8 +27,9 @@ pub struct Cli {
     pub command: Command,
 }
 
+#[async_trait]
 pub trait CliCommand {
-    fn run(&self);
+    async fn run(&self) -> Result<()>;
 }
 
 /// The subcommands
@@ -46,10 +51,13 @@ pub enum Command {
     Init(Init),
     /// Update the tools Docker images
     Update(Update),
+    /// Checks the running app
+    Check(Check),
 }
 
+#[async_trait]
 impl CliCommand for Command {
-    fn run(&self) {
+    async fn run(&self) -> Result<()> {
         match self {
             Command::New(new) => new.run(),
             Command::Build(build) => build.run(),
@@ -59,6 +67,8 @@ impl CliCommand for Command {
             Command::Dev(dev) => dev.run(),
             Command::Init(init) => init.run(),
             Command::Update(update) => update.run(),
-        };
+            Command::Check(check) => check.run(),
+        }
+        .await
     }
 }
