@@ -36,6 +36,6 @@ dirs = "4.0.0"
 chrono = "0.4.22"
 thiserror = "1.0.37"
 colored = "2.0.0"
-ureq = { version = "2.5.0", features = ["json"] }
+ureq = { version = "2.6.1", features = ["json"] }
 tokio = { version = "1.23.0", features = ["full"] }
 async-trait = "0.1.60"
