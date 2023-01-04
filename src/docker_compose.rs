@@ -1,5 +1,5 @@
 use docker_compose_types::{
-    AdvancedBuildStep, BuildStep, Command, Compose, DependsCondition, DependsOnOptions,
+    AdvancedBuildStep, BuildStep, Command, Compose, DependsCondition, DependsOnOptions, EnvTypes,
     Environment, Healthcheck, HealthcheckTest, Services,
 };
 use log::warn;
@@ -50,45 +50,58 @@ async fn generate_docker_compose_content(
     dev_conf: &Option<Dev>,
     exposed_services: Vec<Service>,
 ) -> Result<String> {
-    let mut devtool_env_vec: Vec<(String, Option<String>)> = vec![
-        ("POSTGRES_USER".to_string(), Some("postgres".to_string())),
+    let mut devtool_env_vec: Vec<(String, Option<EnvTypes>)> = vec![
         (
-            "POSTGRES_PASSWORD".to_string(),
-            Some("postgres".to_string()),
+            "POSTGRES_USER".into(),
+            Some(EnvTypes::String("postgres".into())),
         ),
-        ("POSTGRES_DB".to_string(), Some("lenra_devtool".to_string())),
+        (
+            "POSTGRES_PASSWORD".into(),
+            Some(EnvTypes::String("postgres".into())),
+        ),
+        (
+            "POSTGRES_DB".into(),
+            Some(EnvTypes::String("lenra_devtool".into())),
+        ),
     ];
-    let postgres_envs: [(String, Option<String>); 3] = devtool_env_vec.clone().try_into().unwrap();
+    let postgres_envs: [(String, Option<EnvTypes>); 3] =
+        devtool_env_vec.clone().try_into().unwrap();
 
     devtool_env_vec.push((
-        "POSTGRES_HOST".to_string(),
-        Some(POSTGRES_SERVICE_NAME.to_string()),
+        "POSTGRES_HOST".into(),
+        Some(EnvTypes::String(POSTGRES_SERVICE_NAME.into())),
     ));
     devtool_env_vec.push((
-        "OF_WATCHDOG_URL".to_string(),
-        Some(format!("http://{}:{}", APP_SERVICE_NAME, OF_WATCHDOG_PORT)),
+        "OF_WATCHDOG_URL".into(),
+        Some(EnvTypes::String(format!(
+            "http://{}:{}",
+            APP_SERVICE_NAME, OF_WATCHDOG_PORT
+        ))),
     ));
     devtool_env_vec.push((
-        "LENRA_API_URL".to_string(),
-        Some(format!("http://{}:{}", DEVTOOL_SERVICE_NAME, DEVTOOL_PORT)),
+        "LENRA_API_URL".into(),
+        Some(EnvTypes::String(format!(
+            "http://{}:{}",
+            DEVTOOL_SERVICE_NAME, DEVTOOL_PORT
+        ))),
     ));
     devtool_env_vec.push((
-        "MONGO_HOSTNAME".to_string(),
-        Some(MONGO_SERVICE_NAME.to_string()),
+        "MONGO_HOSTNAME".into(),
+        Some(EnvTypes::String(MONGO_SERVICE_NAME.into())),
     ));
-    let devtool_envs: [(String, Option<String>); 7] = devtool_env_vec.try_into().unwrap();
+    let devtool_envs: [(String, Option<EnvTypes>); 7] = devtool_env_vec.try_into().unwrap();
 
-    let mongo_envs: [(String, Option<String>); 2] = [
+    let mongo_envs: [(String, Option<EnvTypes>); 2] = [
         (
             "MONGO_INITDB_DATABASE".to_string(),
-            Some("test".to_string()),
+            Some(EnvTypes::String("test".into())),
         ),
         (
             "CONFIG".to_string(),
-            Some(format!(
+            Some(EnvTypes::String(format!(
                 r#"{{"_id" : "rs0", "members" : [{{"_id" : 0,"host" : "{}:{}"}}]}}"#,
                 MONGO_SERVICE_NAME, MONGO_PORT
-            )),
+            ))),
         ),
     ];
 
