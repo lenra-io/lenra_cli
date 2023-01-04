@@ -14,8 +14,7 @@ USAGE:
 
 OPTIONS:
         --config <CONFIG>    The app configuration file [default: lenra.yml]
-        --expose <EXPOSE>    Exposes services ports [default: app postgres mongo] [possible values:
-                             app, devtool, postgres, mongo]
+        --expose <EXPOSE>    Exposes services ports [possible values: app, devtool, postgres, mongo]
     -h, --help               Print help information
 ```
 

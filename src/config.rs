@@ -23,7 +23,7 @@ pub const OF_WATCHDOG_IMAGE: &str = "ghcr.io/openfaas/of-watchdog";
 pub const OF_WATCHDOG_VERSION: &str = "0.9.10";
 
 pub fn load_config_file(path: &std::path::PathBuf) -> Result<Application> {
-    let file = fs::File::open(path).map_err(Error::from)?;
+    let file = fs::File::open(path).map_err(|err| Error::OpenFile(err, path.clone()))?;
     match path.extension() {
         Some(os_str) => match os_str.to_str() {
             Some("yml" | "yaml" | "json") => {

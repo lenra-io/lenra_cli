@@ -17,7 +17,7 @@ pub struct Dev {
     pub config: std::path::PathBuf,
 
     /// Exposes services ports.
-    #[clap(long, value_enum, default_values = &["app", "postgres", "mongo"])]
+    #[clap(long, value_enum, default_values = &[], default_missing_values = &["app", "postgres", "mongo"])]
     pub expose: Vec<Service>,
 }
 

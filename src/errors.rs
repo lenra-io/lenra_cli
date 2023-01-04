@@ -8,8 +8,10 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Error, Debug)]
 pub enum Error {
-    #[error("Could not open file: {0}")]
-    OpenFile(#[from] std::io::Error),
+    #[error("Could not open file {1}: {0}")]
+    OpenFile(std::io::Error, std::path::PathBuf),
+    #[error("StdIO error {0}")]
+    Stdio(#[from] std::io::Error),
     #[error("Error while deserializing the document: {0}")]
     Deserialize(#[from] serde_yaml::Error),
     #[error("{0}")]
