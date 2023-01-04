@@ -1,7 +1,7 @@
 # build
 
 This subcommand builds the Lenra app of the current directory.
-The app configuration are defined by a [configuration file](#configuration-file).
+The app configuration is defined by a [configuration file](#configuration-file).
 
 ```bash
 $ lenra build --help
