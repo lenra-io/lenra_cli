@@ -125,25 +125,17 @@ async fn generate_docker_compose_content(
                         })),
                         user: Some(NON_ROOT_USER.into()),
                         deploy: Some(Deploy { 
-                            resources: Resources {
-                            limits: Limits {
+                            resources: Some(Resources {
+                            limits: Some(Limits {
                                 memory: Some(MEMORY_LIMIT.into()),
-                                cpus: None,
-                            },
-                            reservations: Limits {
+                                ..Default::default()
+                            }),
+                            reservations: Some(Limits {
                                 memory: Some(MEMORY_RESERVATION.into()),
-                                cpus: None,
-                            }
-                        },
-                            mode: None,
-                            replicas: 1,
-                            labels: None,
-                            update_config: None,
-                            restart_policy: docker_compose_types::RestartPolicy { 
-                                condition: "any".into(), delay: None, max_attempts: 3, window: None 
-                            },
-                            placement: None,
-                        
+                                ..Default::default()
+                            })
+                        }),
+                        ..Default::default()
                      }),
                         // TODO: Add resources management  when managed by the docker-compose-types lib
                         ..Default::default()
