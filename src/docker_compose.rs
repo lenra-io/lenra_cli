@@ -1,6 +1,6 @@
 use docker_compose_types::{
-    AdvancedBuildStep, BuildStep, Command, Compose, DependsCondition, DependsOnOptions, EnvTypes,
-    Environment, Healthcheck, HealthcheckTest, Services,
+    AdvancedBuildStep, BuildStep, Command, Compose, DependsCondition, DependsOnOptions, Deploy,
+    EnvTypes, Environment, Healthcheck, HealthcheckTest, Limits, Resources, Services,
 };
 use log::warn;
 use std::process::Stdio;
@@ -32,6 +32,8 @@ pub const DEVTOOL_PORT: u16 = 4000;
 pub const MONGO_PORT: u16 = 27017;
 pub const POSTGRES_PORT: u16 = 5432;
 pub const NON_ROOT_USER: &str = "12000";
+const MEMORY_RESERVATION: &str = "128M";
+const MEMORY_LIMIT: &str = "256M";
 
 /// Generates the docker-compose.yml file
 pub async fn generate_docker_compose(
@@ -122,6 +124,27 @@ async fn generate_docker_compose_content(
                             ..Default::default()
                         })),
                         user: Some(NON_ROOT_USER.into()),
+                        deploy: Some(Deploy { 
+                            resources: Resources {
+                            limits: Limits {
+                                memory: Some(MEMORY_LIMIT.into()),
+                                cpus: None,
+                            },
+                            reservations: Limits {
+                                memory: Some(MEMORY_RESERVATION.into()),
+                                cpus: None,
+                            }
+                        },
+                            mode: None,
+                            replicas: 1,
+                            labels: None,
+                            update_config: None,
+                            restart_policy: docker_compose_types::RestartPolicy { 
+                                condition: "any".into(), delay: None, max_attempts: 3, window: None 
+                            },
+                            placement: None,
+                        
+                     }),
                         // TODO: Add resources management  when managed by the docker-compose-types lib
                         ..Default::default()
                     }),
