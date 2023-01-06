@@ -7,6 +7,7 @@ use std::process::Stdio;
 use std::{convert::TryInto, env, fs, path::PathBuf};
 use tokio::process;
 
+use crate::config::Image;
 use crate::errors::Error;
 use crate::{
     config::{Dev, DOCKERCOMPOSE_DEFAULT_PATH},
@@ -298,50 +299,44 @@ fn current_dir_name() -> Option<String> {
 }
 
 pub async fn get_services_images(dev_conf: &Option<Dev>) -> ServiceImages {
-    let default_app_image = current_dir_name().unwrap_or(APP_DEFAULT_IMAGE.to_string());
+    let default_app_image = format!(
+        "{}{}",
+        APP_BASE_IMAGE,
+        current_dir_name().unwrap_or(APP_DEFAULT_IMAGE.to_string())
+    );
     let default_app_tag = get_current_branch()
         .await
         .ok()
         .unwrap_or(APP_DEFAULT_IMAGE_TAG.to_string());
 
-    if let Some(dev) = dev_conf {
-        ServiceImages {
-            app: format!(
-                "{}{}:{}",
-                APP_BASE_IMAGE,
-                dev.app_name.clone().unwrap_or(default_app_image),
-                dev.app_tag.clone().unwrap_or(default_app_tag)
-            ),
-            devtool: format!(
-                "{}:{}",
-                DEVTOOL_IMAGE,
-                dev.devtool_tag
-                    .clone()
-                    .unwrap_or(DEVTOOL_DEFAULT_TAG.to_string())
-            ),
-            postgres: format!(
-                "{}:{}",
-                POSTGRES_IMAGE,
-                dev.postgres_tag
-                    .clone()
-                    .unwrap_or(POSTGRES_IMAGE_TAG.to_string())
-            ),
-            mongo: format!(
-                "{}:{}",
-                MONGO_IMAGE,
-                dev.mongo_tag.clone().unwrap_or(MONGO_IMAGE_TAG.to_string())
-            ),
-        }
-    } else {
-        ServiceImages {
-            app: format!(
-                "{}{}:{}",
-                APP_BASE_IMAGE, default_app_image, default_app_tag
-            ),
-            devtool: format!("{}:{}", DEVTOOL_IMAGE, DEVTOOL_DEFAULT_TAG),
-            postgres: format!("{}:{}", POSTGRES_IMAGE, POSTGRES_IMAGE_TAG),
-            mongo: format!("{}:{}", MONGO_IMAGE, MONGO_IMAGE_TAG),
-        }
+    let dev = dev_conf.clone().unwrap_or(Dev {
+        ..Default::default()
+    });
+    ServiceImages {
+        app: dev
+            .app
+            .unwrap_or(Image {
+                ..Default::default()
+            })
+            .to_image(&default_app_image, &default_app_tag),
+        devtool: dev
+            .devtool
+            .unwrap_or(Image {
+                ..Default::default()
+            })
+            .to_image(DEVTOOL_IMAGE, DEVTOOL_DEFAULT_TAG),
+        postgres: dev
+            .postgres
+            .unwrap_or(Image {
+                ..Default::default()
+            })
+            .to_image(POSTGRES_IMAGE, POSTGRES_IMAGE_TAG),
+        mongo: dev
+            .mongo
+            .unwrap_or(Image {
+                ..Default::default()
+            })
+            .to_image(MONGO_IMAGE, MONGO_IMAGE_TAG),
     }
 }
 

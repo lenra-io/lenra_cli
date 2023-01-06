@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fs, path::PathBuf};
 
 use dofigen_lib::{
-    from_file_path, generate_dockerfile, generate_dockerignore, Artifact, Builder, Image,
+    self, from_file_path, generate_dockerfile, generate_dockerignore, Artifact, Builder,
 };
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
@@ -54,14 +54,19 @@ pub struct Application {
 }
 
 /** The dev specific configuration */
-#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
-#[serde(rename_all = "camelCase")]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Dev {
-    pub app_name: Option<String>,
-    pub app_tag: Option<String>,
-    pub devtool_tag: Option<String>,
-    pub postgres_tag: Option<String>,
-    pub mongo_tag: Option<String>,
+    pub app: Option<Image>,
+    pub devtool: Option<Image>,
+    pub postgres: Option<Image>,
+    pub mongo: Option<Image>,
+}
+
+/** A Docker image */
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
+pub struct Image {
+    pub image: Option<String>,
+    pub tag: Option<String>,
 }
 
 /** The application generator configuration */
@@ -79,7 +84,7 @@ pub enum Generator {
 /** The Dofigen configuration */
 #[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
 pub struct Dofigen {
-    pub dofigen: Image,
+    pub dofigen: dofigen_lib::Image,
 }
 
 /** The Dofigen configuration file */
@@ -148,7 +153,7 @@ impl Application {
     }
 
     /// Builds a Docker image from a Dofigen structure
-    fn build_dofigen(&self, image: Image) -> Result<()> {
+    fn build_dofigen(&self, image: dofigen_lib::Image) -> Result<()> {
         // Generate the Dofigen config with OpenFaaS overlay to handle the of-watchdog
         let of_overlay = self.dofigen_of_overlay(image)?;
 
@@ -159,7 +164,7 @@ impl Application {
     }
 
     /// Add an overlay to the given Dofigen structure to manage OpenFaaS
-    fn dofigen_of_overlay(&self, image: Image) -> Result<Image> {
+    fn dofigen_of_overlay(&self, image: dofigen_lib::Image) -> Result<dofigen_lib::Image> {
         log::info!("Adding OpenFaaS overlay to the Dofigen descriptor");
         let mut builders = if let Some(vec) = image.builders {
             vec
@@ -219,7 +224,7 @@ impl Application {
             ));
         }
 
-        Ok(Image {
+        Ok(dofigen_lib::Image {
             image: image.image,
             builders: Some(builders),
             artifacts: Some(artifacts),
@@ -267,12 +272,12 @@ mod dofigen_of_overlay_tests {
 
     #[test]
     fn simple_image() {
-        let image = Image {
+        let image = dofigen_lib::Image {
             image: "my-dockerimage".into(),
             cmd: Some(vec!["/app/my-app".into()]),
             ..Default::default()
         };
-        let overlayed_image = Image {
+        let overlayed_image = dofigen_lib::Image {
             builders: Some(vec![Builder {
                 name: Some("of-watchdog".into()),
                 image: format!("ghcr.io/openfaas/of-watchdog:{}", OF_WATCHDOG_VERSION),
@@ -309,7 +314,7 @@ mod dofigen_of_overlay_tests {
     #[test]
     #[should_panic]
     fn no_cmd() {
-        let image = Image {
+        let image = dofigen_lib::Image {
             image: "my-dockerimage".into(),
             ..Default::default()
         };
@@ -321,5 +326,15 @@ mod dofigen_of_overlay_tests {
             ..Default::default()
         };
         config.dofigen_of_overlay(image).unwrap();
+    }
+}
+
+impl Image {
+    pub fn to_image(&self, default_image: &str, default_tag: &str) -> String {
+        format!(
+            "{}:{}",
+            self.image.clone().unwrap_or(default_image.to_string()),
+            self.tag.clone().unwrap_or(default_tag.to_string())
+        )
     }
 }
