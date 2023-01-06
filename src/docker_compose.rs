@@ -32,6 +32,7 @@ pub const OF_WATCHDOG_PORT: u16 = 8080;
 pub const DEVTOOL_PORT: u16 = 4000;
 pub const MONGO_PORT: u16 = 27017;
 pub const POSTGRES_PORT: u16 = 5432;
+pub const NON_ROOT_USER: &str = "12000";
 
 /// Generates the docker-compose.yml file
 pub async fn generate_docker_compose(
@@ -121,6 +122,7 @@ async fn generate_docker_compose_content(
                             dockerfile: Some(dockerfile.to_str().unwrap().into()),
                             ..Default::default()
                         })),
+                        user: Some(NON_ROOT_USER.into()),
                         // TODO: Add resources management  when managed by the docker-compose-types lib
                         ..Default::default()
                     }),
