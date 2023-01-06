@@ -124,7 +124,7 @@ async fn generate_docker_compose_content(
                             ..Default::default()
                         })),
                         user: Some(NON_ROOT_USER.into()),
-                        deploy: Some(Deploy { 
+                        deploy: Some(Deploy {
                             resources: Some(Resources {
                             limits: Some(Limits {
                                 memory: Some(MEMORY_LIMIT.into()),
