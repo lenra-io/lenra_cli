@@ -164,7 +164,7 @@ jobs:
     - name: Zip
       if: ${{ matrix.os != 'windows' }}
       shell: bash
-      run: tar -czf "lenra-${{ matrix.os }}-${{ matrix.arch }}.tar.gz" "target/${{ matrix.target }}/release/lenra${{ matrix.file_extension }}"
+      run: tar -C "target/${{ matrix.target }}/release" -czf "lenra-${{ matrix.os }}-${{ matrix.arch }}.tar.gz" "lenra${{ matrix.file_extension }}"
 
     - name: Upload
       uses: actions/upload-artifact@v3
