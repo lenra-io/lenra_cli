@@ -2,6 +2,7 @@ use std::process::Stdio;
 
 use async_trait::async_trait;
 pub use clap::Args;
+use console::Term;
 use log::warn;
 
 use crate::cli::CliCommand;
@@ -51,7 +52,7 @@ impl CliCommand for Logs {
         let mut command = create_compose_command();
 
         command
-            .stdout(Stdio::inherit())
+            .stdout(Stdio::from(Term::stdout()))
             .stderr(Stdio::inherit())
             .arg("logs")
             .arg("--tail")
@@ -92,3 +93,4 @@ impl CliCommand for Logs {
         Ok(())
     }
 }
+

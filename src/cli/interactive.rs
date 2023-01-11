@@ -3,6 +3,7 @@ use std::fs;
 use chrono::{DateTime, SecondsFormat, Utc};
 pub use clap::{Args, Parser, Subcommand};
 use clap::{CommandFactory, FromArgMatches};
+use console::Term;
 use dirs::config_dir;
 use log::{debug, warn};
 use rustyline::{error::ReadlineError, Editor};
@@ -119,9 +120,30 @@ async fn run_logs(logs: &Logs, last_end: Option<DateTime<Utc>>) -> Result<DateTi
     }
     select! {
         res = clone.run() => {res?}
+        _ = listen_command_char() => {
+            println!("more_async_work() completed first")
+        }
         _ = tokio::signal::ctrl_c() => {}
     }
     Ok(Utc::now())
+}
+
+async fn listen_command_char() {
+    let stdin = Term::stdout();
+    loop {
+        let input = stdin.read_char();
+        match input {
+            Ok('r') | Ok('R') => {
+                println!("Reload");
+                break;
+            },
+            Ok(c) => println!("Other char: {}", c),
+            Err(err) => {
+                warn!("{}", err);
+                break;
+            },
+        }
+    }
 }
 
 fn parse_command_line(line: String) -> Result<Interactive, clap::Error> {
