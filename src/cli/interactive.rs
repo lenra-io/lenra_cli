@@ -3,7 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::keyboard_event::KeyEventListener;
+use crate::keyboard_event::{KeyEventListener, KeyboardListener};
 use chrono::{DateTime, SecondsFormat, Utc};
 pub use clap::{Args, Parser, Subcommand};
 use clap::{CommandFactory, FromArgMatches};
@@ -25,7 +25,6 @@ use super::{check::Check, logs::Logs, CliCommand};
 const LENRA_COMMAND: &str = "lenra";
 const READLINE_PROMPT: &str = "[lenra]$ ";
 const ENTER_EVENT: KeyEvent = KeyEvent(KeyCode::Enter, Modifiers::NONE);
-const CTRL_C_EVENT: KeyEvent = KeyEvent(KeyCode::Char('c'), Modifiers::CTRL);
 const ESCAPE_EVENT: KeyEvent = KeyEvent(KeyCode::Esc, Modifiers::NONE);
 
 pub async fn run_interactive_command(initial_context: &InteractiveContext) -> Result<()> {
@@ -136,8 +135,6 @@ async fn run_logs(
     if let Some(last_logs) = last_end {
         // Only displays new logs
         clone.since = Some(last_logs.to_rfc3339_opts(SecondsFormat::Secs, true));
-        // Follows the logs
-        // clone.follow = true;
     }
 
     let command = select! {
@@ -150,21 +147,21 @@ async fn run_logs(
 async fn listen_char() -> Result<Option<InteractiveCommand>> {
     let command: Arc<Mutex<Option<InteractiveCommand>>> = Arc::new(Mutex::new(None));
     let r_command = command.clone();
-    tokio::spawn(async {
-        let rl = Editor::<()>::new()?;
-        rl.listen(KeyEvent::new('r', Modifiers::NONE), move || {
+    let mut listener = KeyboardListener::new()?;
+    listener
+        .add_listener(KeyEvent::new('r', Modifiers::NONE), move || {
             let mut c = r_command.lock().unwrap();
             *c = Some(InteractiveCommand::Reload);
+            println!("\nReload (R)");
             Some(Cmd::AcceptLine)
         })
-        .listen(ENTER_EVENT, || Some(Cmd::Move(Movement::BeginningOfLine)))
-        .listen(CTRL_C_EVENT, || Some(Cmd::Interrupt))
-        .listen(ESCAPE_EVENT, || Some(Cmd::Interrupt))
-        .readline("")
-        .map_err(Error::from)
-    })
-    .await?
-    .ok();
+        .add_listener(ENTER_EVENT, || {
+            println!();
+            Some(Cmd::Replace(Movement::BeginningOfBuffer, Some("".into())))
+        })
+        .add_listener(ESCAPE_EVENT, || Some(Cmd::Interrupt));
+
+    listener.listen().await?;
     let mutex = command.lock().unwrap();
     let command = mutex.deref();
     Ok(command.clone())
@@ -258,9 +255,10 @@ impl InteractiveCommand {
                 compose_up().await?;
 
                 log::debug!("Stop the devtool app env to reset cache");
+                println!("Clearing cache");
                 let result = stop_app_env().await;
                 if let Err(error) = result {
-                    log::info!("{:?}", error);
+                    log::error!("{:?}", error);
                 }
             }
             InteractiveCommand::Check(check) => {
