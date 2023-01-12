@@ -22,6 +22,9 @@ use super::{check::Check, logs::Logs, CliCommand};
 
 const LENRA_COMMAND: &str = "lenra";
 const READLINE_PROMPT: &str = "[lenra]$ ";
+const ENTER_EVENT: KeyEvent = KeyEvent(KeyCode::Enter, Modifiers::NONE);
+const CTRL_C_EVENT: KeyEvent = KeyEvent(KeyCode::Char('c'), Modifiers::CTRL);
+const ESCAPE_EVENT: KeyEvent = KeyEvent(KeyCode::Esc, Modifiers::NONE);
 
 pub async fn run_interactive_command(initial_context: &InteractiveContext) -> Result<()> {
     let history_path = config_dir()
@@ -137,27 +140,26 @@ fn listen_char() -> Result<Option<Interactive>> {
     let mut rl = Editor::<()>::new()?;
 
     let mut command: Option<InteractiveCommand> = None;
-    InteractiveCommandEventHandler::listen(rl, KeyEvent::new('r', Modifiers::NONE), || {
+    KeyEventListener::listen(rl, KeyEvent::new('r', Modifiers::NONE), || {
         command = Some(InteractiveCommand::Reload);
         Some(Cmd::AcceptLine)
     });
-    InteractiveCommandEventHandler::listen(rl, KeyEvent(KeyCode::Enter, Modifiers::NONE), || {
-        Some(Cmd::Newline)
-    });
-    InteractiveCommandEventHandler::listen(rl, KeyEvent::ctrl('c'), || Some(Cmd::Interrupt));
+    KeyEventListener::listen(rl, ENTER_EVENT, || Some(Cmd::Newline));
+    KeyEventListener::listen(rl, CTRL_C_EVENT, || Some(Cmd::Interrupt));
+    KeyEventListener::listen(rl, ESCAPE_EVENT, || Some(Cmd::Interrupt));
     rl.readline("").map_err(Error::from)?;
     Ok(command)
 }
 
 #[derive(Debug)]
-struct InteractiveCommandEventHandler<F>
+struct KeyEventListener<F>
 where
     F: FnMut() -> Option<Cmd>,
 {
     event: KeyEvent,
     listener: F,
 }
-impl<F> InteractiveCommandEventHandler<F>
+impl<F> KeyEventListener<F>
 where
     F: FnMut() -> Option<Cmd>,
 {
@@ -165,7 +167,7 @@ where
         let normalized_event = KeyEvent::normalize(event);
         editor.bind_sequence(
             normalized_event.clone(),
-            EventHandler::Conditional(Box::new(InteractiveCommandEventHandler {
+            EventHandler::Conditional(Box::new(KeyEventListener {
                 event: normalized_event,
                 listener,
             })),
@@ -173,7 +175,7 @@ where
     }
 }
 
-impl<F> ConditionalEventHandler for InteractiveCommandEventHandler<F>
+impl<F> ConditionalEventHandler for KeyEventListener<F>
 where
     F: FnMut() -> Option<Cmd>,
 {
