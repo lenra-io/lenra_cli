@@ -3,10 +3,12 @@ use std::fs;
 use chrono::{DateTime, SecondsFormat, Utc};
 pub use clap::{Args, Parser, Subcommand};
 use clap::{CommandFactory, FromArgMatches};
-use console::Term;
 use dirs::config_dir;
 use log::{debug, warn};
-use rustyline::{error::ReadlineError, Editor};
+use rustyline::{
+    error::ReadlineError, Cmd, ConditionalEventHandler, Editor, Event, EventContext, EventHandler,
+    KeyCode, KeyEvent, Modifiers, RepeatCount,
+};
 use tokio::select;
 
 use crate::{
@@ -22,11 +24,6 @@ const LENRA_COMMAND: &str = "lenra";
 const READLINE_PROMPT: &str = "[lenra]$ ";
 
 pub async fn run_interactive_command(initial_context: &InteractiveContext) -> Result<()> {
-    // ctrlc::set_handler(move || {
-    //     debug!("Stop asked");
-    // })
-    // .expect("Error setting Ctrl-C handler");
-
     let history_path = config_dir()
         .ok_or(Error::Custom("Can't get the user config directory".into()))?
         .join("lenra")
@@ -64,10 +61,15 @@ pub async fn run_interactive_command(initial_context: &InteractiveContext) -> Re
                             InteractiveCommand::Continue => {
                                 last_logs = run_logs(&previous_log, Some(last_logs)).await?;
                             }
-                            InteractiveCommand::Logs(logs) => {
-                                previous_log = logs.clone();
-                                last_logs = run_logs(&previous_log, None).await?;
-                            }
+                            InteractiveCommand::Logs(logs) => match logs {
+                                Logs { follow: true, .. } => {
+                                    previous_log = logs.clone();
+                                    last_logs = run_logs(&previous_log, None).await?;
+                                }
+                                _ => {
+                                    logs.run().await?;
+                                }
+                            },
                             InteractiveCommand::Stop | InteractiveCommand::Exit => break,
                             cmd => {
                                 let ctx = context.clone();
@@ -116,33 +118,77 @@ async fn run_logs(logs: &Logs, last_end: Option<DateTime<Utc>>) -> Result<DateTi
         // Only displays new logs
         clone.since = Some(last_logs.to_rfc3339_opts(SecondsFormat::Secs, true));
         // Follows the logs
-        clone.follow = true;
+        // clone.follow = true;
     }
+
     select! {
         res = clone.run() => {res?}
-        _ = listen_command_char() => {
-            println!("more_async_work() completed first")
+        res = tokio::spawn(async { listen_char()}) => {
+            println!("received char");
+            if let Ok(cmd) = res {
+                println!("Command: {:?}", cmd);
+            }
         }
-        _ = tokio::signal::ctrl_c() => {}
     }
     Ok(Utc::now())
 }
 
-async fn listen_command_char() {
-    let stdin = Term::stdout();
-    loop {
-        let input = stdin.read_char();
-        match input {
-            Ok('r') | Ok('R') => {
-                println!("Reload");
-                break;
-            },
-            Ok(c) => println!("Other char: {}", c),
-            Err(err) => {
-                warn!("{}", err);
-                break;
-            },
+fn listen_char() -> Result<Option<Interactive>> {
+    let mut rl = Editor::<()>::new()?;
+
+    let mut command: Option<InteractiveCommand> = None;
+    InteractiveCommandEventHandler::listen(rl, KeyEvent::new('r', Modifiers::NONE), || {
+        command = Some(InteractiveCommand::Reload);
+        Some(Cmd::AcceptLine)
+    });
+    InteractiveCommandEventHandler::listen(rl, KeyEvent(KeyCode::Enter, Modifiers::NONE), || {
+        Some(Cmd::Newline)
+    });
+    InteractiveCommandEventHandler::listen(rl, KeyEvent::ctrl('c'), || Some(Cmd::Interrupt));
+    rl.readline("").map_err(Error::from)?;
+    Ok(command)
+}
+
+#[derive(Debug)]
+struct InteractiveCommandEventHandler<F>
+where
+    F: FnMut() -> Option<Cmd>,
+{
+    event: KeyEvent,
+    listener: F,
+}
+impl<F> InteractiveCommandEventHandler<F>
+where
+    F: FnMut() -> Option<Cmd>,
+{
+    pub fn listen(mut editor: Editor<()>, event: KeyEvent, listener: fn() -> Option<Cmd>) {
+        let normalized_event = KeyEvent::normalize(event);
+        editor.bind_sequence(
+            normalized_event.clone(),
+            EventHandler::Conditional(Box::new(InteractiveCommandEventHandler {
+                event: normalized_event,
+                listener,
+            })),
+        );
+    }
+}
+
+impl<F> ConditionalEventHandler for InteractiveCommandEventHandler<F>
+where
+    F: FnMut() -> Option<Cmd>,
+{
+    fn handle(&self, evt: &Event, _: RepeatCount, _: bool, _: &EventContext) -> Option<Cmd> {
+        debug!("InteractiveCommandEventHandler: {:?}", evt);
+        if let Some(k) = evt.get(0) {
+            let key = KeyEvent::normalize(*k);
+            debug!("InteractiveCommandEventHandler: {:?}", key);
+            if key == self.event {
+                return (self.listener)();
+            }
+        } else {
+            warn!("InteractiveCommandEventHandler without key");
         }
+        Some(Cmd::Insert(0, "".into()))
     }
 }
 
@@ -181,7 +227,7 @@ pub struct InteractiveContext {
 }
 
 /// The Lenra interactive command line interface
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Clone)]
 #[clap(rename_all = "kebab-case")]
 pub struct Interactive {
     #[clap(subcommand)]

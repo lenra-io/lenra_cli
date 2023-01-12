@@ -2,7 +2,6 @@ use std::process::Stdio;
 
 use async_trait::async_trait;
 pub use clap::Args;
-use console::Term;
 use log::warn;
 
 use crate::cli::CliCommand;
@@ -52,7 +51,8 @@ impl CliCommand for Logs {
         let mut command = create_compose_command();
 
         command
-            .stdout(Stdio::from(Term::stdout()))
+            // .stdout(Stdio::piped())
+            .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
             .arg("logs")
             .arg("--tail")
@@ -82,7 +82,6 @@ impl CliCommand for Logs {
 
         log::debug!("cmd: {:?}", command);
         let output = command.spawn()?.wait_with_output().await?;
-
         if !output.status.success() {
             warn!(
                 "An error occured while displaying the docker-compose logs:\n{}\n{}",
@@ -90,7 +89,7 @@ impl CliCommand for Logs {
                 String::from_utf8(output.stderr).unwrap()
             )
         }
+
         Ok(())
     }
 }
-
