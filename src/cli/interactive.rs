@@ -1,14 +1,16 @@
-use std::fs;
+use std::{
+    fs,
+    sync::{Arc, Mutex},
+};
 
+use crate::keyboard_event::KeyEventListener;
 use chrono::{DateTime, SecondsFormat, Utc};
 pub use clap::{Args, Parser, Subcommand};
 use clap::{CommandFactory, FromArgMatches};
 use dirs::config_dir;
+use lazy_static::__Deref;
 use log::{debug, warn};
-use rustyline::{
-    error::ReadlineError, Cmd, ConditionalEventHandler, Editor, Event, EventContext, EventHandler,
-    KeyCode, KeyEvent, Modifiers, RepeatCount,
-};
+use rustyline::{error::ReadlineError, Cmd, Editor, KeyCode, KeyEvent, Modifiers, Movement};
 use tokio::select;
 
 use crate::{
@@ -43,70 +45,81 @@ pub async fn run_interactive_command(initial_context: &InteractiveContext) -> Re
         follow: true,
         ..Default::default()
     };
-    let mut last_logs = run_logs(&previous_log, None).await?;
+    let mut last_logs = Utc::now();
+    let mut interactive_cmd = Some(InteractiveCommand::Logs(previous_log.clone()));
     let mut context = initial_context.clone();
 
     loop {
-        let readline = rl.readline(READLINE_PROMPT);
-        match readline {
-            Ok(line) => {
-                if line.trim().is_empty() {
-                    continue;
-                }
+        let command = if let Some(cmd) = interactive_cmd {
+            interactive_cmd = match cmd {
+                InteractiveCommand::Reload => Some(InteractiveCommand::Continue),
+                _ => None,
+            };
+            cmd
+        } else {
+            let readline = rl.readline(READLINE_PROMPT);
+            match readline {
+                Ok(line) => {
+                    if line.trim().is_empty() {
+                        continue;
+                    }
 
-                rl.add_history_entry(line.as_str());
+                    rl.add_history_entry(line.as_str());
 
-                let command = parse_command_line(line.clone()).map_err(Error::from);
-                match command {
-                    Ok(interactive) => {
-                        debug!("Run command {:#?}", interactive.command);
-                        match interactive.command {
-                            InteractiveCommand::Continue => {
-                                last_logs = run_logs(&previous_log, Some(last_logs)).await?;
-                            }
-                            InteractiveCommand::Logs(logs) => match logs {
-                                Logs { follow: true, .. } => {
-                                    previous_log = logs.clone();
-                                    last_logs = run_logs(&previous_log, None).await?;
-                                }
-                                _ => {
-                                    logs.run().await?;
-                                }
-                            },
-                            InteractiveCommand::Stop | InteractiveCommand::Exit => break,
-                            cmd => {
-                                let ctx = context.clone();
-                                match cmd.run(&ctx).await {
-                                    Ok(ctx_opt) => {
-                                        if let Some(ctx) = ctx_opt {
-                                            context = ctx.clone();
-                                        }
-                                    }
-                                    Err(error) => eprintln!("{}", error),
-                                }
-                            }
+                    let parse_result = parse_command_line(line.clone()).map_err(Error::from);
+                    match parse_result {
+                        Ok(interactive) => interactive.command,
+                        Err(Error::ParseCommand(clap_error)) => {
+                            clap_error.print().ok();
+                            continue;
+                        }
+                        Err(err) => {
+                            debug!("Parse command error: {}", err);
+                            warn!("not a valid command {}", line);
+                            continue;
                         }
                     }
-                    Err(Error::ParseCommand(clap_error)) => {
-                        clap_error.print().ok();
-                    }
-                    Err(err) => {
-                        debug!("Parse command error: {}", err);
-                        warn!("not a valid command {}", line);
-                    }
+                }
+                Err(ReadlineError::Interrupted) => {
+                    debug!("CTRL-C");
+                    break;
+                }
+                Err(ReadlineError::Eof) => {
+                    debug!("CTRL-D");
+                    break;
+                }
+                Err(err) => {
+                    println!("Error: {:?}", err);
+                    break;
                 }
             }
-            Err(ReadlineError::Interrupted) => {
-                debug!("CTRL-C");
-                break;
+        };
+
+        debug!("Run command {:#?}", command);
+        match command {
+            InteractiveCommand::Continue => {
+                (last_logs, interactive_cmd) = run_logs(&previous_log, Some(last_logs)).await?;
             }
-            Err(ReadlineError::Eof) => {
-                debug!("CTRL-D");
-                break;
-            }
-            Err(err) => {
-                println!("Error: {:?}", err);
-                break;
+            InteractiveCommand::Logs(logs) => match logs {
+                Logs { follow: true, .. } => {
+                    previous_log = logs.clone();
+                    (last_logs, interactive_cmd) = run_logs(&previous_log, None).await?;
+                }
+                _ => {
+                    logs.run().await?;
+                }
+            },
+            InteractiveCommand::Stop | InteractiveCommand::Exit => break,
+            cmd => {
+                let ctx = context.clone();
+                match cmd.run(&ctx).await {
+                    Ok(ctx_opt) => {
+                        if let Some(ctx) = ctx_opt {
+                            context = ctx.clone();
+                        }
+                    }
+                    Err(error) => eprintln!("{}", error),
+                }
             }
         }
     }
@@ -115,7 +128,10 @@ pub async fn run_interactive_command(initial_context: &InteractiveContext) -> Re
     rl.save_history(&history_path).map_err(Error::from)
 }
 
-async fn run_logs(logs: &Logs, last_end: Option<DateTime<Utc>>) -> Result<DateTime<Utc>> {
+async fn run_logs(
+    logs: &Logs,
+    last_end: Option<DateTime<Utc>>,
+) -> Result<(DateTime<Utc>, Option<InteractiveCommand>)> {
     let mut clone = logs.clone();
     if let Some(last_logs) = last_end {
         // Only displays new logs
@@ -124,74 +140,34 @@ async fn run_logs(logs: &Logs, last_end: Option<DateTime<Utc>>) -> Result<DateTi
         // clone.follow = true;
     }
 
-    select! {
-        res = clone.run() => {res?}
-        res = tokio::spawn(async { listen_char()}) => {
-            println!("received char");
-            if let Ok(cmd) = res {
-                println!("Command: {:?}", cmd);
-            }
-        }
-    }
-    Ok(Utc::now())
+    let command = select! {
+        res = listen_char() => {res?}
+        res = clone.run() => {res?; None}
+    };
+    Ok((Utc::now(), command))
 }
 
-fn listen_char() -> Result<Option<Interactive>> {
-    let mut rl = Editor::<()>::new()?;
-
-    let mut command: Option<InteractiveCommand> = None;
-    KeyEventListener::listen(rl, KeyEvent::new('r', Modifiers::NONE), || {
-        command = Some(InteractiveCommand::Reload);
-        Some(Cmd::AcceptLine)
-    });
-    KeyEventListener::listen(rl, ENTER_EVENT, || Some(Cmd::Newline));
-    KeyEventListener::listen(rl, CTRL_C_EVENT, || Some(Cmd::Interrupt));
-    KeyEventListener::listen(rl, ESCAPE_EVENT, || Some(Cmd::Interrupt));
-    rl.readline("").map_err(Error::from)?;
-    Ok(command)
-}
-
-#[derive(Debug)]
-struct KeyEventListener<F>
-where
-    F: FnMut() -> Option<Cmd>,
-{
-    event: KeyEvent,
-    listener: F,
-}
-impl<F> KeyEventListener<F>
-where
-    F: FnMut() -> Option<Cmd>,
-{
-    pub fn listen(mut editor: Editor<()>, event: KeyEvent, listener: fn() -> Option<Cmd>) {
-        let normalized_event = KeyEvent::normalize(event);
-        editor.bind_sequence(
-            normalized_event.clone(),
-            EventHandler::Conditional(Box::new(KeyEventListener {
-                event: normalized_event,
-                listener,
-            })),
-        );
-    }
-}
-
-impl<F> ConditionalEventHandler for KeyEventListener<F>
-where
-    F: FnMut() -> Option<Cmd>,
-{
-    fn handle(&self, evt: &Event, _: RepeatCount, _: bool, _: &EventContext) -> Option<Cmd> {
-        debug!("InteractiveCommandEventHandler: {:?}", evt);
-        if let Some(k) = evt.get(0) {
-            let key = KeyEvent::normalize(*k);
-            debug!("InteractiveCommandEventHandler: {:?}", key);
-            if key == self.event {
-                return (self.listener)();
-            }
-        } else {
-            warn!("InteractiveCommandEventHandler without key");
-        }
-        Some(Cmd::Insert(0, "".into()))
-    }
+async fn listen_char() -> Result<Option<InteractiveCommand>> {
+    let command: Arc<Mutex<Option<InteractiveCommand>>> = Arc::new(Mutex::new(None));
+    let r_command = command.clone();
+    tokio::spawn(async {
+        let rl = Editor::<()>::new()?;
+        rl.listen(KeyEvent::new('r', Modifiers::NONE), move || {
+            let mut c = r_command.lock().unwrap();
+            *c = Some(InteractiveCommand::Reload);
+            Some(Cmd::AcceptLine)
+        })
+        .listen(ENTER_EVENT, || Some(Cmd::Move(Movement::BeginningOfLine)))
+        .listen(CTRL_C_EVENT, || Some(Cmd::Interrupt))
+        .listen(ESCAPE_EVENT, || Some(Cmd::Interrupt))
+        .readline("")
+        .map_err(Error::from)
+    })
+    .await?
+    .ok();
+    let mutex = command.lock().unwrap();
+    let command = mutex.deref();
+    Ok(command.clone())
 }
 
 fn parse_command_line(line: String) -> Result<Interactive, clap::Error> {
