@@ -51,7 +51,6 @@ impl CliCommand for Logs {
         let mut command = create_compose_command();
 
         command
-            // .stdout(Stdio::piped())
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
             .arg("logs")
