@@ -75,8 +75,9 @@ where
 
 impl KeyboardListener {
     pub async fn listen(mut self) -> Result<()> {
-        tokio::spawn(async move { self.editor.readline("").map_err(Error::from) })
-            .await?
+        tokio::task::spawn_blocking(move || self.editor.readline("").map_err(Error::from))
+            .await
+            .map_err(Error::from)?
             .ok();
         Ok(())
     }

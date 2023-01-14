@@ -140,6 +140,7 @@ async fn run_logs(
     let command = select! {
         res = listen_char() => {res?}
         res = clone.run() => {res?; None}
+        // res = tokio::signal::ctrl_c() => {res?; None}
     };
     Ok((Utc::now(), command))
 }
@@ -157,7 +158,7 @@ async fn listen_char() -> Result<Option<InteractiveCommand>> {
         })
         .add_listener(ENTER_EVENT, || {
             println!();
-            Some(Cmd::Replace(Movement::BeginningOfBuffer, Some("".into())))
+            Some(Cmd::Replace(Movement::WholeBuffer, Some("".into())))
         })
         .add_listener(ESCAPE_EVENT, || Some(Cmd::Interrupt));
 

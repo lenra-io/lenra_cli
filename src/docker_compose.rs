@@ -233,8 +233,10 @@ async fn generate_docker_compose_content(
 pub fn create_compose_command() -> process::Command {
     let dockercompose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
     let mut cmd = process::Command::new("docker");
-
-    cmd.arg("compose").arg("-f").arg(dockercompose_path);
+    cmd.kill_on_drop(true)
+        .arg("compose")
+        .arg("-f")
+        .arg(dockercompose_path);
 
     cmd
 }
