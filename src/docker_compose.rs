@@ -2,7 +2,8 @@ use docker_compose_types::{
     AdvancedBuildStep, BuildStep, Command, Compose, DependsCondition, DependsOnOptions, Deploy,
     EnvTypes, Environment, Healthcheck, HealthcheckTest, Limits, Resources, Services,
 };
-use log::warn;
+use lazy_static::lazy_static;
+use log::{debug, warn};
 use std::process::Stdio;
 use std::{convert::TryInto, env, fs, path::PathBuf};
 use tokio::process;
@@ -35,6 +36,10 @@ pub const POSTGRES_PORT: u16 = 5432;
 pub const NON_ROOT_USER: &str = "12000";
 const MEMORY_RESERVATION: &str = "128M";
 const MEMORY_LIMIT: &str = "256M";
+
+lazy_static! {
+    static ref COMPOSE_COMMAND: std::process::Command = get_compose_command();
+}
 
 /// Generates the docker-compose.yml file
 pub async fn generate_docker_compose(
@@ -232,11 +237,8 @@ async fn generate_docker_compose_content(
 
 pub fn create_compose_command() -> process::Command {
     let dockercompose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
-    let mut cmd = process::Command::new("docker");
-    cmd.kill_on_drop(true)
-        .arg("compose")
-        .arg("-f")
-        .arg(dockercompose_path);
+    let mut cmd = process::Command::from(COMPOSE_COMMAND.clone());
+    cmd.arg("-f").arg(dockercompose_path).kill_on_drop(true);
 
     cmd
 }
@@ -392,5 +394,42 @@ impl ServiceImages {
             Service::Postgres => self.postgres.clone(),
             Service::Mongo => self.mongo.clone(),
         }
+    }
+}
+
+fn get_compose_command() -> std::process::Command {
+    match std::process::Command::new("docker-compose")
+        .arg("version")
+        .spawn()
+    {
+        Ok(_) => {
+            debug!("Using 'docker-compose'");
+            std::process::Command::new("docker-compose")
+        }
+        Err(e) => {
+            if std::io::ErrorKind::NotFound != e.kind() {
+                warn!(
+                    "An unexpected error occured while runing 'docker-compose version' {}",
+                    e
+                );
+            }
+            debug!("Using 'docker compose'");
+            let mut cmd = std::process::Command::new("docker-compose");
+            cmd.arg("compose");
+            cmd
+        }
+    }
+    .into()
+}
+
+trait CloneCommand {
+    fn clone(&self) -> Self;
+}
+
+impl CloneCommand for std::process::Command {
+    fn clone(&self) -> Self {
+        let mut new = Self::new(self.get_program());
+        new.args(self.get_args());
+        new
     }
 }
