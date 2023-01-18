@@ -11,6 +11,7 @@ use dirs::config_dir;
 use lazy_static::__Deref;
 use log::{debug, warn};
 use rustyline::{error::ReadlineError, Cmd, Editor, KeyCode, KeyEvent, Modifiers, Movement};
+use strum::IntoEnumIterator;
 use tokio::select;
 
 use crate::{
@@ -20,14 +21,16 @@ use crate::{
     errors::{Error, Result},
 };
 
-use super::{check::Check, logs::Logs, CliCommand};
+use crate::cli::{check::Check, logs::Logs, CliCommand};
+
+use super::interactive::{InteractiveCommand, KeyboardShorcut};
 
 const LENRA_COMMAND: &str = "lenra";
 const READLINE_PROMPT: &str = "[lenra]$ ";
 const ENTER_EVENT: KeyEvent = KeyEvent(KeyCode::Enter, Modifiers::NONE);
-const ESCAPE_EVENT: KeyEvent = KeyEvent(KeyCode::Esc, Modifiers::NONE);
+// const ESCAPE_EVENT: KeyEvent = KeyEvent(KeyCode::Esc, Modifiers::NONE);
 
-pub async fn run_interactive_command(initial_context: &InteractiveContext) -> Result<()> {
+pub async fn run_dev_terminal(initial_context: &DevTermContext, terminal: bool) -> Result<()> {
     let history_path = config_dir()
         .ok_or(Error::Custom("Can't get the user config directory".into()))?
         .join("lenra")
@@ -45,13 +48,18 @@ pub async fn run_interactive_command(initial_context: &InteractiveContext) -> Re
         ..Default::default()
     };
     let mut last_logs = Utc::now();
-    let mut interactive_cmd = Some(InteractiveCommand::Logs(previous_log.clone()));
+    let mut interactive_cmd = if !terminal {
+        InteractiveCommand::Help.run();
+        Some(DevTermCommand::Logs(previous_log.clone()))
+    } else {
+        None
+    };
     let mut context = initial_context.clone();
 
     loop {
         let command = if let Some(cmd) = interactive_cmd {
             interactive_cmd = match cmd {
-                InteractiveCommand::Reload => Some(InteractiveCommand::Continue),
+                DevTermCommand::Reload => Some(DevTermCommand::Continue),
                 _ => None,
             };
             cmd
@@ -67,7 +75,7 @@ pub async fn run_interactive_command(initial_context: &InteractiveContext) -> Re
 
                     let parse_result = parse_command_line(line.clone()).map_err(Error::from);
                     match parse_result {
-                        Ok(interactive) => interactive.command,
+                        Ok(dev_cli) => dev_cli.command,
                         Err(Error::ParseCommand(clap_error)) => {
                             clap_error.print().ok();
                             continue;
@@ -96,10 +104,10 @@ pub async fn run_interactive_command(initial_context: &InteractiveContext) -> Re
 
         debug!("Run command {:#?}", command);
         match command {
-            InteractiveCommand::Continue => {
+            DevTermCommand::Continue => {
                 (last_logs, interactive_cmd) = run_logs(&previous_log, Some(last_logs)).await?;
             }
-            InteractiveCommand::Logs(logs) => match logs {
+            DevTermCommand::Logs(logs) => match logs {
                 Logs { follow: true, .. } => {
                     previous_log = logs.clone();
                     (last_logs, interactive_cmd) = run_logs(&previous_log, None).await?;
@@ -108,7 +116,7 @@ pub async fn run_interactive_command(initial_context: &InteractiveContext) -> Re
                     logs.run().await?;
                 }
             },
-            InteractiveCommand::Stop | InteractiveCommand::Exit => break,
+            DevTermCommand::Stop | DevTermCommand::Exit => break,
             cmd => {
                 let ctx = context.clone();
                 match cmd.run(&ctx).await {
@@ -130,7 +138,7 @@ pub async fn run_interactive_command(initial_context: &InteractiveContext) -> Re
 async fn run_logs(
     logs: &Logs,
     last_end: Option<DateTime<Utc>>,
-) -> Result<(DateTime<Utc>, Option<InteractiveCommand>)> {
+) -> Result<(DateTime<Utc>, Option<DevTermCommand>)> {
     let mut clone = logs.clone();
     if let Some(last_logs) = last_end {
         // Only displays new logs
@@ -145,30 +153,33 @@ async fn run_logs(
     Ok((Utc::now(), command))
 }
 
-async fn listen_char() -> Result<Option<InteractiveCommand>> {
-    let command: Arc<Mutex<Option<InteractiveCommand>>> = Arc::new(Mutex::new(None));
-    let r_command = command.clone();
+async fn listen_char() -> Result<Option<DevTermCommand>> {
+    let command: Arc<Mutex<Option<DevTermCommand>>> = Arc::new(Mutex::new(None));
     let mut listener = KeyboardListener::new()?;
-    listener
-        .add_listener(KeyEvent::new('r', Modifiers::NONE), move || {
-            let mut c = r_command.lock().unwrap();
-            *c = Some(InteractiveCommand::Reload);
-            println!("\nReload (R)");
-            Some(Cmd::AcceptLine)
-        })
-        .add_listener(ENTER_EVENT, || {
-            println!();
-            Some(Cmd::Replace(Movement::WholeBuffer, Some("".into())))
-        })
-        .add_listener(ESCAPE_EVENT, || Some(Cmd::Interrupt));
-
+    InteractiveCommand::iter().for_each(|cmd| {
+        cmd.events().iter().for_each(|&event| {
+            let cmd = cmd.clone();
+            let local_command = command.clone();
+            let f = move || {
+                let mut c = local_command.lock().unwrap();
+                *c = cmd.run();
+                debug!("{}", cmd.name());
+                Some(Cmd::AcceptLine)
+            };
+            listener.add_listener(event, f);
+        });
+    });
+    listener.add_listener(ENTER_EVENT, || {
+        println!();
+        Some(Cmd::Replace(Movement::WholeBuffer, Some("".into())))
+    });
     listener.listen().await?;
     let mutex = command.lock().unwrap();
     let command = mutex.deref();
     Ok(command.clone())
 }
 
-fn parse_command_line(line: String) -> Result<Interactive, clap::Error> {
+fn parse_command_line(line: String) -> Result<DevCli, clap::Error> {
     let args = &mut line.split_whitespace().collect::<Vec<&str>>();
 
     let first_arg = if args.len() > 0 { Some(args[0]) } else { None };
@@ -178,23 +189,23 @@ fn parse_command_line(line: String) -> Result<Interactive, clap::Error> {
             args.rotate_right(1);
         }
     }
-    debug!("Try to parse interactive command: {:?}", args);
+    debug!("Try to parse dev terminal command: {:?}", args);
 
-    let command = <Interactive as CommandFactory>::command();
+    let command = <DevCli as CommandFactory>::command();
     let mut matches = command
         .clone()
         .try_get_matches_from(args.clone())
         .map_err(format_error)?;
-    <Interactive as FromArgMatches>::from_arg_matches_mut(&mut matches).map_err(format_error)
+    <DevCli as FromArgMatches>::from_arg_matches_mut(&mut matches).map_err(format_error)
 }
 
 fn format_error(err: clap::Error) -> clap::Error {
-    let mut command = <Interactive as CommandFactory>::command();
+    let mut command = <DevCli as CommandFactory>::command();
     err.format(&mut command)
 }
 
 #[derive(Clone, Debug)]
-pub struct InteractiveContext {
+pub struct DevTermContext {
     /// The app configuration file.
     pub config: std::path::PathBuf,
 
@@ -205,14 +216,14 @@ pub struct InteractiveContext {
 /// The Lenra interactive command line interface
 #[derive(Parser, Debug, Clone)]
 #[clap(rename_all = "kebab-case")]
-pub struct Interactive {
+pub struct DevCli {
     #[clap(subcommand)]
-    pub command: InteractiveCommand,
+    pub command: DevTermCommand,
 }
 
 /// The interactive commands
 #[derive(Subcommand, Clone, Debug)]
-pub enum InteractiveCommand {
+pub enum DevTermCommand {
     /// Continue the previous logs command since the last displayed logs
     Continue,
     /// View output from the containers
@@ -236,16 +247,16 @@ pub struct Expose {
     pub services: Vec<Service>,
 }
 
-impl InteractiveCommand {
-    async fn run(&self, context: &InteractiveContext) -> Result<Option<InteractiveContext>> {
+impl DevTermCommand {
+    async fn run(&self, context: &DevTermContext) -> Result<Option<DevTermContext>> {
         let conf = load_config_file(&context.config).unwrap();
         match self {
-            InteractiveCommand::Continue => warn!("The continue command should not be run"),
-            InteractiveCommand::Logs(_logs) => warn!("The logs command should not be run"),
-            InteractiveCommand::Stop | InteractiveCommand::Exit => {
+            DevTermCommand::Continue => warn!("The continue command should not be run"),
+            DevTermCommand::Logs(_logs) => warn!("The logs command should not be run"),
+            DevTermCommand::Stop | DevTermCommand::Exit => {
                 warn!("The stop command should not be run")
             }
-            InteractiveCommand::Reload => {
+            DevTermCommand::Reload => {
                 log::debug!("Generates files");
                 conf.generate_files(context.expose.clone()).await?;
 
@@ -262,14 +273,14 @@ impl InteractiveCommand {
                     log::error!("{:?}", error);
                 }
             }
-            InteractiveCommand::Check(check) => {
+            DevTermCommand::Check(check) => {
                 if context.expose.contains(&Service::App) {
                     check.run().await?
                 } else {
                     println!("The check commands can't run if the ports are not exposed. Run the expose command first");
                 }
             }
-            InteractiveCommand::Expose(expose) => {
+            DevTermCommand::Expose(expose) => {
                 conf.generate_files(expose.services.clone()).await?;
 
                 compose_up().await?;

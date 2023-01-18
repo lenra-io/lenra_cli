@@ -1,7 +1,7 @@
 use log::{debug, warn};
 use rustyline::{
     Cmd, ConditionalEventHandler, Editor, Event, EventContext, EventHandler, Helper, KeyEvent,
-    RepeatCount,
+    RepeatCount, Modifiers,
 };
 
 use crate::errors::{Error, Result};
@@ -87,4 +87,42 @@ impl KeyboardListener {
             editor: Editor::new()?,
         })
     }
+}
+
+pub fn keyevent_to_string(event: KeyEvent) -> String{
+    let mut parts = Vec::new();
+    if event.1 & Modifiers::CTRL == Modifiers::CTRL {
+        parts.push("Ctrl".to_string());
+    }
+    if event.1 & Modifiers::ALT == Modifiers::ALT {
+        parts.push("Alt".to_string());
+    }
+    if event.1 & Modifiers::SHIFT == Modifiers::SHIFT {
+        parts.push("Shift".to_string());
+    }
+    parts.push(match event.0 {
+        rustyline::KeyCode::UnknownEscSeq => todo!(),
+        rustyline::KeyCode::Backspace => todo!(),
+        rustyline::KeyCode::BackTab => todo!(),
+        rustyline::KeyCode::BracketedPasteStart => todo!(),
+        rustyline::KeyCode::BracketedPasteEnd => todo!(),
+        rustyline::KeyCode::Char(c) => c.to_string().to_uppercase(),
+        rustyline::KeyCode::Delete => todo!(),
+        rustyline::KeyCode::Down => todo!(),
+        rustyline::KeyCode::End => todo!(),
+        rustyline::KeyCode::Enter => "Enter".to_string(),
+        rustyline::KeyCode::Esc => "Esc".to_string(),
+        rustyline::KeyCode::F(_) => todo!(),
+        rustyline::KeyCode::Home => todo!(),
+        rustyline::KeyCode::Insert => todo!(),
+        rustyline::KeyCode::Left => todo!(),
+        rustyline::KeyCode::Null => todo!(),
+        rustyline::KeyCode::PageDown => todo!(),
+        rustyline::KeyCode::PageUp => todo!(),
+        rustyline::KeyCode::Right => todo!(),
+        rustyline::KeyCode::Tab => todo!(),
+        rustyline::KeyCode::Up => todo!(),
+        _ => todo!(),
+    });
+    parts.join(" + ")
 }

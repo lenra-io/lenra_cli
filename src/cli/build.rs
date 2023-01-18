@@ -19,18 +19,6 @@ pub struct Build {
     pub expose: Vec<Service>,
 }
 
-impl Build {
-    /// Builds a Dockerfile. If None, get's it at the default path: ./.lenra/Dockerfile
-    async fn build_docker_compose(&self) -> Result<()> {
-        log::info!("Build the Docker image");
-
-        compose_build().await?;
-
-        log::info!("Image built");
-        Ok(())
-    }
-}
-
 #[async_trait]
 impl CliCommand for Build {
     async fn run(&self) -> Result<()> {
@@ -39,8 +27,9 @@ impl CliCommand for Build {
 
         conf.generate_files(self.expose.clone()).await?;
 
-        // self.build_docker_image(conf);
-        self.build_docker_compose().await?;
+        log::info!("Build the Docker image");
+        compose_build().await?;
+        log::info!("Image built");
         Ok(())
     }
 }

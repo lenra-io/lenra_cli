@@ -414,7 +414,7 @@ fn get_compose_command() -> std::process::Command {
                 );
             }
             debug!("Using 'docker compose'");
-            let mut cmd = std::process::Command::new("docker-compose");
+            let mut cmd = std::process::Command::new("docker");
             cmd.arg("compose");
             cmd
         }

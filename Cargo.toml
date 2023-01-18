@@ -39,3 +39,4 @@ colored = "2.0.0"
 ureq = { version = "2.6.1", features = ["json"] }
 tokio = { version = "1.24.1", features = ["full"] }
 async-trait = "0.1.61"
+strum = { version = "0.24.1", features = ["strum_macros", "derive"] }
