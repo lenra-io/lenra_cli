@@ -10,8 +10,8 @@ use crate::config::DEFAULT_CONFIG_FILE;
 use crate::docker_compose::Service;
 use crate::errors::Result;
 
-mod terminal;
 mod interactive;
+mod terminal;
 
 #[derive(Args)]
 pub struct Dev {
@@ -49,10 +49,13 @@ impl CliCommand for Dev {
         log::debug!("Run start");
         start.run().await?;
 
-        run_dev_terminal(&DevTermContext {
-            config: self.config.clone(),
-            expose: self.expose.clone(),
-        }, self.terminal)
+        run_dev_terminal(
+            &DevTermContext {
+                config: self.config.clone(),
+                expose: self.expose.clone(),
+            },
+            self.terminal,
+        )
         .await?;
 
         let stop = Stop;

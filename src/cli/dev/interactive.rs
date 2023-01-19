@@ -31,7 +31,9 @@ impl KeyboardShorcut<DevTermCommand> for InteractiveCommand {
     fn about(&self) -> String {
         match self {
             InteractiveCommand::Help => "Print this message".into(),
-            InteractiveCommand::Quit => "Quit the interactive mode and open the Lenra dev terminal".into(),
+            InteractiveCommand::Quit => {
+                "Quit the interactive mode and open the Lenra dev terminal".into()
+            }
             _ => {
                 let main_command = DevCli::command();
                 let command = main_command.find_subcommand(self.name().to_lowercase().as_str());
