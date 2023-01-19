@@ -16,6 +16,7 @@ OPTIONS:
         --config <CONFIG>    The app configuration file [default: lenra.yml]
         --expose <EXPOSE>    Exposes services ports [possible values: app, devtool, postgres, mongo]
     -h, --help               Print help information
+    -t, --terminal           Open the dev terminal instead of starting the interactive mode
 ```
 
 While displaying logs in dev mode, you can run some [interactive commands](dev/interactive.md) by pressing the good keys.

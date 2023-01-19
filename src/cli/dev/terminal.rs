@@ -230,9 +230,9 @@ pub enum DevTermCommand {
     Logs(Logs),
     /// Reload the app by rebuilding and restarting it
     Reload,
-    /// Stop your app previously started with the start command
+    /// Stop your app and the local Lenra environment
     Stop,
-    /// stop alias. Stop your app previously started with the start command
+    /// 'stop' alias
     Exit,
     /// Checks the running app
     Check(Check),

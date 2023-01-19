@@ -19,7 +19,7 @@ pub struct Dev {
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
     pub config: std::path::PathBuf,
 
-    /// Directly use the dev terminal
+    /// Open the dev terminal instead of starting the interactive mode
     #[clap(short, long, action)]
     pub terminal: bool,
 

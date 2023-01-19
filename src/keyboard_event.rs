@@ -1,7 +1,7 @@
 use log::{debug, warn};
 use rustyline::{
-    Cmd, ConditionalEventHandler, Editor, Event, EventContext, EventHandler, Helper, KeyEvent,
-    RepeatCount, Modifiers,
+    Cmd, ConditionalEventHandler, Editor, Event, EventContext, EventHandler, Helper, KeyCode,
+    KeyEvent, Modifiers, RepeatCount,
 };
 
 use crate::errors::{Error, Result};
@@ -89,7 +89,7 @@ impl KeyboardListener {
     }
 }
 
-pub fn keyevent_to_string(event: KeyEvent) -> String{
+pub fn keyevent_to_string(event: KeyEvent) -> String {
     let mut parts = Vec::new();
     if event.1 & Modifiers::CTRL == Modifiers::CTRL {
         parts.push("Ctrl".to_string());
@@ -100,29 +100,28 @@ pub fn keyevent_to_string(event: KeyEvent) -> String{
     if event.1 & Modifiers::SHIFT == Modifiers::SHIFT {
         parts.push("Shift".to_string());
     }
-    parts.push(match event.0 {
-        rustyline::KeyCode::UnknownEscSeq => todo!(),
-        rustyline::KeyCode::Backspace => todo!(),
-        rustyline::KeyCode::BackTab => todo!(),
-        rustyline::KeyCode::BracketedPasteStart => todo!(),
-        rustyline::KeyCode::BracketedPasteEnd => todo!(),
-        rustyline::KeyCode::Char(c) => c.to_string().to_uppercase(),
-        rustyline::KeyCode::Delete => todo!(),
-        rustyline::KeyCode::Down => todo!(),
-        rustyline::KeyCode::End => todo!(),
-        rustyline::KeyCode::Enter => "Enter".to_string(),
-        rustyline::KeyCode::Esc => "Esc".to_string(),
-        rustyline::KeyCode::F(_) => todo!(),
-        rustyline::KeyCode::Home => todo!(),
-        rustyline::KeyCode::Insert => todo!(),
-        rustyline::KeyCode::Left => todo!(),
-        rustyline::KeyCode::Null => todo!(),
-        rustyline::KeyCode::PageDown => todo!(),
-        rustyline::KeyCode::PageUp => todo!(),
-        rustyline::KeyCode::Right => todo!(),
-        rustyline::KeyCode::Tab => todo!(),
-        rustyline::KeyCode::Up => todo!(),
+    parts.push(keycode_to_string(event.0));
+    parts.join("+")
+}
+
+fn keycode_to_string(keycode: KeyCode) -> String {
+    match keycode {
+        KeyCode::Backspace => "⌫".to_string(),
+        KeyCode::Char(c) => c.to_string().to_uppercase(),
+        KeyCode::Delete => "Del".to_string(),
+        KeyCode::Down => "Down".to_string(),
+        KeyCode::End => "End".to_string(),
+        KeyCode::Enter => "Enter".to_string(),
+        KeyCode::Esc => "Esc".to_string(),
+        KeyCode::F(num) => format!("F{}", num),
+        KeyCode::Home => "Home".to_string(),
+        KeyCode::Insert => "Insert".to_string(),
+        KeyCode::Left => "Left".to_string(),
+        KeyCode::PageDown => "Page Down".to_string(),
+        KeyCode::PageUp => "Page Up".to_string(),
+        KeyCode::Right => "Right".to_string(),
+        KeyCode::Tab => "Tab".to_string(),
+        KeyCode::Up => "Up".to_string(),
         _ => todo!(),
-    });
-    parts.join(" + ")
+    }
 }

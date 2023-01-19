@@ -31,7 +31,7 @@ impl KeyboardShorcut<DevTermCommand> for InteractiveCommand {
     fn about(&self) -> String {
         match self {
             InteractiveCommand::Help => "Print this message".into(),
-            InteractiveCommand::Quit => "Quit the logs command".into(),
+            InteractiveCommand::Quit => "Quit the interactive mode and open the Lenra dev terminal".into(),
             _ => {
                 let main_command = DevCli::command();
                 let command = main_command.find_subcommand(self.name().to_lowercase().as_str());
@@ -45,8 +45,6 @@ impl KeyboardShorcut<DevTermCommand> for InteractiveCommand {
             InteractiveCommand::Quit => vec![
                 KeyEvent(KeyCode::Char('q'), Modifiers::NONE),
                 KeyEvent(KeyCode::Char('C'), Modifiers::CTRL),
-                KeyEvent(KeyCode::Esc, Modifiers::NONE),
-                KeyEvent(KeyCode::Char('D'), Modifiers::CTRL),
             ],
             _ => {
                 let name = format!("{}", self);
@@ -77,18 +75,18 @@ fn display_help() {
         let mut shortcuts = Vec::new();
         shortcuts.extend(cmd.events().iter().map(|&e| keyevent_to_string(e)));
         format!(
-            "    {:10} ({}): {:?}",
+            "    {:8}  {:15}  {}",
             cmd.name().color(Color::Green),
-            shortcuts.join(", "),
+            shortcuts.join(", ").color(Color::Blue),
             cmd.about()
         )
     }));
     println!(
-        r#"
-{}
-
-{}"#,
+        "\n{} ({}  {}  {})\n{}\n",
         "SHORTCUTS:".color(Color::Yellow),
+        "Command".color(Color::Green),
+        "Key(s)".color(Color::Blue),
+        "Description",
         vector.join("\n")
     )
 }
