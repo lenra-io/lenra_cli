@@ -30,10 +30,10 @@ SUBCOMMANDS:
 
 This tools contains many subcommands to help you do what you need.
 
-- [continue](docs/dev-continue.md): continues the previous logs command since the last displayed logs
-- [reload](docs/dev-reload.md): reloads the app by rebuilding and restarting it
-- [stop](docs/stop.md): stops your app previously started with the start command
-- [exit](docs/stop.md): `stop` alias
-- [expose](docs/dev-expose.md): exposes the app ports
-- [logs](docs/logs.md): displays output from the containers
-- [check](docs/check.md): checks the running app
+- [continue](./continue.md): continues the previous logs command since the last displayed logs
+- [reload](./reload.md): reloads the app by rebuilding and restarting it
+- [stop](../stop.md): stops your app previously started with the start command
+- [exit](../stop.md): `stop` alias
+- [expose](./expose.md): exposes the app ports
+- [logs](../logs.md): displays output from the containers
+- [check](../check.md): checks the running app
