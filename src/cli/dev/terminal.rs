@@ -1,17 +1,12 @@
-use std::{
-    fs,
-    sync::{Arc, Mutex},
-};
+use std::fs;
 
-use crate::keyboard_event::{KeyEventListener, KeyboardListener};
+use crate::cli::dev::interactive::listen_interactive_command;
 use chrono::{DateTime, SecondsFormat, Utc};
 pub use clap::{Args, Parser, Subcommand};
 use clap::{CommandFactory, FromArgMatches};
 use dirs::config_dir;
-use lazy_static::__Deref;
 use log::{debug, warn};
-use rustyline::{error::ReadlineError, Cmd, Editor, KeyCode, KeyEvent, Modifiers, Movement};
-use strum::IntoEnumIterator;
+use rustyline::{error::ReadlineError, Editor};
 use tokio::select;
 
 use crate::{
@@ -27,7 +22,6 @@ use super::interactive::{InteractiveCommand, KeyboardShorcut};
 
 const LENRA_COMMAND: &str = "lenra";
 const READLINE_PROMPT: &str = "[lenra]$ ";
-const ENTER_EVENT: KeyEvent = KeyEvent(KeyCode::Enter, Modifiers::NONE);
 // const ESCAPE_EVENT: KeyEvent = KeyEvent(KeyCode::Esc, Modifiers::NONE);
 
 pub async fn run_dev_terminal(initial_context: &DevTermContext, terminal: bool) -> Result<()> {
@@ -146,37 +140,11 @@ async fn run_logs(
     }
 
     let command = select! {
-        res = listen_char() => {res?}
+        res = listen_interactive_command() => {res?}
         res = clone.run() => {res?; None}
         // res = tokio::signal::ctrl_c() => {res?; None}
     };
     Ok((Utc::now(), command))
-}
-
-async fn listen_char() -> Result<Option<DevTermCommand>> {
-    let command: Arc<Mutex<Option<DevTermCommand>>> = Arc::new(Mutex::new(None));
-    let mut listener = KeyboardListener::new()?;
-    InteractiveCommand::iter().for_each(|cmd| {
-        cmd.events().iter().for_each(|&event| {
-            let cmd = cmd.clone();
-            let local_command = command.clone();
-            let f = move || {
-                let mut c = local_command.lock().unwrap();
-                *c = cmd.run();
-                debug!("{}", cmd.name());
-                Some(Cmd::AcceptLine)
-            };
-            listener.add_listener(event, f);
-        });
-    });
-    listener.add_listener(ENTER_EVENT, || {
-        println!();
-        Some(Cmd::Replace(Movement::WholeBuffer, Some("".into())))
-    });
-    listener.listen().await?;
-    let mutex = command.lock().unwrap();
-    let command = mutex.deref();
-    Ok(command.clone())
 }
 
 fn parse_command_line(line: String) -> Result<DevCli, clap::Error> {

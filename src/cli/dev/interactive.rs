@@ -1,11 +1,18 @@
+use super::terminal::{DevCli, DevTermCommand};
+use crate::{
+    errors::Result,
+    keyboard_event::{keyevent_to_string, KeyEventListener, KeyboardListener},
+};
 use clap::CommandFactory;
+pub use clap::{Args, Parser, Subcommand};
 use colored::{Color, Colorize};
-use rustyline::{KeyCode, KeyEvent, Modifiers};
+use lazy_static::__Deref;
+use log::debug;
+use rustyline::{Cmd, KeyCode, KeyEvent, Modifiers, Movement};
+use std::sync::{Arc, Mutex};
 use strum::{Display, EnumIter, IntoEnumIterator};
 
-use crate::keyboard_event::keyevent_to_string;
-
-use super::terminal::{DevCli, DevTermCommand};
+const ENTER_EVENT: KeyEvent = KeyEvent(KeyCode::Enter, Modifiers::NONE);
 
 pub trait KeyboardShorcut<T> {
     fn about(&self) -> String;
@@ -69,6 +76,32 @@ impl KeyboardShorcut<DevTermCommand> for InteractiveCommand {
             InteractiveCommand::Stop => Some(DevTermCommand::Stop),
         }
     }
+}
+
+pub async fn listen_interactive_command() -> Result<Option<DevTermCommand>> {
+    let command: Arc<Mutex<Option<DevTermCommand>>> = Arc::new(Mutex::new(None));
+    let mut listener = KeyboardListener::new()?;
+    InteractiveCommand::iter().for_each(|cmd| {
+        cmd.events().iter().for_each(|&event| {
+            let cmd = cmd.clone();
+            let local_command = command.clone();
+            let f = move || {
+                let mut c = local_command.lock().unwrap();
+                *c = cmd.run();
+                debug!("{}", cmd.name());
+                Some(Cmd::AcceptLine)
+            };
+            listener.add_listener(event, f);
+        });
+    });
+    listener.add_listener(ENTER_EVENT, || {
+        println!();
+        Some(Cmd::Replace(Movement::WholeBuffer, Some("".into())))
+    });
+    listener.listen().await?;
+    let mutex = command.lock().unwrap();
+    let command = mutex.deref();
+    Ok(command.clone())
 }
 
 fn display_help() {
