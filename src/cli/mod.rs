@@ -12,7 +12,6 @@ mod build;
 mod check;
 mod dev;
 mod init;
-mod interactive;
 mod logs;
 mod new;
 mod start;

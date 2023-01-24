@@ -214,7 +214,7 @@ impl Application {
             ));
         }
 
-        envs.insert("exec_timeout".to_string(), "0".to_string());
+        // envs.insert("exec_timeout".to_string(), "0".to_string());
 
         if let Some(cmd) = image.cmd {
             envs.insert("fprocess".to_string(), cmd.join(" "));
@@ -286,7 +286,7 @@ mod dofigen_of_overlay_tests {
             image: String::from("my-dockerimage"),
             envs: Some(
                 [
-                    ("exec_timeout".to_string(), "0".to_string()),
+                    // ("exec_timeout".to_string(), "0".to_string()),
                     ("fprocess".to_string(), "/app/my-app".to_string()),
                 ]
                 .into(),

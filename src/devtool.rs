@@ -1,9 +1,12 @@
+use log::debug;
+
 use crate::{
     docker_compose::{execute_compose_service_command, DEVTOOL_SERVICE_NAME},
     errors::Result,
 };
 
 pub async fn stop_app_env() -> Result<()> {
+    debug!("Stop app environment");
     execute_compose_service_command(
         DEVTOOL_SERVICE_NAME,
         &[
@@ -13,5 +16,6 @@ pub async fn stop_app_env() -> Result<()> {
         ],
     )
     .await?;
+    debug!("App environment stopped");
     Ok(())
 }
