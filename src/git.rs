@@ -5,6 +5,7 @@ use crate::errors::{CommandError, Error, Result};
 pub async fn get_current_branch() -> Result<String> {
     let mut command = Command::new("git");
     let output = command
+        .kill_on_drop(true)
         .arg("rev-parse")
         .arg("--abbrev-ref")
         .arg("HEAD")

@@ -14,6 +14,7 @@ mod docker;
 mod docker_compose;
 mod errors;
 mod git;
+mod keyboard_event;
 mod matching;
 
 #[tokio::main]

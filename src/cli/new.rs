@@ -56,6 +56,7 @@ impl CliCommand for New {
             self.path.display()
         );
         Command::new("git")
+            .kill_on_drop(true)
             .arg("clone")
             .arg("--single-branch")
             .arg("--depth")
@@ -72,6 +73,7 @@ impl CliCommand for New {
 
         log::debug!("init git project");
         Command::new("git")
+            .kill_on_drop(true)
             .current_dir(self.path.as_os_str())
             .arg("init")
             .spawn()?
@@ -79,6 +81,7 @@ impl CliCommand for New {
             .await
             .map_err(Error::from)?;
         Command::new("git")
+            .kill_on_drop(true)
             .current_dir(self.path.as_os_str())
             .arg("add")
             .arg(".")
@@ -87,6 +90,7 @@ impl CliCommand for New {
             .await
             .map_err(Error::from)?;
         Command::new("git")
+            .kill_on_drop(true)
             .current_dir(self.path.as_os_str())
             .arg("commit")
             .arg("-m")
