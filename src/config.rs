@@ -197,8 +197,14 @@ impl Application {
             HashMap::new()
         };
 
-        // http mode
+        let mut healthcheck = None;
+        // http mode (not if empty)
         if let Some(ports) = image.ports {
+            if ports.len() > 1 {
+                return Err(Error::Custom(
+                    "More than one port has been defined in the Dofigen descriptor".into(),
+                ));
+            }
             if ports.len() == 1 {
                 envs.insert("mode".to_string(), "http".to_string());
                 envs.insert(
@@ -206,20 +212,16 @@ impl Application {
                     format!("http://127.0.0.1:{}", ports[0]),
                 );
                 envs.insert("suppress_lock".to_string(), "true".to_string());
-            } else if ports.len() > 1 {
-                return Err(Error::Custom(
-                    "More than one port has been defined in the Dofigen descriptor".into(),
-                ));
-            }
-        };
 
-        // handle healthcheck
-        let healthcheck = Healthcheck {
-            cmd: "curl --fail http://localhost:8080/_/health".into(),
-            start: Some("3s".into()),
-            interval: Some("3s".into()),
-            timeout: Some("1s".into()),
-            retries: Some(10),
+                // handle healthcheck
+                healthcheck = Some(Healthcheck {
+                    cmd: "curl --fail http://localhost:8080/_/health".into(),
+                    start: Some("3s".into()),
+                    interval: Some("3s".into()),
+                    timeout: Some("1s".into()),
+                    retries: Some(10),
+                });
+            }
         };
 
         // prevent custom entrypoint
@@ -253,7 +255,7 @@ impl Application {
             root: image.root,
             script: image.script,
             caches: image.caches,
-            healthcheck: Some(healthcheck),
+            healthcheck: healthcheck,
             ignores: image.ignores,
         })
     }
