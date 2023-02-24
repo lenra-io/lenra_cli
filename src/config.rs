@@ -2,6 +2,7 @@ use std::{collections::HashMap, fs, path::PathBuf};
 
 use dofigen_lib::{
     self, from_file_path, generate_dockerfile, generate_dockerignore, Artifact, Builder,
+    Healthcheck,
 };
 use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
@@ -171,6 +172,7 @@ impl Application {
         } else {
             Vec::new()
         };
+        // add of-watchdog builder
         builders.push(Builder {
             name: Some(String::from(OF_WATCHDOG_BUILDER)),
             image: format!("{}:{}", OF_WATCHDOG_IMAGE, OF_WATCHDOG_VERSION),
@@ -182,6 +184,7 @@ impl Application {
         } else {
             Vec::new()
         };
+        // get of-watchdog artifact
         artifacts.push(Artifact {
             builder: OF_WATCHDOG_BUILDER.to_string(),
             source: "/fwatchdog".to_string(),
@@ -194,20 +197,34 @@ impl Application {
             HashMap::new()
         };
 
+        let mut healthcheck = None;
+        // http mode (not if empty)
         if let Some(ports) = image.ports {
+            if ports.len() > 1 {
+                return Err(Error::Custom(
+                    "More than one port has been defined in the Dofigen descriptor".into(),
+                ));
+            }
             if ports.len() == 1 {
                 envs.insert("mode".to_string(), "http".to_string());
                 envs.insert(
                     "upstream_url".to_string(),
                     format!("http://127.0.0.1:{}", ports[0]),
                 );
-            } else if ports.len() > 1 {
-                return Err(Error::Custom(
-                    "More than one port has been defined in the Dofigen descriptor".into(),
-                ));
+                envs.insert("suppress_lock".to_string(), "true".to_string());
+
+                // handle healthcheck
+                healthcheck = Some(Healthcheck {
+                    cmd: "curl --fail http://localhost:8080/_/health".into(),
+                    start: Some("3s".into()),
+                    interval: Some("3s".into()),
+                    timeout: Some("1s".into()),
+                    retries: Some(10),
+                });
             }
         };
 
+        // prevent custom entrypoint
         if image.entrypoint.is_some() {
             return Err(Error::Custom(
                 "The Dofigen descriptor can't have entrypoint defined. Use cmd instead".into(),
@@ -238,7 +255,7 @@ impl Application {
             root: image.root,
             script: image.script,
             caches: image.caches,
-            healthcheck: image.healthcheck,
+            healthcheck: healthcheck,
             ignores: image.ignores,
         })
     }
