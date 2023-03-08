@@ -607,6 +607,7 @@ dependencies = [
  "env_logger",
  "lazy_static",
  "log",
+ "mocktopus",
  "open",
  "regex",
  "rustyline",
@@ -684,6 +685,26 @@ dependencies = [
  "log",
  "wasi 0.11.0+wasi-snapshot-preview1",
  "windows-sys",
+]
+
+[[package]]
+name = "mocktopus"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1e4f0d5a1621fea252541cf67533c4b9c32ee892d790768f4ad48f1063059537"
+dependencies = [
+ "mocktopus_macros",
+]
+
+[[package]]
+name = "mocktopus_macros"
+version = "0.7.11"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3048ef3680533a27f9f8e7d6a0bce44dc61e4895ea0f42709337fa1c8616fefe"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]

@@ -60,6 +60,12 @@ Then use the next command to install the Lenra's cli:
 cargo install lenra_cli
 ```
 
+Since the CLI is not released yet, you have to target a [pre-release version](https://github.com/lenra-io/lenra_cli/releases) like that:
+
+```bash
+cargo install lenra_cli@v1.0.0-beta.24
+```
+
 #### Build it from sources
 
 First install Cargo, the Rust package manager: https://doc.rust-lang.org/cargo/getting-started/installation.html
@@ -137,10 +143,10 @@ generator:
 
 The configuration is the main element of the file:
 
-| Field            | Type             | Description                   |
-|------------------|------------------|-------------------------------|
-| `componentsApi`  | String           | The components API version    |
-| `generator`      | [Generator](#generator)  The generator configuration |
+| Field           | Type                                                 | Description                |
+| --------------- | ---------------------------------------------------- | -------------------------- |
+| `componentsApi` | String                                               | The components API version |
+| `generator`     | [Generator](#generator)  The generator configuration |
 
 ### Generator
 
@@ -170,6 +176,16 @@ Contributions are what make the open source community such an amazing place to l
 
 If you have a suggestion that would make this better, please open an issue with the tag "enhancement" or "bug".
 Don't forget to give the project a star! Thanks again!
+
+### Run tests
+
+In order to have more advanced unit tests, we use [Mocktopus](https://github.com/CodeSandwich/Mocktopus) that is based on the nightly Rust toolchain.
+To run them you have to install the toolchain and run them with it:
+
+```bash
+rustup install nightly
+cargo +nightly test
+```
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
