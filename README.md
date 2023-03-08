@@ -143,10 +143,10 @@ generator:
 
 The configuration is the main element of the file:
 
-| Field           | Type                                                 | Description                |
-| --------------- | ---------------------------------------------------- | -------------------------- |
-| `componentsApi` | String                                               | The components API version |
-| `generator`     | [Generator](#generator)  The generator configuration |
+| Field           | Type                    | Description                 |
+| --------------- | ----------------------- | --------------------------- |
+| `componentsApi` | String                  | The components API version  |
+| `generator`     | [Generator](#generator) | The generator configuration |
 
 ### Generator
 
