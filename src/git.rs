@@ -1,7 +1,10 @@
+use crate::errors::{CommandError, Error, Result};
 use tokio::process::Command;
 
-use crate::errors::{CommandError, Error, Result};
+#[cfg(test)]
+use mocktopus::macros::mockable;
 
+#[cfg_attr(test, mockable)]
 pub async fn get_current_branch() -> Result<String> {
     let mut command = Command::new("git");
     let output = command

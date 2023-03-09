@@ -17,6 +17,7 @@ mod git;
 mod keyboard_event;
 mod matching;
 
+// #![cfg_attr(test, feature(proc_macro_hygiene))]
 #[tokio::main]
 async fn main() -> Result<()> {
     env_logger::init();
