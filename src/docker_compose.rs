@@ -9,6 +9,7 @@ use std::{convert::TryInto, env, fs, path::PathBuf};
 use tokio::process;
 
 use crate::config::Image;
+use crate::docker::normalize_tag;
 use crate::errors::Error;
 use crate::{
     config::{Dev, DOCKERCOMPOSE_DEFAULT_PATH},
@@ -323,10 +324,10 @@ pub async fn get_services_images(dev_conf: &Option<Dev>) -> ServiceImages {
         APP_BASE_IMAGE,
         current_dir_name().unwrap_or(APP_DEFAULT_IMAGE.to_string())
     );
-    let default_app_tag = get_current_branch()
-        .await
-        .ok()
-        .unwrap_or(APP_DEFAULT_IMAGE_TAG.to_string());
+    let default_app_tag = match get_current_branch().await {
+        Ok(branch_name) => normalize_tag(branch_name),
+        _ => APP_DEFAULT_IMAGE_TAG.to_string(),
+    };
 
     let dev = dev_conf.clone().unwrap_or(Dev {
         ..Default::default()
@@ -431,5 +432,99 @@ impl CloneCommand for std::process::Command {
         let mut new = Self::new(self.get_program());
         new.args(self.get_args());
         new
+    }
+}
+
+#[cfg(test)]
+mod test_get_services_images {
+    use std::{
+        collections::hash_map::DefaultHasher,
+        hash::{Hash, Hasher},
+    };
+
+    use crate::git;
+
+    use super::*;
+    use mocktopus::mocking::*;
+    use regex::Regex;
+
+    #[tokio::test]
+    async fn basic() {
+        let app_tag = "test";
+        let images: ServiceImages = get_services_images(&Some(Dev {
+            app: Some(Image {
+                image: None,
+                tag: Some(app_tag.into()),
+            }),
+            ..Default::default()
+        }))
+        .await;
+        assert_eq!(
+            images.get(&Service::App),
+            format!("lenra/app/lenra_cli:{}", app_tag)
+        );
+        assert_eq!(
+            images.get(&Service::Devtool),
+            format!("{}:{}", DEVTOOL_IMAGE, DEVTOOL_DEFAULT_TAG)
+        );
+        assert_eq!(
+            images.get(&Service::Postgres),
+            format!("{}:{}", POSTGRES_IMAGE, POSTGRES_IMAGE_TAG)
+        );
+        assert_eq!(
+            images.get(&Service::Mongo),
+            format!("{}:{}", MONGO_IMAGE, MONGO_IMAGE_TAG)
+        );
+    }
+
+    #[tokio::test]
+    async fn branch_name() {
+        git::get_current_branch
+            .mock_safe(|| MockResult::Return(Box::pin(async move { Ok("test".to_string()) })));
+        let images: ServiceImages = get_services_images(&None).await;
+        assert_eq!(
+            images.get(&Service::App),
+            "lenra/app/lenra_cli:test".to_string()
+        );
+    }
+
+    #[tokio::test]
+    async fn path_branch_name() {
+        git::get_current_branch.mock_safe(|| {
+            MockResult::Return(Box::pin(async move {
+                Ok("prefixed/branch-name_withUnderscore".to_string())
+            }))
+        });
+        let images: ServiceImages = get_services_images(&None).await;
+        assert_eq!(
+            images.get(&Service::App),
+            "lenra/app/lenra_cli:prefixed-branch-name_withUnderscore".to_string()
+        );
+    }
+
+    #[tokio::test]
+    async fn long_branch_name() {
+        let branch_name =
+            "prefixed/branch-name/with_many-many.many_many-many-many/underscore".to_string();
+        let re = Regex::new(r"[^A-Za-z0-9._-]").unwrap();
+        let tag = re.replace_all(branch_name.as_str(), "-").to_string();
+        let mut hacher = DefaultHasher::new();
+        tag.hash(&mut hacher);
+        let hash = format!("{:X}", hacher.finish());
+        let tag = format!(
+            "{}{}",
+            tag.chars().take(63 - hash.len()).collect::<String>(),
+            hash
+        );
+
+        git::get_current_branch.mock_safe(move || {
+            let branch = branch_name.clone();
+            MockResult::Return(Box::pin(async move { Ok(branch) }))
+        });
+        let images: ServiceImages = get_services_images(&None).await;
+        assert_eq!(
+            images.get(&Service::App),
+            format!("lenra/app/lenra_cli:{}", tag)
+        );
     }
 }
