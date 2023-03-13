@@ -4,8 +4,8 @@ pub use clap::{Args, Parser, Subcommand};
 use crate::errors::Result;
 
 use self::{
-    build::Build, check::Check, dev::Dev, logs::Logs, new::New, start::Start,
-    stop::Stop, update::Update,
+    build::Build, check::Check, dev::Dev, logs::Logs, new::New, start::Start, stop::Stop,
+    update::Update,
 };
 
 mod build;

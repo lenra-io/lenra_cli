@@ -28,7 +28,8 @@ impl CliCommand for Build {
         let conf = load_config_file(&self.config)?;
         // TODO: check the components API version
 
-        conf.generate_files(self.expose.clone(), !self.production).await?;
+        conf.generate_files(self.expose.clone(), !self.production)
+            .await?;
 
         log::info!("Build the Docker image");
         compose_build().await?;

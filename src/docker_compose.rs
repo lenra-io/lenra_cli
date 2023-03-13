@@ -47,7 +47,7 @@ pub async fn generate_docker_compose(
     dockerfile: PathBuf,
     dev_conf: &Option<Dev>,
     exposed_services: Vec<Service>,
-    debug: bool
+    debug: bool,
 ) -> Result<()> {
     let compose_content =
         generate_docker_compose_content(dockerfile, dev_conf, exposed_services, debug).await?;
@@ -60,7 +60,7 @@ async fn generate_docker_compose_content(
     dockerfile: PathBuf,
     dev_conf: &Option<Dev>,
     exposed_services: Vec<Service>,
-    debug: bool
+    debug: bool,
 ) -> Result<String> {
     let mut devtool_env_vec: Vec<(String, Option<EnvTypes>)> = vec![
         (
@@ -119,7 +119,7 @@ async fn generate_docker_compose_content(
 
     let service_images = get_services_images(dev_conf).await;
     let mut app_ports = vec![];
-    if exposed_services.contains(&Service::App) { 
+    if exposed_services.contains(&Service::App) {
         app_ports.push(format!("{}:{}", OF_WATCHDOG_PORT, OF_WATCHDOG_PORT));
     }
     if debug {

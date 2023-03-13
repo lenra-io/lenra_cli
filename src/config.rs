@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, path::PathBuf, fmt::Debug};
+use std::{collections::HashMap, fmt::Debug, fs, path::PathBuf};
 
 use dofigen_lib::{
     self, from_file_path, generate_dockerfile, generate_dockerignore, Artifact, Builder,
@@ -61,7 +61,7 @@ pub struct Dev {
     pub devtool: Option<Image>,
     pub postgres: Option<Image>,
     pub mongo: Option<Image>,
-    pub dofigen: Option<DebugDofigen>
+    pub dofigen: Option<DebugDofigen>,
 }
 
 /** A Docker image */
@@ -118,7 +118,8 @@ impl Application {
     /// Generates all the files needed to build and run the application
     pub async fn generate_files(&self, exposed_services: Vec<Service>, debug: bool) -> Result<()> {
         self.generate_docker_files(debug)?;
-        self.generate_docker_compose_file(exposed_services, debug).await?;
+        self.generate_docker_compose_file(exposed_services, debug)
+            .await?;
         Ok(())
     }
 
@@ -130,9 +131,10 @@ impl Application {
         match &self.generator {
             // If args '--prod' is passed then not debug
             Generator::Dofigen(dofigen) => self.build_dofigen(dofigen.dofigen.clone(), debug),
-            Generator::DofigenFile(dofigen_file) => {
-                self.build_dofigen(from_file_path(&dofigen_file.dofigen).map_err(Error::from)?, debug)
-            }
+            Generator::DofigenFile(dofigen_file) => self.build_dofigen(
+                from_file_path(&dofigen_file.dofigen).map_err(Error::from)?,
+                debug,
+            ),
             Generator::DofigenError { dofigen: _ } => Err(Error::Custom(
                 "Your Dofigen configuration is not correct".into(),
             )),
@@ -144,7 +146,11 @@ impl Application {
         }
     }
 
-    pub async fn generate_docker_compose_file(&self, exposed_services: Vec<Service>, debug: bool) -> Result<()> {
+    pub async fn generate_docker_compose_file(
+        &self,
+        exposed_services: Vec<Service>,
+        debug: bool,
+    ) -> Result<()> {
         log::info!("Docker Compose file generation");
         // create the `.lenra` cache directory
         fs::create_dir_all(LENRA_CACHE_DIRECTORY).map_err(Error::from)?;
@@ -165,7 +171,7 @@ impl Application {
     fn build_dofigen(&self, image: dofigen_lib::Image, debug: bool) -> Result<()> {
         // Generate the Dofigen config with OpenFaaS overlay to handle the of-watchdog
         let overlay = self.dofigen_of_overlay(image)?;
-        
+
         // when debug add cmd and ports to the Dofigen descriptor
         let overlay = if debug {
             self.dofigen_debug_overlay(overlay)?
@@ -190,7 +196,14 @@ impl Application {
                     debug_overlay.envs = Some(envs);
                 }
                 if let Some(ports) = &dofigen.ports {
-                    debug_overlay.ports = Some(debug_overlay.ports.unwrap().into_iter().chain(ports.into_iter().map(|&value|value)).collect())
+                    debug_overlay.ports = Some(
+                        debug_overlay
+                            .ports
+                            .unwrap()
+                            .into_iter()
+                            .chain(ports.into_iter().map(|&value| value))
+                            .collect(),
+                    )
                 }
             }
         }
