@@ -18,6 +18,7 @@ pub struct Build {
     #[clap(long, value_enum, default_values = &[], default_missing_values = &["app", "postgres", "mongo"])]
     pub expose: Vec<Service>,
 
+    /// Remove debug access to the app.
     #[clap(long, alias = "prod", action)]
     pub production: bool,
 }
