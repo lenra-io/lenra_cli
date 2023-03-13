@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{collections::HashMap, fs, path::PathBuf, fmt::Debug};
 
 use dofigen_lib::{
     self, from_file_path, generate_dockerfile, generate_dockerignore, Artifact, Builder,
@@ -61,6 +61,7 @@ pub struct Dev {
     pub devtool: Option<Image>,
     pub postgres: Option<Image>,
     pub mongo: Option<Image>,
+    pub dofigen: Option<DebugDofigen>
 }
 
 /** A Docker image */
@@ -68,6 +69,12 @@ pub struct Dev {
 pub struct Image {
     pub image: Option<String>,
     pub tag: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
+pub struct DebugDofigen {
+    pub cmd: Option<Vec<String>>,
+    pub ports: Option<Vec<u16>>,
 }
 
 /** The application generator configuration */
@@ -121,9 +128,9 @@ impl Application {
         fs::create_dir_all(LENRA_CACHE_DIRECTORY).unwrap();
 
         match &self.generator {
-            Generator::Dofigen(dofigen) => self.build_dofigen(dofigen.dofigen.clone()),
+            Generator::Dofigen(dofigen) => self.build_dofigen(dofigen.dofigen.clone(), true),
             Generator::DofigenFile(dofigen_file) => {
-                self.build_dofigen(from_file_path(&dofigen_file.dofigen).map_err(Error::from)?)
+                self.build_dofigen(from_file_path(&dofigen_file.dofigen).map_err(Error::from)?, true)
             }
             Generator::DofigenError { dofigen: _ } => Err(Error::Custom(
                 "Your Dofigen configuration is not correct".into(),
@@ -154,14 +161,37 @@ impl Application {
     }
 
     /// Builds a Docker image from a Dofigen structure
-    fn build_dofigen(&self, image: dofigen_lib::Image) -> Result<()> {
+    fn build_dofigen(&self, image: dofigen_lib::Image, debug: bool) -> Result<()> {
         // Generate the Dofigen config with OpenFaaS overlay to handle the of-watchdog
-        let of_overlay = self.dofigen_of_overlay(image)?;
+        let overlay = self.dofigen_of_overlay(image)?;
+        
+        // when debug add cmd and ports to the Dofigen descriptor
+        let overlay = if debug {
+            self.dofigen_debug_overlay(overlay)?
+        } else {
+            overlay
+        };
 
         // generate the Dockerfile and .dockerignore files with Dofigen
-        let dockerfile = generate_dockerfile(&of_overlay);
-        let dockerignore = generate_dockerignore(&of_overlay);
+        let dockerfile = generate_dockerfile(&overlay);
+        let dockerignore = generate_dockerignore(&overlay);
         self.save_docker_content(dockerfile, Some(dockerignore))
+    }
+
+    fn dofigen_debug_overlay(&self, image: dofigen_lib::Image) -> Result<dofigen_lib::Image> {
+        log::info!("Adding debug overlay to the Dofigen descriptor");
+        let mut debug_overlay = image;
+        if let Some(dev) = &self.dev {
+            if let Some(dofigen) = &dev.dofigen {
+                if let Some(cmd) = &dofigen.cmd {
+                    debug_overlay.cmd = Some(cmd.clone());
+                }
+                if let Some(ports) = &dofigen.ports {
+                    debug_overlay.ports = Some(debug_overlay.ports.unwrap().into_iter().chain(ports.into_iter().map(|&value|value)).collect())
+                }
+            }
+        }
+        Ok(debug_overlay)
     }
 
     /// Add an overlay to the given Dofigen structure to manage OpenFaaS
