@@ -123,13 +123,9 @@ async fn generate_docker_compose_content(
         app_ports.push(format!("{}:{}", OF_WATCHDOG_PORT, OF_WATCHDOG_PORT));
     }
     if debug {
-        if let Some(conf) = dev_conf {
-            if let Some(dofigen) = &conf.dofigen {
-                if let Some(ports) = &dofigen.ports {
-                    for port in ports {
-                        app_ports.push(format!("{}:{}", port, port));
-                    }
-                }
+        if let Some(ports) = dev_conf?.dofigen?.ports {
+            for port in ports {
+                app_ports.push(format!("{}:{}", port, port));
             }
         }
     }
