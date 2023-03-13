@@ -47,9 +47,10 @@ pub async fn generate_docker_compose(
     dockerfile: PathBuf,
     dev_conf: &Option<Dev>,
     exposed_services: Vec<Service>,
+    debug: bool
 ) -> Result<()> {
     let compose_content =
-        generate_docker_compose_content(dockerfile, dev_conf, exposed_services).await?;
+        generate_docker_compose_content(dockerfile, dev_conf, exposed_services, debug).await?;
     let compose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
     fs::write(compose_path, compose_content).map_err(Error::from)?;
     Ok(())
@@ -59,6 +60,7 @@ async fn generate_docker_compose_content(
     dockerfile: PathBuf,
     dev_conf: &Option<Dev>,
     exposed_services: Vec<Service>,
+    debug: bool
 ) -> Result<String> {
     let mut devtool_env_vec: Vec<(String, Option<EnvTypes>)> = vec![
         (
@@ -116,6 +118,21 @@ async fn generate_docker_compose_content(
     ];
 
     let service_images = get_services_images(dev_conf).await;
+    let mut app_ports = vec![];
+    if exposed_services.contains(&Service::App) { 
+        app_ports.push(format!("{}:{}", OF_WATCHDOG_PORT, OF_WATCHDOG_PORT));
+    }
+    if debug {
+        if let Some(conf) = dev_conf {
+            if let Some(dofigen) = &conf.dofigen {
+                if let Some(ports) = &dofigen.ports {
+                    for port in ports {
+                        app_ports.push(format!("{}:{}", port, port));
+                    }
+                }
+            }
+        }
+    }
 
     let compose = Compose {
         services: Some(Services(
@@ -124,7 +141,7 @@ async fn generate_docker_compose_content(
                     APP_SERVICE_NAME.into(),
                     Some(docker_compose_types::Service {
                         image: Some(service_images.app),
-                        ports: if exposed_services.contains(&Service::App) { Some(vec![format!("{}:{}", OF_WATCHDOG_PORT, OF_WATCHDOG_PORT)])} else {None},
+                        ports: if !app_ports.is_empty() { Some(app_ports)} else {None},
                         build_: Some(BuildStep::Advanced(AdvancedBuildStep {
                             context: "..".into(),
                             dockerfile: Some(dockerfile.to_str().unwrap().into()),

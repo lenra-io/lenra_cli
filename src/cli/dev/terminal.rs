@@ -226,7 +226,7 @@ impl DevTermCommand {
             }
             DevTermCommand::Reload => {
                 log::debug!("Generates files");
-                conf.generate_files(context.expose.clone()).await?;
+                conf.generate_files(context.expose.clone(), true).await?;
 
                 log::debug!("Docker compose build");
                 compose_build().await?;
@@ -249,7 +249,7 @@ impl DevTermCommand {
                 }
             }
             DevTermCommand::Expose(expose) => {
-                conf.generate_files(expose.services.clone()).await?;
+                conf.generate_files(expose.services.clone(), true).await?;
 
                 compose_up().await?;
 

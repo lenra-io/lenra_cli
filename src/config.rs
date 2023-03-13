@@ -116,21 +116,22 @@ pub struct Dockerfile {
 
 impl Application {
     /// Generates all the files needed to build and run the application
-    pub async fn generate_files(&self, exposed_services: Vec<Service>) -> Result<()> {
-        self.generate_docker_files()?;
-        self.generate_docker_compose_file(exposed_services).await?;
+    pub async fn generate_files(&self, exposed_services: Vec<Service>, debug: bool) -> Result<()> {
+        self.generate_docker_files(debug)?;
+        self.generate_docker_compose_file(exposed_services, debug).await?;
         Ok(())
     }
 
-    pub fn generate_docker_files(&self) -> Result<()> {
+    pub fn generate_docker_files(&self, debug: bool) -> Result<()> {
         log::info!("Docker files generation");
         // create the `.lenra` cache directory
         fs::create_dir_all(LENRA_CACHE_DIRECTORY).unwrap();
 
         match &self.generator {
-            Generator::Dofigen(dofigen) => self.build_dofigen(dofigen.dofigen.clone(), true),
+            // If args '--prod' is passed then not debug
+            Generator::Dofigen(dofigen) => self.build_dofigen(dofigen.dofigen.clone(), debug),
             Generator::DofigenFile(dofigen_file) => {
-                self.build_dofigen(from_file_path(&dofigen_file.dofigen).map_err(Error::from)?, true)
+                self.build_dofigen(from_file_path(&dofigen_file.dofigen).map_err(Error::from)?, debug)
             }
             Generator::DofigenError { dofigen: _ } => Err(Error::Custom(
                 "Your Dofigen configuration is not correct".into(),
@@ -143,7 +144,7 @@ impl Application {
         }
     }
 
-    pub async fn generate_docker_compose_file(&self, exposed_services: Vec<Service>) -> Result<()> {
+    pub async fn generate_docker_compose_file(&self, exposed_services: Vec<Service>, debug: bool) -> Result<()> {
         log::info!("Docker Compose file generation");
         // create the `.lenra` cache directory
         fs::create_dir_all(LENRA_CACHE_DIRECTORY).map_err(Error::from)?;
@@ -154,7 +155,7 @@ impl Application {
             DOCKERFILE_DEFAULT_PATH.iter().collect()
         };
 
-        generate_docker_compose(dockerfile, &self.dev, exposed_services)
+        generate_docker_compose(dockerfile, &self.dev, exposed_services, debug)
             .await
             .map_err(Error::from)?;
         Ok(())
@@ -184,7 +185,9 @@ impl Application {
         if let Some(dev) = &self.dev {
             if let Some(dofigen) = &dev.dofigen {
                 if let Some(cmd) = &dofigen.cmd {
-                    debug_overlay.cmd = Some(cmd.clone());
+                    let mut envs = debug_overlay.envs.unwrap();
+                    envs.insert("fprocess".to_string(), cmd.join(" "));
+                    debug_overlay.envs = Some(envs);
                 }
                 if let Some(ports) = &dofigen.ports {
                     debug_overlay.ports = Some(debug_overlay.ports.unwrap().into_iter().chain(ports.into_iter().map(|&value|value)).collect())
