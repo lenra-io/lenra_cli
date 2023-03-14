@@ -211,7 +211,11 @@ impl Application {
     }
 
     /// Add an overlay to the given Dofigen structure to manage OpenFaaS
-    fn dofigen_of_overlay(&self, image: dofigen_lib::Image, debug: bool) -> Result<dofigen_lib::Image> {
+    fn dofigen_of_overlay(
+        &self,
+        image: dofigen_lib::Image,
+        debug: bool,
+    ) -> Result<dofigen_lib::Image> {
         log::info!("Adding OpenFaaS overlay to the Dofigen descriptor");
         let mut builders = if let Some(vec) = image.builders {
             vec
@@ -258,14 +262,14 @@ impl Application {
                     format!("http://127.0.0.1:{}", ports[0]),
                 );
                 envs.insert("suppress_lock".to_string(), "true".to_string());
-                if(debug) {
-                    if (!envs.contains_key("exec_timeout")) {
+                if debug {
+                    if !envs.contains_key("exec_timeout") {
                         envs.insert("exec_timeout".to_string(), "3600".to_string());
                     }
-                    if (!envs.contains_key("read_timeout")) {
+                    if !envs.contains_key("read_timeout") {
                         envs.insert("read_timeout".to_string(), "3600".to_string());
                     }
-                    if (!envs.contains_key("write_timeout")) {
+                    if !envs.contains_key("write_timeout") {
                         envs.insert("write_timeout".to_string(), "3600".to_string());
                     }
                 }
@@ -381,7 +385,10 @@ mod dofigen_of_overlay_tests {
             ..Default::default()
         };
 
-        assert_eq!(config.dofigen_of_overlay(image, false).unwrap(), overlayed_image);
+        assert_eq!(
+            config.dofigen_of_overlay(image, false).unwrap(),
+            overlayed_image
+        );
     }
 
     #[test]
