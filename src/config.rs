@@ -170,7 +170,7 @@ impl Application {
     /// Builds a Docker image from a Dofigen structure
     fn build_dofigen(&self, image: dofigen_lib::Image, debug: bool) -> Result<()> {
         // Generate the Dofigen config with OpenFaaS overlay to handle the of-watchdog
-        let overlay = self.dofigen_of_overlay(image)?;
+        let overlay = self.dofigen_of_overlay(image, debug)?;
 
         // when debug add cmd and ports to the Dofigen descriptor
         let overlay = if debug {
@@ -211,7 +211,7 @@ impl Application {
     }
 
     /// Add an overlay to the given Dofigen structure to manage OpenFaaS
-    fn dofigen_of_overlay(&self, image: dofigen_lib::Image) -> Result<dofigen_lib::Image> {
+    fn dofigen_of_overlay(&self, image: dofigen_lib::Image, debug: bool) -> Result<dofigen_lib::Image> {
         log::info!("Adding OpenFaaS overlay to the Dofigen descriptor");
         let mut builders = if let Some(vec) = image.builders {
             vec
@@ -258,7 +258,17 @@ impl Application {
                     format!("http://127.0.0.1:{}", ports[0]),
                 );
                 envs.insert("suppress_lock".to_string(), "true".to_string());
-
+                if(debug) {
+                    if (!envs.contains_key("exec_timeout")) {
+                        envs.insert("exec_timeout".to_string(), "3600".to_string());
+                    }
+                    if (!envs.contains_key("read_timeout")) {
+                        envs.insert("read_timeout".to_string(), "3600".to_string());
+                    }
+                    if (!envs.contains_key("write_timeout")) {
+                        envs.insert("write_timeout".to_string(), "3600".to_string());
+                    }
+                }
                 // handle healthcheck
                 healthcheck = Some(Healthcheck {
                     cmd: "curl --fail http://localhost:8080/_/health".into(),
@@ -371,7 +381,7 @@ mod dofigen_of_overlay_tests {
             ..Default::default()
         };
 
-        assert_eq!(config.dofigen_of_overlay(image).unwrap(), overlayed_image);
+        assert_eq!(config.dofigen_of_overlay(image, false).unwrap(), overlayed_image);
     }
 
     #[test]
@@ -388,7 +398,7 @@ mod dofigen_of_overlay_tests {
             }),
             ..Default::default()
         };
-        config.dofigen_of_overlay(image).unwrap();
+        config.dofigen_of_overlay(image, false).unwrap();
     }
 }
 
