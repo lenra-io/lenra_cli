@@ -70,35 +70,7 @@ impl CliCommand for New {
 
         log::debug!("remove git directory");
         fs::remove_dir_all(self.path.join(".git")).unwrap();
-
-        log::debug!("init git project");
-        Command::new("git")
-            .kill_on_drop(true)
-            .current_dir(self.path.as_os_str())
-            .arg("init")
-            .spawn()?
-            .wait_with_output()
-            .await
-            .map_err(Error::from)?;
-        Command::new("git")
-            .kill_on_drop(true)
-            .current_dir(self.path.as_os_str())
-            .arg("add")
-            .arg(".")
-            .spawn()?
-            .wait_with_output()
-            .await
-            .map_err(Error::from)?;
-        Command::new("git")
-            .kill_on_drop(true)
-            .current_dir(self.path.as_os_str())
-            .arg("commit")
-            .arg("-m")
-            .arg("Init project")
-            .spawn()?
-            .wait_with_output()
-            .await
-            .map_err(Error::from)?;
+        
         Ok(())
     }
 }
