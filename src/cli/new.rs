@@ -63,7 +63,7 @@ impl CliCommand for New {
             .await
             .map_err(Error::from)?;
 
-        // TODO: create `.template` file to save template repo url and commit
+        // create `.template` file to save template repo url and commit
         let commit = get_current_commit().await?;
         fs::write(
             self.path.join(".template"),
