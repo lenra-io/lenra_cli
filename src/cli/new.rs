@@ -11,6 +11,7 @@ use std::fs;
 use tokio::process::Command;
 
 use crate::cli::CliCommand;
+use crate::config::LENRA_CACHE_DIRECTORY;
 use crate::errors::{Error, Result};
 
 #[derive(Args)]
@@ -22,7 +23,7 @@ pub struct New {
     pub template: String,
 
     /// The project path
-    #[clap(parse(from_os_str))]
+    #[clap(parse(from_os_str), default_value = ".")]
     path: std::path::PathBuf,
 }
 
@@ -34,13 +35,6 @@ lazy_static! {
 #[async_trait]
 impl CliCommand for New {
     async fn run(&self) -> Result<()> {
-        if self.path.exists() {
-            return Err(Error::Custom(format!(
-                "The path '{}' already exists",
-                self.path.display()
-            )));
-        }
-
         let template = if TEMPLATE_SHORT_REGEX.is_match(self.template.as_str()) {
             format!(
                 "https://github.com/lenra-io/template-{}",
@@ -68,9 +62,13 @@ impl CliCommand for New {
             .await
             .map_err(Error::from)?;
 
-        log::debug!("remove git directory");
-        fs::remove_dir_all(self.path.join(".git")).unwrap();
-        
+        // TODO: create `.template` file to save template repo url and commit
+
+        log::debug!("move git directory");
+        // create the `.lenra` cache directory
+        fs::create_dir_all(LENRA_CACHE_DIRECTORY).unwrap();
+        fs::rename(self.path.join(".git"), self.path.join(".lenra").join("template")).unwrap();
+
         Ok(())
     }
 }
