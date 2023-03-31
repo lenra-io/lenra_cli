@@ -13,6 +13,7 @@ use tokio::process::Command;
 use crate::cli::CliCommand;
 use crate::config::LENRA_CACHE_DIRECTORY;
 use crate::errors::{Error, Result};
+use crate::git::get_current_commit;
 
 #[derive(Args)]
 pub struct New {
@@ -55,7 +56,7 @@ impl CliCommand for New {
             .arg("--single-branch")
             .arg("--depth")
             .arg("1")
-            .arg(template)
+            .arg(template.clone())
             .arg(self.path.as_os_str())
             .spawn()?
             .wait_with_output()
@@ -63,11 +64,21 @@ impl CliCommand for New {
             .map_err(Error::from)?;
 
         // TODO: create `.template` file to save template repo url and commit
+        let commit = get_current_commit().await?;
+        fs::write(
+            self.path.join(".template"),
+            format!("{}\n{}", template, commit),
+        )
+        .map_err(Error::from)?;
 
         log::debug!("move git directory");
         // create the `.lenra` cache directory
         fs::create_dir_all(LENRA_CACHE_DIRECTORY).unwrap();
-        fs::rename(self.path.join(".git"), self.path.join(".lenra").join("template")).unwrap();
+        fs::rename(
+            self.path.join(".git"),
+            self.path.join(".lenra").join("template"),
+        )
+        .unwrap();
 
         Ok(())
     }
