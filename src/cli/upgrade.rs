@@ -3,7 +3,6 @@ use std::path::Path;
 use std::process::Stdio;
 
 use async_trait::async_trait;
-use chrono::format::format;
 use clap;
 
 use crate::cli::CliCommand;
