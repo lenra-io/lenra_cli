@@ -36,11 +36,12 @@ pub async fn get_current_commit(git_dir: Option<PathBuf>) -> Result<String> {
 pub async fn fetch(git_dir: Option<PathBuf>) -> Result<()> {
     log::debug!("git fetch {:?}", git_dir);
     let mut cmd = create_git_command();
-    cmd.arg("fetch");
 
     if let Some(dir) = git_dir {
         cmd.arg("--git-dir").arg(dir.as_os_str());
     }
+    
+    cmd.arg("fetch");
 
     cmd.spawn()?.wait_with_output().await.map_err(Error::from)?;
 

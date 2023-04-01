@@ -5,6 +5,8 @@ use std::{
 };
 
 use crate::{
+    command::get_command_output,
+    config::LENRA_CACHE_DIRECTORY,
     errors::{Error, Result},
     git::create_git_command,
 };
@@ -77,6 +79,7 @@ pub async fn clone_template(template: String, target_dir: PathBuf) -> Result<()>
 
 pub async fn get_template_data() -> Result<TemplateData> {
     let template_data_file = Path::new(TEMPLATE_DATA_FILE);
+    let git_dir = Path::new(LENRA_CACHE_DIRECTORY).join(TEMPLATE_GIT_DIR);
     if template_data_file.exists() {
         let template_data = fs::read_to_string(template_data_file).map_err(Error::from)?;
         let template_data: Vec<&str> = template_data.split("\n").collect();
@@ -84,13 +87,38 @@ pub async fn get_template_data() -> Result<TemplateData> {
             template: template_data[0].into(),
             commit: Some(template_data[1].into()),
         })
+    } else if git_dir.exists() {
+        let mut cmd = create_git_command();
+        cmd.arg("--git-dir")
+            .arg(git_dir.as_os_str())
+            .arg("config")
+            .arg("--get")
+            .arg("remote.origin.url");
+        let template = get_command_output(cmd).await?;
+        Ok(TemplateData {
+            template,
+            commit: None,
+        })
     } else {
         let mut rl = Editor::<()>::new()?;
         println!("The '.template' file does not exist.");
         let template = normalize_template(rl.readline("What is the template to use ? ")?);
         Ok(TemplateData {
-            template: template,
+            template,
             commit: None,
         })
     }
+}
+
+pub async fn save_template_data(template_data: TemplateData) -> Result<()> {
+    let template_data_file = Path::new(TEMPLATE_DATA_FILE);
+    fs::write(
+        template_data_file,
+        format!(
+            "{}\n{}",
+            template_data.template,
+            template_data.commit.unwrap()
+        ),
+    )
+    .map_err(Error::from)
 }

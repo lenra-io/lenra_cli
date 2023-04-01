@@ -64,7 +64,7 @@ impl CliCommand for Command {
             Command::Logs(logs) => logs.run(),
             Command::Stop(stop) => stop.run(),
             Command::Dev(dev) => dev.run(),
-            Command::Upgrade(init) => init.run(),
+            Command::Upgrade(upgrade) => upgrade.run(),
             Command::Update(update) => update.run(),
             Command::Check(check) => check.run(),
         }

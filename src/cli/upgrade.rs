@@ -4,13 +4,17 @@ use std::process::Stdio;
 
 use async_trait::async_trait;
 use clap;
+use rustyline::Editor;
 
 use crate::cli::CliCommand;
 use crate::command::get_command_output;
 use crate::config::LENRA_CACHE_DIRECTORY;
 use crate::errors::{Error, Result};
 use crate::git::{self, create_git_command, get_current_commit};
-use crate::template::{clone_template, get_template_data, TEMPLATE_GIT_DIR, TEMPLATE_TEMP_DIR};
+use crate::template::{
+    clone_template, get_template_data, save_template_data, TemplateData, TEMPLATE_GIT_DIR,
+    TEMPLATE_TEMP_DIR,
+};
 
 #[derive(clap::Args)]
 pub struct Upgrade {}
@@ -28,13 +32,13 @@ impl CliCommand for Upgrade {
         } else {
             let template_tmp = Path::new(LENRA_CACHE_DIRECTORY).join(TEMPLATE_TEMP_DIR);
             // clone template project
-            clone_template(template_data.template, template_tmp.clone()).await?;
+            clone_template(template_data.template.clone(), template_tmp.clone()).await?;
             fs::rename(template_tmp.join(".git"), git_dir.clone())?;
             fs::remove_dir_all(template_tmp)?;
         }
 
+        let current_commit = get_current_commit(Some(git_dir.clone())).await?;
         if let Some(commit) = template_data.commit {
-            let current_commit = get_current_commit(Some(git_dir.clone())).await?;
             if commit == current_commit {
                 println!("This application is already up to date");
                 return Ok(());
@@ -54,7 +58,7 @@ impl CliCommand for Upgrade {
                 .arg(git_dir.as_os_str())
                 .arg("diff")
                 .arg(commit)
-                .arg(current_commit);
+                .arg(current_commit.clone());
             let patch = get_command_output(cmd).await?;
             fs::write(patch_file.clone(), patch)?;
 
@@ -67,9 +71,46 @@ impl CliCommand for Upgrade {
                 .stderr(Stdio::inherit());
             cmd.spawn()?.wait_with_output().await.map_err(Error::from)?;
         } else {
-            // TODO: checkout the template in the current dir
-        }
+            // ask for user confirmation
+            if !confirm_checkout()? {
+                println!("Upgrade canceled");
+                return Ok(());
+            }
 
-        Ok(())
+            // checkout the template in the current dir
+            log::debug!("checkout the template");
+            let mut cmd = create_git_command();
+            cmd.arg("--git-dir")
+                .arg(git_dir.as_os_str())
+                .arg("checkout")
+                .arg("HEAD")
+                .arg("--")
+                .arg(".")
+                .stdout(Stdio::inherit())
+                .stderr(Stdio::inherit());
+            cmd.spawn()?.wait_with_output().await.map_err(Error::from)?;
+        }
+        // save template data
+        save_template_data(TemplateData {
+            template: template_data.template,
+            commit: Some(current_commit),
+        })
+        .await
+    }
+}
+
+fn confirm_checkout() -> Result<bool> {
+    let mut rl = Editor::<()>::new()?;
+    println!("There is no template last commit in this project, the template files will checked out to your app.\nMake sure your project is saved (for example with git).");
+    loop {
+        let res = rl
+            .readline("Checkout the template ? [y/N] ")?
+            .trim()
+            .to_lowercase();
+        if res == "y" || res == "yes" {
+            return Ok(true);
+        } else if res.is_empty() || res == "n" || res == "no" {
+            return Ok(false);
+        }
     }
 }
