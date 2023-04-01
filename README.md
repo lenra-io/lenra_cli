@@ -123,7 +123,6 @@ This tool contains many subcommands to help you doing what you need.
 - [logs](docs/logs.md): displays output from the containers
 - [stop](docs/stop.md): stops your app previously started with the start command
 - [check](docs/check.md): checks the running app
-- [init](docs/init.md): generates Docker and Docker Compose files
 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
