@@ -47,8 +47,7 @@ impl CliCommand for New {
         fs::rename(
             self.path.join(".git"),
             self.path.join(LENRA_CACHE_DIRECTORY).join(TEMPLATE_GIT_DIR),
-        )
-        .unwrap();
+        )?;
 
         Ok(())
     }

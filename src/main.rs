@@ -8,6 +8,7 @@ use env_logger;
 use errors::Result;
 
 mod cli;
+mod command;
 mod config;
 mod devtool;
 mod docker;
