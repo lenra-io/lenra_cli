@@ -8,7 +8,6 @@ pub fn create_command(cmd: &str) -> Command {
     cmd
 }
 
-#[cfg_attr(test, mockable)]
 pub async fn get_command_output(command: Command) -> Result<String> {
     let mut command = Command::from(command);
     let output = command.output().await?;

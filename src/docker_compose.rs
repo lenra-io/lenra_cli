@@ -480,7 +480,7 @@ mod test_get_services_images {
     #[tokio::test]
     async fn branch_name() {
         git::get_current_branch
-            .mock_safe(|| MockResult::Return(Box::pin(async move { Ok("test".to_string()) })));
+            .mock_safe(|_| MockResult::Return(Box::pin(async move { Ok("test".to_string()) })));
         let images: ServiceImages = get_services_images(&None).await;
         assert_eq!(
             images.get(&Service::App),
@@ -490,7 +490,7 @@ mod test_get_services_images {
 
     #[tokio::test]
     async fn path_branch_name() {
-        git::get_current_branch.mock_safe(|| {
+        git::get_current_branch.mock_safe(|_| {
             MockResult::Return(Box::pin(async move {
                 Ok("prefixed/branch-name_withUnderscore".to_string())
             }))
@@ -517,7 +517,7 @@ mod test_get_services_images {
             hash
         );
 
-        git::get_current_branch.mock_safe(move || {
+        git::get_current_branch.mock_safe(move |_| {
             let branch = branch_name.clone();
             MockResult::Return(Box::pin(async move { Ok(branch) }))
         });
