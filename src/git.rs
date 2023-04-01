@@ -14,14 +14,14 @@ pub fn create_git_command() -> process::Command {
 }
 
 #[cfg_attr(test, mockable)]
-pub async fn get_current_branch() -> Result<String> {
+pub async fn get_current_branch(git_dir: Option<PathBuf>) -> Result<String> {
     let mut command = create_git_command();
     command.arg("rev-parse").arg("--abbrev-ref").arg("HEAD");
     get_command_output(command).await
 }
 
 #[cfg_attr(test, mockable)]
-pub async fn get_current_commit() -> Result<String> {
+pub async fn get_current_commit(git_dir: Option<PathBuf>) -> Result<String> {
     let mut command = create_git_command();
     command.arg("rev-parse").arg("HEAD");
     get_command_output(command).await

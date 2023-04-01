@@ -324,7 +324,7 @@ pub async fn get_services_images(dev_conf: &Option<Dev>) -> ServiceImages {
         APP_BASE_IMAGE,
         current_dir_name().unwrap_or(APP_DEFAULT_IMAGE.to_string())
     );
-    let default_app_tag = match get_current_branch().await {
+    let default_app_tag = match get_current_branch(None).await {
         Ok(branch_name) => normalize_tag(branch_name),
         _ => APP_DEFAULT_IMAGE_TAG.to_string(),
     };

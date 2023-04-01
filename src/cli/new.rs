@@ -34,7 +34,7 @@ impl CliCommand for New {
         clone_template(template.clone(), self.path.clone()).await?;
 
         // create `.template` file to save template repo url and commit
-        let commit = get_current_commit().await?;
+        let commit = get_current_commit(None).await?;
         fs::write(
             self.path.join(TEMPLATE_DATA_FILE),
             format!("{}\n{}", template, commit),
