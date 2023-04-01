@@ -40,7 +40,7 @@ pub async fn fetch(git_dir: Option<PathBuf>) -> Result<()> {
     if let Some(dir) = git_dir {
         cmd.arg("--git-dir").arg(dir.as_os_str());
     }
-    
+
     cmd.arg("fetch");
 
     cmd.spawn()?.wait_with_output().await.map_err(Error::from)?;

@@ -4,19 +4,19 @@ pub use clap::{Args, Parser, Subcommand};
 use crate::errors::Result;
 
 use self::{
-    build::Build, check::Check, dev::Dev, upgrade::Upgrade, logs::Logs, new::New, start::Start,
-    stop::Stop, update::Update,
+    build::Build, check::Check, dev::Dev, logs::Logs, new::New, start::Start, stop::Stop,
+    update::Update, upgrade::Upgrade,
 };
 
 mod build;
 mod check;
 mod dev;
-mod upgrade;
 mod logs;
 mod new;
 mod start;
 mod stop;
 mod update;
+mod upgrade;
 
 /// The Lenra command line interface
 #[derive(Parser)]
