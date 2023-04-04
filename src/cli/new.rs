@@ -43,11 +43,9 @@ impl CliCommand for New {
 
         log::debug!("move git directory");
         // create the `.lenra` cache directory
-        fs::create_dir_all(LENRA_CACHE_DIRECTORY).unwrap();
-        fs::rename(
-            self.path.join(".git"),
-            self.path.join(LENRA_CACHE_DIRECTORY).join(TEMPLATE_GIT_DIR),
-        )?;
+        let cache_dir = self.path.join(LENRA_CACHE_DIRECTORY);
+        fs::create_dir_all(cache_dir.clone()).unwrap();
+        fs::rename(self.path.join(".git"), cache_dir.join(TEMPLATE_GIT_DIR))?;
 
         Ok(())
     }
