@@ -34,7 +34,8 @@ impl CliCommand for New {
         clone_template(template.clone(), self.path.clone()).await?;
 
         // create `.template` file to save template repo url and commit
-        let commit = get_current_commit(None).await?;
+        let git_dir = self.path.join(".git");
+        let commit = get_current_commit(Some(git_dir.clone())).await?;
         fs::write(
             self.path.join(TEMPLATE_DATA_FILE),
             format!("{}\n{}", template, commit),
@@ -45,7 +46,7 @@ impl CliCommand for New {
         // create the `.lenra` cache directory
         let cache_dir = self.path.join(LENRA_CACHE_DIRECTORY);
         fs::create_dir_all(cache_dir.clone()).unwrap();
-        fs::rename(self.path.join(".git"), cache_dir.join(TEMPLATE_GIT_DIR))?;
+        fs::rename(git_dir, cache_dir.join(TEMPLATE_GIT_DIR))?;
 
         Ok(())
     }
