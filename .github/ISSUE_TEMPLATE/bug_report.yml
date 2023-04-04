@@ -3,7 +3,6 @@ description: Send a bug report
 title: "[Bug]: "
 labels: ["bug", "triage"]
 assignees:
-  - Nesqwik
   - taorepoara
 body:
   - type: markdown
