@@ -96,16 +96,16 @@ OPTIONS:
     -V, --version    Print version information
 
 SUBCOMMANDS:
-    build     Build your app in release mode
-    check     Checks the running app
-    dev       Start the app in an interactive mode
-    help      Print this message or the help of the given subcommand(s)
-    init      Generates dockerfile and docker compose file with the init command
-    logs      View output from the containers
-    new       Create a new Lenra app project
-    start     Start your app previously built with the build command
-    stop      Stop your app previously started with the start command
-    update    Update the tools Docker images
+    build      Build your app in release mode
+    check      Checks the running app
+    dev        Start the app in an interactive mode
+    help       Print this message or the help of the given subcommand(s)
+    logs       View output from the containers
+    new        Create a new Lenra app project
+    start      Start your app previously built with the build command
+    stop       Stop your app previously started with the start command
+    update     Update the tools Docker images
+    upgrade    Upgrade the app with the last template updates
 ```
 
 <p align="right">(<a href="#top">back to top</a>)</p>
@@ -117,12 +117,12 @@ This tool contains many subcommands to help you doing what you need.
 - [new](docs/new.md): creates a new Lenra app project
 - [dev](docs/dev.md): starts your app in dev mode
 - [update](docs/update.md): updates the tools Docker images
+- [upgrade](docs/upgrade.md): upgrades the app with the last template updates
 - [build](docs/build.md): builds the Lenra app of the current directory
 - [start](docs/start.md): starts your app previously built with the build command
 - [logs](docs/logs.md): displays output from the containers
 - [stop](docs/stop.md): stops your app previously started with the start command
 - [check](docs/check.md): checks the running app
-- [init](docs/init.md): generates Docker and Docker Compose files
 
 
 <p align="right">(<a href="#top">back to top</a>)</p>
