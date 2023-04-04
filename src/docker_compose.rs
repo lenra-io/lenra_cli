@@ -324,7 +324,7 @@ pub async fn get_services_images(dev_conf: &Option<Dev>) -> ServiceImages {
         APP_BASE_IMAGE,
         current_dir_name().unwrap_or(APP_DEFAULT_IMAGE.to_string())
     );
-    let default_app_tag = match get_current_branch().await {
+    let default_app_tag = match get_current_branch(None).await {
         Ok(branch_name) => normalize_tag(branch_name),
         _ => APP_DEFAULT_IMAGE_TAG.to_string(),
     };
@@ -480,7 +480,7 @@ mod test_get_services_images {
     #[tokio::test]
     async fn branch_name() {
         git::get_current_branch
-            .mock_safe(|| MockResult::Return(Box::pin(async move { Ok("test".to_string()) })));
+            .mock_safe(|_| MockResult::Return(Box::pin(async move { Ok("test".to_string()) })));
         let images: ServiceImages = get_services_images(&None).await;
         assert_eq!(
             images.get(&Service::App),
@@ -490,7 +490,7 @@ mod test_get_services_images {
 
     #[tokio::test]
     async fn path_branch_name() {
-        git::get_current_branch.mock_safe(|| {
+        git::get_current_branch.mock_safe(|_| {
             MockResult::Return(Box::pin(async move {
                 Ok("prefixed/branch-name_withUnderscore".to_string())
             }))
@@ -517,7 +517,7 @@ mod test_get_services_images {
             hash
         );
 
-        git::get_current_branch.mock_safe(move || {
+        git::get_current_branch.mock_safe(move |_| {
             let branch = branch_name.clone();
             MockResult::Return(Box::pin(async move { Ok(branch) }))
         });

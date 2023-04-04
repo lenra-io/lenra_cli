@@ -4,19 +4,19 @@ pub use clap::{Args, Parser, Subcommand};
 use crate::errors::Result;
 
 use self::{
-    build::Build, check::Check, dev::Dev, init::Init, logs::Logs, new::New, start::Start,
-    stop::Stop, update::Update,
+    build::Build, check::Check, dev::Dev, logs::Logs, new::New, start::Start, stop::Stop,
+    update::Update, upgrade::Upgrade,
 };
 
 mod build;
 mod check;
 mod dev;
-mod init;
 mod logs;
 mod new;
 mod start;
 mod stop;
 mod update;
+mod upgrade;
 
 /// The Lenra command line interface
 #[derive(Parser)]
@@ -46,8 +46,8 @@ pub enum Command {
     Stop(Stop),
     /// Start the app in an interactive mode
     Dev(Dev),
-    /// Generates dockerfile and docker compose file with the init command
-    Init(Init),
+    /// Upgrade the app with the last template updates
+    Upgrade(Upgrade),
     /// Update the tools Docker images
     Update(Update),
     /// Checks the running app
@@ -64,7 +64,7 @@ impl CliCommand for Command {
             Command::Logs(logs) => logs.run(),
             Command::Stop(stop) => stop.run(),
             Command::Dev(dev) => dev.run(),
-            Command::Init(init) => init.run(),
+            Command::Upgrade(upgrade) => upgrade.run(),
             Command::Update(update) => update.run(),
             Command::Check(check) => check.run(),
         }

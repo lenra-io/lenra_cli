@@ -8,6 +8,7 @@ use env_logger;
 use errors::Result;
 
 mod cli;
+mod command;
 mod config;
 mod devtool;
 mod docker;
@@ -16,6 +17,7 @@ mod errors;
 mod git;
 mod keyboard_event;
 mod matching;
+mod template;
 
 // #![cfg_attr(test, feature(proc_macro_hygiene))]
 #[tokio::main]

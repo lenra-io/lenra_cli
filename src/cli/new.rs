@@ -4,14 +4,14 @@
 
 use async_trait::async_trait;
 pub use clap::Args;
-use lazy_static::lazy_static;
 use log;
-use regex::Regex;
 use std::fs;
-use tokio::process::Command;
 
 use crate::cli::CliCommand;
+use crate::config::LENRA_CACHE_DIRECTORY;
 use crate::errors::{Error, Result};
+use crate::git::get_current_commit;
+use crate::template::{clone_template, normalize_template, TEMPLATE_DATA_FILE, TEMPLATE_GIT_DIR};
 
 #[derive(Args)]
 pub struct New {
@@ -22,83 +22,32 @@ pub struct New {
     pub template: String,
 
     /// The project path
-    #[clap(parse(from_os_str))]
+    #[clap(parse(from_os_str), default_value = ".")]
     path: std::path::PathBuf,
-}
-
-lazy_static! {
-    static ref TEMPLATE_SHORT_REGEX: Regex =
-        Regex::new(r"^(template-)?([0-9a-zA-Z]+([_-][0-9a-zA-Z]+)*)$").unwrap();
 }
 
 #[async_trait]
 impl CliCommand for New {
     async fn run(&self) -> Result<()> {
-        if self.path.exists() {
-            return Err(Error::Custom(format!(
-                "The path '{}' already exists",
-                self.path.display()
-            )));
-        }
+        let template = normalize_template(self.template.clone());
 
-        let template = if TEMPLATE_SHORT_REGEX.is_match(self.template.as_str()) {
-            format!(
-                "https://github.com/lenra-io/template-{}",
-                TEMPLATE_SHORT_REGEX.replace(self.template.as_str(), "$2")
-            )
-        } else {
-            self.template.clone()
-        };
+        clone_template(template.clone(), self.path.clone()).await?;
 
-        log::debug!(
-            "clone the template {} into {}",
-            template,
-            self.path.display()
-        );
-        Command::new("git")
-            .kill_on_drop(true)
-            .arg("clone")
-            .arg("--single-branch")
-            .arg("--depth")
-            .arg("1")
-            .arg(template)
-            .arg(self.path.as_os_str())
-            .spawn()?
-            .wait_with_output()
-            .await
-            .map_err(Error::from)?;
+        // create `.template` file to save template repo url and commit
+        let git_dir = self.path.join(".git");
+        let commit = get_current_commit(Some(git_dir.clone())).await?;
+        fs::write(
+            self.path.join(TEMPLATE_DATA_FILE),
+            format!("{}\n{}", template, commit),
+        )
+        .map_err(Error::from)?;
 
-        log::debug!("remove git directory");
-        fs::remove_dir_all(self.path.join(".git")).unwrap();
+        log::debug!("move git directory");
+        // create the `.lenra` cache directory
+        let cache_dir = self.path.join(LENRA_CACHE_DIRECTORY);
+        fs::create_dir_all(cache_dir.clone()).unwrap();
+        fs::rename(git_dir, cache_dir.join(TEMPLATE_GIT_DIR))?;
 
-        log::debug!("init git project");
-        Command::new("git")
-            .kill_on_drop(true)
-            .current_dir(self.path.as_os_str())
-            .arg("init")
-            .spawn()?
-            .wait_with_output()
-            .await
-            .map_err(Error::from)?;
-        Command::new("git")
-            .kill_on_drop(true)
-            .current_dir(self.path.as_os_str())
-            .arg("add")
-            .arg(".")
-            .spawn()?
-            .wait_with_output()
-            .await
-            .map_err(Error::from)?;
-        Command::new("git")
-            .kill_on_drop(true)
-            .current_dir(self.path.as_os_str())
-            .arg("commit")
-            .arg("-m")
-            .arg("Init project")
-            .spawn()?
-            .wait_with_output()
-            .await
-            .map_err(Error::from)?;
         Ok(())
     }
 }

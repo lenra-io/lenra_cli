@@ -9,7 +9,7 @@ lenra-new
 Create a new Lenra app project
 
 USAGE:
-    lenra new <TEMPLATE> <PATH>
+    lenra new <TEMPLATE> [PATH]
 
 ARGS:
     <TEMPLATE>    The project template from which your project will be created. For example,
@@ -18,7 +18,7 @@ ARGS:
                   this url:
                   https://github.com/orgs/lenra-io/repositories?q=&type=template&language=&sort=stargazers
                   You also can set the template project full url to use custom ones
-    <PATH>        The project path
+    <PATH>        The project path [default: .]
 
 OPTIONS:
     -h, --help    Print help information
