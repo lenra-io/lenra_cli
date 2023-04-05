@@ -1,5 +1,3 @@
-# logs
-
 This subcommand displays output from the containers.
 
 ```bash

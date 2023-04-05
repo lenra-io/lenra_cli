@@ -1,5 +1,3 @@
-# update
-
 This subcommand updates the tools Docker images.
 
 ```bash

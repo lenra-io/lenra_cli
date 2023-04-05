@@ -1,5 +1,3 @@
-# expose
-
 This subcommand exposes the containers ports.
 
 ```bash

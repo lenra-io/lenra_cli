@@ -1,5 +1,3 @@
-# new
-
 This subcommand creates a new Lenra app project from a given template and in a given directory.
 The target directory must not exist.
 

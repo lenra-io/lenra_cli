@@ -1,5 +1,3 @@
-# reload
-
 This subcommand reloads the app by rebuilding and restarting it.
 
 ```bash

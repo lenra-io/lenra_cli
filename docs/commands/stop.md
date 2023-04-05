@@ -1,5 +1,3 @@
-# stop
-
 This subcommand stops the Lenra app of the current directory and removes the Docker Compose elements.
 
 ```bash

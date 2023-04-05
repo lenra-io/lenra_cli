@@ -1,5 +1,3 @@
-# continue
-
 This subcommand continues the previous logs command since the last displayed logs.
 
 ```bash

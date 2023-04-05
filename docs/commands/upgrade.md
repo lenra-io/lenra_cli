@@ -1,5 +1,3 @@
-# upgrade
-
 This subcommand upgrades the app with the last template updates.
 
 ```bash
