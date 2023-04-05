@@ -188,17 +188,17 @@ jobs:
           node-version: "16"
       - name: Setup node deps
         run: |
-          cd page-builder/
+          cd docs-page-builder/
           npm install
           npm run build
       - name: Compress tar.gz
         run: |
-          cd page-builder/build/
+          cd docs-page-builder/build/
           tar czvf lenra-cli-docs.tar.gz *
           mv lenra-cli-docs.tar.gz ../..
       - name: Compress zip
         run: |
-          cd page-builder/build/
+          cd docs-page-builder/build/
           zip -r lenra-cli-docs.zip *
           mv lenra-cli-docs.zip ../..
       - name: Documentation artifact
