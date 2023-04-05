@@ -1,5 +1,6 @@
 ---
-title: `lenra.yml` config file
+title: lenra.yml config file
+description: The Lenra's configuration file describes your Lenra app configurations, like API versions or how to build it.
 ---
 
 The Lenra's configuration file describes your Lenra app configurations, like API versions or how to build it.

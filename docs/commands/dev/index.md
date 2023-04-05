@@ -1,3 +1,7 @@
+---
+description: This subcommand starts the Lenra app of the current directory in dev mode.
+---
+
 This subcommand starts the Lenra app of the current directory in dev mode.
 
 The dev mode builds and starts the app and then displays its logs.

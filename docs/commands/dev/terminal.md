@@ -1,5 +1,6 @@
 ---
 title: Dev terminal
+description: The dev terminal is a command prompt that let  you run only Lenra specific commands. It has his own history.
 ---
 
 The dev terminal is a command prompt that let  you run only Lenra specific commands. It has his own history.

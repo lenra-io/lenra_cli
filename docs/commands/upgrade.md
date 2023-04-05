@@ -1,3 +1,7 @@
+---
+description: This subcommand upgrades the app with the last template updates.
+---
+
 This subcommand upgrades the app with the last template updates.
 
 ```bash

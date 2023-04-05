@@ -1,3 +1,8 @@
+---
+title: CLI
+description: The Lenra's command line interface helps you building your Lenra app locally and it's gona be your best friend !
+---
+
 The Lenra's command line interface helps you building your Lenra app locally and it's gona be your best friend !
 
 We've created many [commands](commands/index.md) to help you managing a local smaller Lenra instance to create and test your app.

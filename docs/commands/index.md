@@ -1,4 +1,8 @@
-This cli contains many subcommands to help you doing what you need.
+---
+description: This CLI contains many subcommands to help you doing what you need.
+---
+
+This CLI contains many subcommands to help you doing what you need.
 
 - [new](./new.md): creates a new Lenra app project
 - [dev](./dev/index.md): starts your app in dev mode

@@ -1,3 +1,7 @@
+---
+description: This subcommands check the running app.
+---
+
 This subcommands check the running app.
 
 ```bash

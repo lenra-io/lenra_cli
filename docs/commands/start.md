@@ -1,3 +1,7 @@
+---
+description: This subcommand starts the Lenra app of the current directory previously built.
+---
+
 This subcommand starts the Lenra app of the current directory previously built.
 
 ```bash

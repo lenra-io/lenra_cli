@@ -1,5 +1,6 @@
 ---
 title: check template
+description: This subcommands checks the running app as a Lenra template app.
 ---
 
 This subcommands checks the running app as a Lenra template app.
