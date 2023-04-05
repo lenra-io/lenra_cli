@@ -174,8 +174,6 @@ jobs:
 
   generate_doc_artifact:
     name: Generate doc artifact
-    needs: [build, get-next-version]
-    if: github.ref_name == 'main' || github.ref_name == 'beta' || github.ref_name == 'alpha'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -213,7 +211,7 @@ jobs:
 
   publish:
     name: publish
-    needs: [build, get-next-version]
+    needs: [build, generate_doc_artifact, get-next-version]
     if: github.ref_name == 'main' || github.ref_name == 'beta' || github.ref_name == 'alpha'
     runs-on: ubuntu-latest
     env:
