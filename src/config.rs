@@ -262,16 +262,14 @@ impl Application {
                     format!("http://127.0.0.1:{}", ports[0]),
                 );
                 envs.insert("suppress_lock".to_string(), "true".to_string());
-                if debug {
-                    if !envs.contains_key("exec_timeout") {
-                        envs.insert("exec_timeout".to_string(), "3600".to_string());
-                    }
-                    if !envs.contains_key("read_timeout") {
-                        envs.insert("read_timeout".to_string(), "3600".to_string());
-                    }
-                    if !envs.contains_key("write_timeout") {
-                        envs.insert("write_timeout".to_string(), "3600".to_string());
-                    }
+                if !envs.contains_key("exec_timeout") {
+                    envs.insert("exec_timeout".to_string(), "3600".to_string());
+                }
+                if !envs.contains_key("read_timeout") {
+                    envs.insert("read_timeout".to_string(), "3600".to_string());
+                }
+                if !envs.contains_key("write_timeout") {
+                    envs.insert("write_timeout".to_string(), "3600".to_string());
                 }
                 // handle healthcheck
                 healthcheck = Some(Healthcheck {
