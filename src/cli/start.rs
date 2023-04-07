@@ -30,7 +30,7 @@ impl CliCommand for Start {
         if !dockercompose_path.exists() {
             // TODO: check the components API version
 
-            conf.generate_files(self.expose.clone()).await?;
+            conf.generate_files(self.expose.clone(), true).await?;
         }
 
         // Start the containers

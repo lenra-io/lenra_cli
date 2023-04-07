@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, path::PathBuf};
+use std::{collections::HashMap, fmt::Debug, fs, path::PathBuf};
 
 use dofigen_lib::{
     self, from_file_path, generate_dockerfile, generate_dockerignore, Artifact, Builder,
@@ -61,6 +61,7 @@ pub struct Dev {
     pub devtool: Option<Image>,
     pub postgres: Option<Image>,
     pub mongo: Option<Image>,
+    pub dofigen: Option<DebugDofigen>,
 }
 
 /** A Docker image */
@@ -68,6 +69,12 @@ pub struct Dev {
 pub struct Image {
     pub image: Option<String>,
     pub tag: Option<String>,
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
+pub struct DebugDofigen {
+    pub cmd: Option<Vec<String>>,
+    pub ports: Option<Vec<u16>>,
 }
 
 /** The application generator configuration */
@@ -109,22 +116,25 @@ pub struct Dockerfile {
 
 impl Application {
     /// Generates all the files needed to build and run the application
-    pub async fn generate_files(&self, exposed_services: Vec<Service>) -> Result<()> {
-        self.generate_docker_files()?;
-        self.generate_docker_compose_file(exposed_services).await?;
+    pub async fn generate_files(&self, exposed_services: Vec<Service>, debug: bool) -> Result<()> {
+        self.generate_docker_files(debug)?;
+        self.generate_docker_compose_file(exposed_services, debug)
+            .await?;
         Ok(())
     }
 
-    pub fn generate_docker_files(&self) -> Result<()> {
+    pub fn generate_docker_files(&self, debug: bool) -> Result<()> {
         log::info!("Docker files generation");
         // create the `.lenra` cache directory
         fs::create_dir_all(LENRA_CACHE_DIRECTORY).unwrap();
 
         match &self.generator {
-            Generator::Dofigen(dofigen) => self.build_dofigen(dofigen.dofigen.clone()),
-            Generator::DofigenFile(dofigen_file) => {
-                self.build_dofigen(from_file_path(&dofigen_file.dofigen).map_err(Error::from)?)
-            }
+            // If args '--prod' is passed then not debug
+            Generator::Dofigen(dofigen) => self.build_dofigen(dofigen.dofigen.clone(), debug),
+            Generator::DofigenFile(dofigen_file) => self.build_dofigen(
+                from_file_path(&dofigen_file.dofigen).map_err(Error::from)?,
+                debug,
+            ),
             Generator::DofigenError { dofigen: _ } => Err(Error::Custom(
                 "Your Dofigen configuration is not correct".into(),
             )),
@@ -136,7 +146,11 @@ impl Application {
         }
     }
 
-    pub async fn generate_docker_compose_file(&self, exposed_services: Vec<Service>) -> Result<()> {
+    pub async fn generate_docker_compose_file(
+        &self,
+        exposed_services: Vec<Service>,
+        debug: bool,
+    ) -> Result<()> {
         log::info!("Docker Compose file generation");
         // create the `.lenra` cache directory
         fs::create_dir_all(LENRA_CACHE_DIRECTORY).map_err(Error::from)?;
@@ -147,21 +161,53 @@ impl Application {
             DOCKERFILE_DEFAULT_PATH.iter().collect()
         };
 
-        generate_docker_compose(dockerfile, &self.dev, exposed_services)
+        generate_docker_compose(dockerfile, &self.dev, exposed_services, debug)
             .await
             .map_err(Error::from)?;
         Ok(())
     }
 
     /// Builds a Docker image from a Dofigen structure
-    fn build_dofigen(&self, image: dofigen_lib::Image) -> Result<()> {
+    fn build_dofigen(&self, image: dofigen_lib::Image, debug: bool) -> Result<()> {
         // Generate the Dofigen config with OpenFaaS overlay to handle the of-watchdog
-        let of_overlay = self.dofigen_of_overlay(image)?;
+        let overlay = self.dofigen_of_overlay(image)?;
+
+        // when debug add cmd and ports to the Dofigen descriptor
+        let overlay = if debug {
+            self.dofigen_debug_overlay(overlay)?
+        } else {
+            overlay
+        };
 
         // generate the Dockerfile and .dockerignore files with Dofigen
-        let dockerfile = generate_dockerfile(&of_overlay);
-        let dockerignore = generate_dockerignore(&of_overlay);
+        let dockerfile = generate_dockerfile(&overlay);
+        let dockerignore = generate_dockerignore(&overlay);
         self.save_docker_content(dockerfile, Some(dockerignore))
+    }
+
+    fn dofigen_debug_overlay(&self, image: dofigen_lib::Image) -> Result<dofigen_lib::Image> {
+        log::info!("Adding debug overlay to the Dofigen descriptor");
+        let mut debug_overlay = image;
+        if let Some(dev) = &self.dev {
+            if let Some(dofigen) = &dev.dofigen {
+                if let Some(cmd) = &dofigen.cmd {
+                    let mut envs = debug_overlay.envs.unwrap();
+                    envs.insert("fprocess".to_string(), cmd.join(" "));
+                    debug_overlay.envs = Some(envs);
+                }
+                if let Some(ports) = &dofigen.ports {
+                    debug_overlay.ports = Some(
+                        debug_overlay
+                            .ports
+                            .unwrap()
+                            .into_iter()
+                            .chain(ports.into_iter().map(|&value| value))
+                            .collect(),
+                    )
+                }
+            }
+        }
+        Ok(debug_overlay)
     }
 
     /// Add an overlay to the given Dofigen structure to manage OpenFaaS
@@ -212,7 +258,15 @@ impl Application {
                     format!("http://127.0.0.1:{}", ports[0]),
                 );
                 envs.insert("suppress_lock".to_string(), "true".to_string());
-
+                if !envs.contains_key("exec_timeout") {
+                    envs.insert("exec_timeout".to_string(), "3600".to_string());
+                }
+                if !envs.contains_key("read_timeout") {
+                    envs.insert("read_timeout".to_string(), "3600".to_string());
+                }
+                if !envs.contains_key("write_timeout") {
+                    envs.insert("write_timeout".to_string(), "3600".to_string());
+                }
                 // handle healthcheck
                 healthcheck = Some(Healthcheck {
                     cmd: "curl --fail http://localhost:8080/_/health".into(),
