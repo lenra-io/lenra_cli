@@ -1,4 +1,6 @@
-# build
+---
+description: This subcommand builds the Lenra app of the current directory.
+---
 
 This subcommand builds the Lenra app of the current directory.
 The app configuration is defined by a [configuration file](#configuration-file).

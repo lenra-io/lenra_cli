@@ -1,0 +1,17 @@
+{
+  "name": "docs-page-builder",
+  "version": "1.0.0",
+  "description": "Generates HTML pages from markdown files",
+  "type": "module",
+  "main": "build.js",
+  "scripts": {
+    "build": "node build.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Lenra",
+  "license": "MIT",
+  "devDependencies": {
+    "front-matter": "^4.0.2",
+    "showdown": "^2.1.0"
+  }
+}

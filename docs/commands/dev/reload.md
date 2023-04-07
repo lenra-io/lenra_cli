@@ -1,4 +1,6 @@
-# reload
+---
+description: This subcommand reloads the app by rebuilding and restarting it.
+---
 
 This subcommand reloads the app by rebuilding and restarting it.
 

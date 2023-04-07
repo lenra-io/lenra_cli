@@ -12,4 +12,8 @@ plugins:
   - - "@semantic-release/github"
     - assets:
       - path: artifacts/*/*
+      - path: lenra-cli-docs/lenra-cli-docs.zip
+        name: lenra-cli-docs-${nextRelease.gitTag}.zip
+      - path: lenra-cli-docs/lenra-cli-docs.tar.gz
+        name: lenra-cli-docs-${nextRelease.gitTag}.tar.gz
   - - "semantic-release-export-data"
