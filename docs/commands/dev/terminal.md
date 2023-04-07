@@ -1,4 +1,7 @@
-# Dev terminal
+---
+title: Dev terminal
+description: The dev terminal is a command prompt that let  you run only Lenra specific commands. It has his own history.
+---
 
 The dev terminal is a command prompt that let  you run only Lenra specific commands. It has his own history.
 
@@ -36,4 +39,4 @@ This tools contains many subcommands to help you do what you need.
 - [exit](../stop.md): `stop` alias
 - [expose](./expose.md): exposes the app ports
 - [logs](../logs.md): displays output from the containers
-- [check](../check.md): checks the running app
+- [check](../check/index.md): checks the running app

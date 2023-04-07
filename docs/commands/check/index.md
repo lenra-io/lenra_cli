@@ -1,4 +1,6 @@
-# check
+---
+description: This subcommands check the running app.
+---
 
 This subcommands check the running app.
 
@@ -22,4 +24,4 @@ SUBCOMMANDS:
 
 This tool contains many subcommands to help you doing what you need.
 
-- [template](docs/check/template.md): checks the current project as a template
+- [template](./template.md): checks the current project as a template

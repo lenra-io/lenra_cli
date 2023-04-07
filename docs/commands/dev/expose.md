@@ -1,4 +1,6 @@
-# expose
+---
+description: This subcommand exposes the containers ports.
+---
 
 This subcommand exposes the containers ports.
 

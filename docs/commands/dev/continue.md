@@ -1,4 +1,6 @@
-# continue
+---
+description: This subcommand continues the previous logs command since the last displayed logs.
+---
 
 This subcommand continues the previous logs command since the last displayed logs.
 
