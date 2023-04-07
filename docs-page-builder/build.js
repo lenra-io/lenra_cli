@@ -42,14 +42,14 @@ async function buildFile(src, filename, destDir) {
         console.log(`buiding ${src} to ${destDir}`);
         const fmResult = fm(await fs.readFile(src, 'utf8'));
         const baseName = filename.replace(/.md$/, "");
-        const title = fmResult.attributes.title ?? (filename === "index.md" ? undefined : baseName);
+        const name = fmResult.attributes.name ?? (filename === "index.md" ? undefined : baseName);
         const destFile = path.join(destDir, `${baseName}.html`);
         const destJsonFile = destFile + '.json';
         return Promise.all([
             fs.writeFile(destFile, converter.makeHtml(fmResult.body), 'utf8'),
             fs.writeFile(destJsonFile, JSON.stringify({
                 ...fmResult.attributes,
-                title,
+                name,
                 sourceFile: githubBasPath + src.replace(/^..\//, '')
             }), 'utf8')
         ]);

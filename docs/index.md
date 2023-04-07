@@ -1,5 +1,5 @@
 ---
-title: CLI
+name: CLI
 description: The Lenra's command line interface helps you building your Lenra app locally and it's gona be your best friend !
 ---
 
