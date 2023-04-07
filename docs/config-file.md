@@ -26,10 +26,8 @@ The configuration is the main element of the file:
 
 The generator define your application is built. There are many configurators:
 
-- [Configuration](#configuration)
-- [Generator](#generator)
-  - [Dofigen](#dofigen)
-  - [Docker](#docker)
+- [Dofigen](#dofigen)
+- [Docker](#docker)
 
 ### Dofigen
 
