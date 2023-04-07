@@ -17,6 +17,10 @@ pub struct Build {
     /// Exposes services ports.
     #[clap(long, value_enum, default_values = &[], default_missing_values = &["app", "postgres", "mongo"])]
     pub expose: Vec<Service>,
+
+    /// Remove debug access to the app.
+    #[clap(long, alias = "prod", action)]
+    pub production: bool,
 }
 
 #[async_trait]
@@ -25,7 +29,8 @@ impl CliCommand for Build {
         let conf = load_config_file(&self.config)?;
         // TODO: check the components API version
 
-        conf.generate_files(self.expose.clone()).await?;
+        conf.generate_files(self.expose.clone(), !self.production)
+            .await?;
 
         log::info!("Build the Docker image");
         compose_build().await?;
