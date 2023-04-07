@@ -29,6 +29,9 @@
 [Request Feature](https://github.com/lenra-io/lenra_cli/issues)
 
 
+The Lenra's command line interface helps you building your Lenra app locally.
+
+
 ## What is Lenra
 
 Lenra is an open source framework to create your app using any language, and deploy it without any Ops scale, built on ethical values.
@@ -38,136 +41,10 @@ Lenra is an open source framework to create your app using any language, and dep
 <!-- GETTING STARTED -->
 ## Getting Started
 
-### Prerequisites
-
-To build and run the Lenra elements that handle your app, the Lenra CLI needs [Docker](https://docs.docker.com/engine/install/) and [Docker Compose](https://docs.docker.com/compose/install/).
-
-You can also install the [Docker buildx command](https://docs.docker.com/build/buildx/install/) to use the [Buildkit optimization given by Dofigen](https://github.com/lenra-io/dofigen).
-
-Install the Lenra CLI using one of the next possibilities.
-
-#### Download the binary
-
-You can download the binary from [the release page](https://github.com/lenra-io/lenra_cli/releases) and add it to your path environment variable.
-
-#### Cargo install
-
-First install Cargo, the Rust package manager: https://doc.rust-lang.org/cargo/getting-started/installation.html
-
-Then use the next command to install the Lenra's cli:
-
-```bash
-cargo install lenra_cli
-```
-
-Since the CLI is not released yet, you have to target a [pre-release version](https://github.com/lenra-io/lenra_cli/releases) like that:
-
-```bash
-cargo install lenra_cli@v1.0.0-beta.24
-```
-
-#### Build it from sources
-
-First install Cargo, the Rust package manager: https://doc.rust-lang.org/cargo/getting-started/installation.html
-
-Then clone this repository and install it with Cargo:
-
-```bash
-git clone https://github.com/lenra-io/lenra_cli.git
-cargo install --path .
-```
+To start using Lenra to build your app, [install the CLI](install.md) and learn [how to use it](docs/index.md).
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
-### How to use it
-
-Use the help options to understand how to use it:
-
-```bash
-$ lenra --help
-lenra_cli 0.0.0
-The Lenra command line interface
-
-USAGE:
-    lenra <SUBCOMMAND>
-
-OPTIONS:
-    -h, --help       Print help information
-    -V, --version    Print version information
-
-SUBCOMMANDS:
-    build      Build your app in release mode
-    check      Checks the running app
-    dev        Start the app in an interactive mode
-    help       Print this message or the help of the given subcommand(s)
-    logs       View output from the containers
-    new        Create a new Lenra app project
-    start      Start your app previously built with the build command
-    stop       Stop your app previously started with the start command
-    update     Update the tools Docker images
-    upgrade    Upgrade the app with the last template updates
-```
-
-<p align="right">(<a href="#top">back to top</a>)</p>
-
-## Subcommands
-
-This tool contains many subcommands to help you doing what you need.
-
-- [new](docs/new.md): creates a new Lenra app project
-- [dev](docs/dev.md): starts your app in dev mode
-- [update](docs/update.md): updates the tools Docker images
-- [upgrade](docs/upgrade.md): upgrades the app with the last template updates
-- [build](docs/build.md): builds the Lenra app of the current directory
-- [start](docs/start.md): starts your app previously built with the build command
-- [logs](docs/logs.md): displays output from the containers
-- [stop](docs/stop.md): stops your app previously started with the start command
-- [check](docs/check.md): checks the running app
-
-
-<p align="right">(<a href="#top">back to top</a>)</p>
-
-## Configuration file
-
-The Lenra's configuration file describes your Lenra app configurations, like API versions or how to build it.
-
-Here is an example using a Dofigen file:
-
-```yaml
-componentsApi: "1.0"
-generator:
-  dofigen: dofigen.yml
-```
-
-### Configuration
-
-The configuration is the main element of the file:
-
-| Field           | Type                    | Description                 |
-| --------------- | ----------------------- | --------------------------- |
-| `componentsApi` | String                  | The components API version  |
-| `generator`     | [Generator](#generator) | The generator configuration |
-
-### Generator
-
-The generator define your application is built. There are many configurators:
-
-- [Dofigen](#dofigen)
-- [Docker](#docker)
-
-#### Dofigen
-
-The Dofigen generator use a [Dofigen](https://github.com/lenra-io/dofigen) configuration to generate the Docker image.
-
-The Dofigen configuration can be the path to a Dofigen file or it content directly.
-
-#### Docker
-
-The Docker generator use a Dockerfile to generate the Docker image.
-
-The Dockerfile can be the path to a file or it content directly.
-
-<p align="right">(<a href="#top">back to top</a>)</p>
 
 <!-- CONTRIBUTING -->
 ## Contributing

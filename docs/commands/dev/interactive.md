@@ -1,4 +1,6 @@
-# Interactive commands
+---
+description: Run interactive commands through keyboard shortcuts.
+---
 
 When displaying logs in dev mode with the follow option (with [`lenra dev`](../dev.md)), you can run interactive commands through keyboard shortcuts.
 

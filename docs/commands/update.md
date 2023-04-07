@@ -1,4 +1,6 @@
-# update
+---
+description: This subcommand updates the tools Docker images.
+---
 
 This subcommand updates the tools Docker images.
 

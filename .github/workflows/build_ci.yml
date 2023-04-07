@@ -172,11 +172,47 @@ jobs:
         name: lenra-${{ matrix.os }}-${{ matrix.arch }}
         path: lenra-${{ matrix.os }}-${{ matrix.arch }}.*
 
+  generate_doc_artifact:
+    name: Generate doc artifact
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+      - name: Setup node deps
+        run: |
+          cd docs-page-builder/
+          npm install
+          npm run build
+      - name: Compress tar.gz
+        run: |
+          cd docs-page-builder/build/
+          tar czvf lenra-cli-docs.tar.gz *
+          mv lenra-cli-docs.tar.gz ../..
+      - name: Compress zip
+        run: |
+          cd docs-page-builder/build/
+          zip -r lenra-cli-docs.zip *
+          mv lenra-cli-docs.zip ../..
+      - name: Documentation artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: lenra-cli-docs
+          path: |
+            lenra-cli-docs.tar.gz
+            lenra-cli-docs.zip
 
   publish:
     name: publish
-    needs: [build, get-next-version]
-    if: github.ref_name == 'main' || github.ref_name == 'beta'
+    needs: [build, generate_doc_artifact, get-next-version]
+    if: github.ref_name == 'main' || github.ref_name == 'beta' || github.ref_name == 'alpha'
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ needs.get-next-version.outputs.new-release-version }}
@@ -200,7 +236,7 @@ jobs:
       shell: bash
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: npx -p conventional-changelog-conventionalcommits@5 -p @semantic-release/git -p semantic-release-export-data -p semantic-release@19 semantic-release
+      run: npx -p conventional-changelog-conventionalcommits@5 -p @semantic-release/git -p semantic-release-export-data -p https://github.com/Tlepel/semantic-release.git#fix-versions-share-head semantic-release
 
     - name: Install cargo-edit
       if: ${{ steps.release.outputs.new-release-published }}

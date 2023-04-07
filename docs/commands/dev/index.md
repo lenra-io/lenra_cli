@@ -1,4 +1,6 @@
-# dev
+---
+description: This subcommand starts the Lenra app of the current directory in dev mode.
+---
 
 This subcommand starts the Lenra app of the current directory in dev mode.
 
@@ -19,7 +21,5 @@ OPTIONS:
     -t, --terminal           Open the dev terminal instead of starting the interactive mode
 ```
 
-While displaying logs in dev mode, you can run some [interactive commands](dev/interactive.md) by pressing the good keys.
-You also can press `Ctrl + C` to start our [dev terminal](dev/terminal.md).
-
-
+While displaying logs in dev mode, you can run some [interactive commands](./interactive.md) by pressing the good keys.
+You also can press `Ctrl + C` to start our [dev terminal](./terminal.md).

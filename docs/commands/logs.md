@@ -1,4 +1,6 @@
-# logs
+---
+description: This subcommand displays output from the containers.
+---
 
 This subcommand displays output from the containers.
 
