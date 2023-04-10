@@ -28,7 +28,7 @@ impl CliCommand for Upgrade {
 
         if git_dir.is_dir() {
             // update the template repo
-            git::fetch(Some(git_dir.clone())).await?;
+            git::pull(Some(git_dir.clone())).await?;
         } else {
             let template_tmp = Path::new(LENRA_CACHE_DIRECTORY).join(TEMPLATE_TEMP_DIR);
             // clone template project

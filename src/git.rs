@@ -47,3 +47,18 @@ pub async fn fetch(git_dir: Option<PathBuf>) -> Result<()> {
 
     Ok(())
 }
+
+pub async fn pull(git_dir: Option<PathBuf>) -> Result<()> {
+    log::debug!("git pull {:?}", git_dir);
+    let mut cmd = create_git_command();
+
+    if let Some(dir) = git_dir {
+        cmd.arg("--git-dir").arg(dir.as_os_str());
+    }
+
+    cmd.arg("pull");
+
+    cmd.spawn()?.wait_with_output().await.map_err(Error::from)?;
+
+    Ok(())
+}
