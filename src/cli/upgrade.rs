@@ -59,17 +59,24 @@ impl CliCommand for Upgrade {
                 .arg("diff")
                 .arg(commit)
                 .arg(current_commit.clone());
-            let patch = get_command_output(cmd).await?;
+            let mut patch = get_command_output(cmd).await?;
+            patch.push('\n');
             fs::write(patch_file.clone(), patch)?;
 
             // apply a patch
             log::debug!("apply patch on project");
             let mut cmd = create_git_command();
             cmd.arg("apply")
-                .arg(patch_file)
+                .arg(patch_file.clone())
                 .stdout(Stdio::inherit())
                 .stderr(Stdio::inherit());
-            cmd.spawn()?.wait_with_output().await.map_err(Error::from)?;
+            let patch_file_str = patch_file.to_string_lossy();
+            while !cmd.spawn()?.wait_with_output().await?.status.success() {
+                println!("An error occured applying the patch {patch_file_str}");
+                let mut rl = Editor::<()>::new()?;
+                rl.readline("Fix it and press enter to retry")?;
+            }
+            fs::remove_file(patch_file)?;
         } else {
             // ask for user confirmation
             if !confirm_checkout()? {
