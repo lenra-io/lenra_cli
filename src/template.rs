@@ -64,9 +64,6 @@ pub async fn clone_template(template: String, target_dir: PathBuf) -> Result<()>
     );
     create_git_command()
         .arg("clone")
-        .arg("--single-branch")
-        .arg("--depth")
-        .arg("1")
         .arg(template)
         .arg(target_dir.as_os_str())
         .spawn()?

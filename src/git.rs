@@ -33,15 +33,15 @@ pub async fn get_current_commit(git_dir: Option<PathBuf>) -> Result<String> {
     get_command_output(cmd).await
 }
 
-pub async fn fetch(git_dir: Option<PathBuf>) -> Result<()> {
-    log::debug!("git fetch {:?}", git_dir);
+pub async fn pull(git_dir: Option<PathBuf>) -> Result<()> {
+    log::debug!("git pull {:?}", git_dir);
     let mut cmd = create_git_command();
 
     if let Some(dir) = git_dir {
         cmd.arg("--git-dir").arg(dir.as_os_str());
     }
 
-    cmd.arg("fetch");
+    cmd.arg("pull");
 
     cmd.spawn()?.wait_with_output().await.map_err(Error::from)?;
 
