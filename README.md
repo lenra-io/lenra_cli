@@ -20,13 +20,19 @@
 <h1 align="center">Lenra CLI</h1>
 
   <p align="center">
-    The Lenra's command line interface.
+    Lenra is an open-source and ethical alternative to Firebase. Optimize your app creation, and just like that, make the world a better place;)
+    Create / host and deploy in one place.  
   </p>
-</div>
 
 [Report Bug](https://github.com/lenra-io/lenra_cli/issues)
 ·
 [Request Feature](https://github.com/lenra-io/lenra_cli/issues)
+
+<img width="500" alt="List of avaible language templates" src="https://user-images.githubusercontent.com/102291723/233625967-ba8326ec-14c4-4b86-870c-d7303ae052dc.png">
+</div>
+
+
+
 
 
 The Lenra's command line interface helps you building your Lenra app locally.
@@ -37,6 +43,11 @@ The Lenra's command line interface helps you building your Lenra app locally.
 Lenra is an open source framework to create your app using any language, and deploy it without any Ops scale, built on ethical values.
 
 [Discover our framework](https://www.lenra.io/discover.html)
+
+
+<div align="center">
+<img width="500" alt="Capture d’écran 2023-03-21 à 11 24 03" src="https://user-images.githubusercontent.com/102291723/233625939-a4164d38-e754-4104-b5ef-9f61be2381ea.png">
+</div>
 
 <!-- GETTING STARTED -->
 ## Getting Started
