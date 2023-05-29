@@ -43,7 +43,7 @@ impl CliCommand for Start {
         // Open the app
         println!(
             "\nApplication available at http://localhost:{}\n",
-            docker_compose::DEVTOOL_API_PORT
+            docker_compose::DEVTOOL_WEB_PORT
         );
         Ok(())
     }
