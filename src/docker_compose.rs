@@ -31,7 +31,8 @@ const POSTGRES_IMAGE_TAG: &str = "13";
 const MONGO_IMAGE: &str = "mongo";
 const MONGO_IMAGE_TAG: &str = "5.0.11-focal";
 pub const OF_WATCHDOG_PORT: u16 = 8080;
-pub const DEVTOOL_PORT: u16 = 4000;
+pub const DEVTOOL_WEB_PORT: u16 = 4000;
+pub const DEVTOOL_API_PORT: u16 = 4001;
 pub const MONGO_PORT: u16 = 27017;
 pub const POSTGRES_PORT: u16 = 5432;
 pub const NON_ROOT_USER: &str = "12000";
@@ -94,7 +95,7 @@ async fn generate_docker_compose_content(
         "LENRA_API_URL".into(),
         Some(EnvTypes::String(format!(
             "http://{}:{}",
-            DEVTOOL_SERVICE_NAME, DEVTOOL_PORT
+            DEVTOOL_SERVICE_NAME, DEVTOOL_API_PORT
         ))),
     ));
     devtool_env_vec.push((
@@ -120,14 +121,14 @@ async fn generate_docker_compose_content(
     let service_images = get_services_images(dev_conf).await;
     let mut app_ports = vec![];
     if exposed_services.contains(&Service::App) {
-        app_ports.push(format!("{}:{}", OF_WATCHDOG_PORT, OF_WATCHDOG_PORT));
+        app_ports.push(port_to_port_binding(OF_WATCHDOG_PORT));
     }
     if debug {
         if let Some(conf) = dev_conf {
             if let Some(dofigen) = &conf.dofigen {
                 if let Some(ports) = &dofigen.ports {
                     for port in ports {
-                        app_ports.push(format!("{}:{}", port, port));
+                        app_ports.push(port_to_port_binding(*port));
                     }
                 }
             }
@@ -169,7 +170,7 @@ async fn generate_docker_compose_content(
                     DEVTOOL_SERVICE_NAME.into(),
                     Some(docker_compose_types::Service {
                         image: Some(service_images.devtool),
-                        ports: Some(vec![format!("{}:{}", DEVTOOL_PORT, DEVTOOL_PORT)]),
+                        ports: Some(vec![DEVTOOL_WEB_PORT, DEVTOOL_API_PORT].into_iter().map(port_to_port_binding).collect()),
                         environment: Some(Environment::KvPair(devtool_envs.into())),
                         healthcheck: Some(Healthcheck {
                             test: Some(HealthcheckTest::Multiple(vec![
@@ -207,7 +208,7 @@ async fn generate_docker_compose_content(
                     Some(
                         docker_compose_types::Service {
                             image: Some(service_images.postgres),
-                            ports: if exposed_services.contains(&Service::Postgres) {Some(vec![format!("{}:{}", POSTGRES_PORT, POSTGRES_PORT)])} else {None},
+                            ports: if exposed_services.contains(&Service::Postgres) {Some(vec![port_to_port_binding(POSTGRES_PORT)])} else {None},
                             environment: Some(Environment::KvPair(postgres_envs.into())),
                             healthcheck: Some(Healthcheck {
                                 test: Some(HealthcheckTest::Multiple(vec![
@@ -230,7 +231,7 @@ async fn generate_docker_compose_content(
                     MONGO_SERVICE_NAME.into(),
                     Some( docker_compose_types::Service {
                             image: Some(service_images.mongo),
-                            ports: if exposed_services.contains(&Service::Mongo) {Some(vec![format!("{}:{}", MONGO_PORT, MONGO_PORT)])} else {None},
+                            ports: if exposed_services.contains(&Service::Mongo) {Some(vec![port_to_port_binding(MONGO_PORT)])} else {None},
                             environment: Some(Environment::KvPair(mongo_envs.into())),
                             healthcheck: Some(Healthcheck {
                                 test: Some(HealthcheckTest::Single(r#"test $$(echo "rs.initiate($$CONFIG).ok || rs.status().ok" | mongo --quiet) -eq 1"#.to_string())),
@@ -251,6 +252,10 @@ async fn generate_docker_compose_content(
         ..Default::default()
     };
     serde_yaml::to_string(&compose).map_err(Error::from)
+}
+
+fn port_to_port_binding(port: u16) -> String {
+    format!("{}:{}", port, port)
 }
 
 pub fn create_compose_command() -> process::Command {
