@@ -34,7 +34,7 @@ pub trait CliCommand {
 /// The subcommands
 #[derive(Subcommand)]
 pub enum Command {
-    /// Create a new Lenra app project
+    /// Create a new Lenra app project from a template
     New(New),
     /// Build your app in release mode
     Build(Build),

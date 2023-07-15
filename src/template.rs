@@ -8,13 +8,13 @@ use crate::{
     command::get_command_output,
     config::LENRA_CACHE_DIRECTORY,
     errors::{Error, Result},
-    git::create_git_command,
+    git::{create_git_command, Repository},
+    github::{search_repositories, GITHUB_TOPIC_REGEX},
 };
 use lazy_static::lazy_static;
 use log;
 use regex::Regex;
 use rustyline::Editor;
-use serde::{Deserialize, Serialize};
 
 pub const TEMPLATE_DATA_FILE: &str = ".template";
 pub const TEMPLATE_GIT_DIR: &str = "template.git";
@@ -42,43 +42,6 @@ pub struct TemplateData {
     pub commit: Option<String>,
 }
 
-trait PlatformRepository {
-    fn to_repository(&self) -> Repository;
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct GitHubSearchRepoResponse {
-    pub total_count: u32,
-    pub items: Vec<GitHubRepository>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-struct GitHubRepository {
-    pub full_name: String,
-    pub description: String,
-    pub clone_url: String,
-    pub stargazers_count: u32,
-}
-
-impl PlatformRepository for GitHubRepository {
-    fn to_repository(&self) -> Repository {
-        Repository {
-            name: self.full_name.clone(),
-            description: self.description.clone(),
-            url: self.clone_url.clone(),
-            stars: self.stargazers_count,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct Repository {
-    pub name: String,
-    pub description: String,
-    pub url: String,
-    pub stars: u32,
-}
-
 pub fn normalize_template(template: String) -> String {
     if TEMPLATE_SHORT_REGEX.is_match(template.as_str()) {
         // Replace aliases
@@ -95,32 +58,19 @@ pub fn normalize_template(template: String) -> String {
     }
 }
 
-pub async fn list_templates(topics: Vec<String>) -> Result<Vec<Repository>> {
-    let mut request: String = String::from(
-        "https://api.github.com/search/repositories?sort=stargazers&q=topic:lenra+topic:template",
-    );
+pub async fn list_templates(topics: &Vec<String>) -> Result<Vec<Repository>> {
+    let mut query: String = String::from("topic:lenra+topic:template");
     for topic in topics {
-        // TODO: check topic format
-        request.push_str(format!("+topic:{}", topic).as_str());
+        // check topic format
+        if !GITHUB_TOPIC_REGEX.is_match(topic.as_str()) {
+            return Err(Error::InvalidGitHubTopic(topic.clone()));
+        }
+        query.push_str(format!("+topic:{}", topic).as_str());
     }
-    let reponse: GitHubSearchRepoResponse = ureq::get(request.as_str())
-        .call()
-        .map_err(Error::from)?
-        .into_json()
-        .map_err(Error::from)?;
-
-    // TODO: return a list of repos (generic in order to add GitLab, Bitbucket, etc.)
-    reponse
-        .items
-        .into_iter()
-        .map(|repo| Ok(repo.to_repository()))
-        .collect()
+    search_repositories(query.as_str()).await
 }
 
 pub async fn choose_repository(repos: Vec<Repository>) -> Result<Repository> {
-    if repos.len() == 1 {
-        return Ok(repos[0].clone());
-    }
     let mut rl = Editor::<()>::new()?;
     let mut index = 0;
     let mut max_index = 0;

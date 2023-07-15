@@ -30,6 +30,10 @@ pub enum Error {
     FromUtf8(#[from] FromUtf8Error),
     #[error("Check error")]
     Check,
+    #[error("The next GitHub topic is not correct: {0}")]
+    InvalidGitHubTopic(String),
+    #[error("No template found")]
+    NoTemplateFound,
     #[error("{0}")]
     Custom(String),
 }

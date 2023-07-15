@@ -18,7 +18,7 @@ Here are the steps to start building a JavaScript Lenra app:
 
 ```bash
 # new app from javascript template in a new 'my-app' directory
-lenra new javascript my-app
+lenra new javascript -p my-app
 # move to the new app dir
 cd my-app
 # initialize git versionning

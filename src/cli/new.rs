@@ -1,6 +1,6 @@
 //! # new
 //!
-//! The new subcommand creates a new Lenra app project from a given template and into a given path
+//! The new subcommand creates a new Lenra app project from a template
 
 use async_trait::async_trait;
 pub use clap::Args;
@@ -10,7 +10,7 @@ use std::fs;
 use crate::cli::CliCommand;
 use crate::config::LENRA_CACHE_DIRECTORY;
 use crate::errors::{Error, Result};
-use crate::git::get_current_commit;
+use crate::git::{get_current_commit, GIT_REPO_REGEX};
 use crate::template::{
     choose_repository, clone_template, list_templates, TEMPLATE_DATA_FILE, TEMPLATE_GIT_DIR,
 };
@@ -23,8 +23,8 @@ pub struct New {
     /// You also can set the template project full url to use custom ones.
     pub topics: Vec<String>,
 
-    /// The project path
-    #[clap(parse(from_os_str), default_value = ".")]
+    /// The new project path
+    #[clap(short, long, parse(from_os_str), default_value = ".")]
     path: std::path::PathBuf,
 }
 
@@ -33,11 +33,18 @@ impl CliCommand for New {
     async fn run(&self) -> Result<()> {
         log::debug!("topics {:?}", self.topics);
 
-        let template = if self.topics.len() == 1 && self.topics[0].contains("://") {
+        let template = if self.topics.len() == 1 && GIT_REPO_REGEX.is_match(self.topics[0].as_str())
+        {
             self.topics[0].clone()
         } else {
-            let repos = list_templates(self.topics.clone()).await?;
-            choose_repository(repos).await?.url
+            let repos = list_templates(&self.topics).await?;
+            if repos.is_empty() {
+                return Err(Error::NoTemplateFound);
+            } else if repos.len() == 1 {
+                repos[0].url.clone()
+            } else {
+                choose_repository(repos).await?.url
+            }
         };
 
         clone_template(template.clone(), self.path.clone()).await?;
