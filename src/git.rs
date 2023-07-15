@@ -13,7 +13,8 @@ use mocktopus::macros::mockable;
 
 lazy_static! {
     pub static ref GIT_REPO_REGEX: Regex =
-        Regex::new(r"^((git|ssh|http(s)?)|(git@[\w\.]+))(:(//)?)([\w\.@\:/\-~]+)(\.git)(/)?$").unwrap();
+        Regex::new(r"^((git|ssh|http(s)?)|(git@[\w\.]+))(:(//)?)([\w\.@\:/\-~]+)(\.git)(/)?$")
+            .unwrap();
 }
 
 pub fn create_git_command() -> process::Command {

@@ -8,8 +8,7 @@ use crate::{
 };
 
 lazy_static! {
-    pub static ref GITHUB_TOPIC_REGEX: Regex =
-        Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*$").unwrap();
+    pub static ref GITHUB_TOPIC_REGEX: Regex = Regex::new(r"^[a-z0-9]+(-[a-z0-9]+)*$").unwrap();
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -19,7 +19,6 @@ mod keyboard_event;
 mod matching;
 mod template;
 
-// #![cfg_attr(test, feature(proc_macro_hygiene))]
 #[tokio::main]
 async fn main() -> () {
     env_logger::init();
