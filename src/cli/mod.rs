@@ -71,3 +71,25 @@ impl CliCommand for Command {
         .await
     }
 }
+
+#[cfg(test)]
+mod test {
+    use clap::{CommandFactory, FromArgMatches};
+
+    use super::Cli;
+
+    pub fn parse_command_line(line: String) -> Result<Cli, clap::Error> {
+        let args = &mut line.split_whitespace().collect::<Vec<&str>>();
+        let command = <Cli as CommandFactory>::command();
+        let mut matches = command
+            .clone()
+            .try_get_matches_from(args.clone())
+            .map_err(format_error)?;
+        <Cli as FromArgMatches>::from_arg_matches_mut(&mut matches).map_err(format_error)
+    }
+
+    fn format_error(err: clap::Error) -> clap::Error {
+        let mut command = <Cli as CommandFactory>::command();
+        err.format(&mut command)
+    }
+}

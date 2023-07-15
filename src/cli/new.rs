@@ -6,14 +6,18 @@ use async_trait::async_trait;
 pub use clap::Args;
 use log;
 use std::fs;
+use std::path::PathBuf;
 
 use crate::cli::CliCommand;
 use crate::config::LENRA_CACHE_DIRECTORY;
 use crate::errors::{Error, Result};
 use crate::git::{get_current_commit, GIT_REPO_REGEX};
 use crate::template::{
-    choose_repository, clone_template, list_templates, TEMPLATE_DATA_FILE, TEMPLATE_GIT_DIR,
+    choose_repository, clone_template, list_templates, TemplateData, TEMPLATE_DATA_FILE,
+    TEMPLATE_GIT_DIR,
 };
+#[cfg(test)]
+use mocktopus::macros::mockable;
 
 #[derive(Args)]
 pub struct New {
@@ -52,18 +56,90 @@ impl CliCommand for New {
         // create `.template` file to save template repo url and commit
         let git_dir = self.path.join(".git");
         let commit = get_current_commit(Some(git_dir.clone())).await?;
-        fs::write(
-            self.path.join(TEMPLATE_DATA_FILE),
-            format!("{}\n{}", template, commit),
-        )
+        TemplateData {
+            template,
+            commit: Some(commit.clone()),
+        }
+        .save_to(&self.path.join(TEMPLATE_DATA_FILE))
+        .await
         .map_err(Error::from)?;
 
-        log::debug!("move git directory");
-        // create the `.lenra` cache directory
-        let cache_dir = self.path.join(LENRA_CACHE_DIRECTORY);
-        fs::create_dir_all(cache_dir.clone()).unwrap();
-        fs::rename(git_dir, cache_dir.join(TEMPLATE_GIT_DIR))?;
+        create_cache_directories(&self.path, &git_dir)?;
 
         Ok(())
     }
+}
+
+#[cfg_attr(test, mockable)]
+fn create_cache_directories(path: &PathBuf, git_dir: &PathBuf) -> Result<()> {
+    log::debug!("create cache directories");
+    // create the `.lenra` cache directory
+    let cache_dir = path.join(LENRA_CACHE_DIRECTORY);
+    fs::create_dir_all(cache_dir.clone()).unwrap();
+    // move the template `.git` directory
+    fs::rename(git_dir, cache_dir.join(TEMPLATE_GIT_DIR))?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use mocktopus::mocking::{MockResult, Mockable};
+
+    use super::*;
+    use crate::{
+        cli::{self, Command},
+        template,
+    };
+
+    #[tokio::test]
+    async fn no_matching_templates() -> Result<(), Box<dyn std::error::Error>> {
+        let cli = cli::test::parse_command_line(String::from("lenra new js"))?;
+        let command = cli.command;
+        let new = match command {
+            Command::New(new) => new,
+            _ => panic!("wrong command"),
+        };
+        let expected_topics = vec!["js".to_string()];
+
+        assert_eq!(new.path, std::path::PathBuf::from("."));
+        assert_eq!(new.topics, expected_topics);
+        template::list_templates.mock_safe(move |topics| {
+            assert_eq!(topics, &expected_topics);
+            MockResult::Return(Box::pin(async move { Ok(vec![]) }))
+        });
+        let result = new.run().await;
+        assert!(result.is_err());
+        let error = result.unwrap_err();
+        match error {
+            Error::NoTemplateFound => (),
+            er => panic!("wrong error type {er}"),
+        }
+        Ok(())
+    }
+
+    // #[tokio::test]
+    // async fn one_matching_templates() -> Result<(), Box<dyn std::error::Error>> {
+    //     let cli = cli::test::parse_command_line(String::from("lenra new js"))?;
+    //     let command = cli.command;
+    //     let new = match command {
+    //         Command::New(new) => new,
+    //         _ => panic!("wrong command"),
+    //     };
+    //     let expected_topics = vec!["js".to_string()];
+
+    //     assert_eq!(new.path, std::path::PathBuf::from("."));
+    //     assert_eq!(new.topics, expected_topics);
+    //     template::list_templates.mock_safe(move |topics| {
+    //         assert_eq!(topics, &expected_topics);
+    //         MockResult::Return(Box::pin(async move { Ok(vec![]) }))
+    //     });
+    //     let result = new.run().await;
+    //     assert!(result.is_err());
+    //     let error = result.unwrap_err();
+    //     match error {
+    //         Error::NoTemplateFound => (),
+    //         er => panic!("wrong error type {er}"),
+    //     }
+    //     Ok(())
+    // }
 }
