@@ -4,8 +4,8 @@ pub use clap::{Args, Parser, Subcommand};
 use crate::errors::Result;
 
 use self::{
-    build::Build, check::Check, dev::Dev, logs::Logs, new::New, start::Start, stop::Stop,
-    update::Update, upgrade::Upgrade,
+    build::Build, check::Check, dev::Dev, logs::Logs, new::New, reload::Reload, start::Start,
+    stop::Stop, terminal::Terminal, update::Update, upgrade::Upgrade,
 };
 
 mod build;
@@ -13,13 +13,15 @@ mod check;
 mod dev;
 mod logs;
 mod new;
+mod reload;
 mod start;
 mod stop;
+mod terminal;
 mod update;
 mod upgrade;
 
 /// The Lenra command line interface
-#[derive(Parser)]
+#[derive(Parser, Debug, Clone)]
 #[clap(author, version, about, long_about = None, rename_all = "kebab-case")]
 pub struct Cli {
     #[clap(subcommand)]
@@ -32,7 +34,7 @@ pub trait CliCommand {
 }
 
 /// The subcommands
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum Command {
     /// Create a new Lenra app project from a template
     New(New),
@@ -46,12 +48,16 @@ pub enum Command {
     Stop(Stop),
     /// Start the app in an interactive mode
     Dev(Dev),
+    /// Start a Lenra command terminal
+    Terminal(Terminal),
     /// Upgrade the app with the last template updates
     Upgrade(Upgrade),
     /// Update the tools Docker images
     Update(Update),
     /// Checks the running app
     Check(Check),
+    /// Reload the app by rebuilding and restarting it
+    Reload(Reload),
 }
 
 #[async_trait]
@@ -64,9 +70,11 @@ impl CliCommand for Command {
             Command::Logs(logs) => logs.run(),
             Command::Stop(stop) => stop.run(),
             Command::Dev(dev) => dev.run(),
+            Command::Terminal(terminal) => terminal.run(),
             Command::Upgrade(upgrade) => upgrade.run(),
             Command::Update(update) => update.run(),
             Command::Check(check) => check.run(),
+            Command::Reload(reload) => reload.run(),
         }
         .await
     }

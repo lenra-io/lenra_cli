@@ -19,7 +19,7 @@ use crate::template::{
 #[cfg(test)]
 use mocktopus::macros::mockable;
 
-#[derive(Args)]
+#[derive(Args, Debug, Clone)]
 pub struct New {
     /// The project template topics from which your project will be created.
     /// For example, defining `rust` look for the next API endpoint: https://api.github.com/search/repositories?q=topic:lenra+topic:template+topic:rust&sort=stargazers

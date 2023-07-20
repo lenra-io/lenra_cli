@@ -2,12 +2,16 @@ use docker_compose_types::{
     AdvancedBuildStep, BuildStep, Command, Compose, DependsCondition, DependsOnOptions, Deploy,
     EnvTypes, Environment, Healthcheck, HealthcheckTest, Limits, Resources, Services,
 };
+use itertools::Itertools;
 use lazy_static::lazy_static;
 use log::{debug, warn};
+use serde::{Deserialize, Serialize};
 use std::process::Stdio;
 use std::{convert::TryInto, env, fs, path::PathBuf};
+use strum::Display;
 use tokio::process;
 
+use crate::command::get_command_output;
 use crate::config::Image;
 use crate::docker::normalize_tag;
 use crate::errors::Error;
@@ -20,7 +24,7 @@ use crate::{
 pub const APP_SERVICE_NAME: &str = "app";
 pub const DEVTOOL_SERVICE_NAME: &str = "devtool";
 pub const POSTGRES_SERVICE_NAME: &str = "postgres";
-pub const MONGO_SERVICE_NAME: &str = "mongodb";
+pub const MONGO_SERVICE_NAME: &str = "mongo";
 const APP_BASE_IMAGE: &str = "lenra/app/";
 const APP_DEFAULT_IMAGE: &str = "my";
 const APP_DEFAULT_IMAGE_TAG: &str = "latest";
@@ -41,6 +45,83 @@ const MEMORY_LIMIT: &str = "256M";
 
 lazy_static! {
     static ref COMPOSE_COMMAND: std::process::Command = get_compose_command();
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[serde(rename_all = "PascalCase")]
+pub struct ServiceInformations {
+    service: Service,
+    #[serde(rename = "ID")]
+    id: String,
+    name: String,
+    image: String,
+    command: String,
+    project: String,
+    state: ServiceState,
+    status: String,
+    created: String,
+    health: String,
+    exit_code: String,
+    publishers: Vec<Publisher>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[serde(rename_all = "PascalCase")]
+pub struct Publisher {
+    #[serde(rename = "URL")]
+    url: String,
+    target_port: u16,
+    published_port: u16,
+    protocol: String,
+}
+
+#[derive(clap::ValueEnum, Serialize, Deserialize, Clone, Debug, PartialEq, Display)]
+pub enum Service {
+    App,
+    Devtool,
+    Postgres,
+    Mongo,
+}
+
+impl Service {
+    pub fn to_str(&self) -> &str {
+        match self {
+            Service::App => APP_SERVICE_NAME,
+            Service::Devtool => DEVTOOL_SERVICE_NAME,
+            Service::Postgres => POSTGRES_SERVICE_NAME,
+            Service::Mongo => MONGO_SERVICE_NAME,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ServiceImages {
+    pub app: String,
+    pub devtool: String,
+    pub postgres: String,
+    pub mongo: String,
+}
+
+impl ServiceImages {
+    pub fn get(&self, service: &Service) -> String {
+        match service {
+            Service::App => self.app.clone(),
+            Service::Devtool => self.devtool.clone(),
+            Service::Postgres => self.postgres.clone(),
+            Service::Mongo => self.mongo.clone(),
+        }
+    }
+}
+
+#[derive(clap::ValueEnum, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub enum ServiceState {
+    Running,
+    Paused,
+    Restarting,
+    Removing,
+    Dead,
+    Created,
+    Exited,
 }
 
 /// Generates the docker-compose.yml file
@@ -310,6 +391,75 @@ pub async fn compose_build() -> Result<()> {
     Ok(())
 }
 
+/// List all the current Docker Compose running services
+pub async fn list_running_services() -> Result<Vec<Service>> {
+    let mut command = create_compose_command();
+    command
+        .arg("ps")
+        .arg("--services")
+        .arg("--filter")
+        .arg("status=running");
+
+    let services: Vec<Service> = get_command_output(command).await.map(|output| {
+        output
+            .lines()
+            .map(|service| match service.trim() {
+                APP_SERVICE_NAME => Some(Service::App),
+                DEVTOOL_SERVICE_NAME => Some(Service::Devtool),
+                POSTGRES_SERVICE_NAME => Some(Service::Postgres),
+                MONGO_SERVICE_NAME => Some(Service::Mongo),
+                _ => None,
+            })
+            .filter_map(|service| service)
+            .collect()
+    })?;
+    Ok(services)
+}
+
+/// Check if the given service is running in the current Docker Compose
+pub async fn is_service_runnin(service: Service) -> Result<bool> {
+    let mut command = create_compose_command();
+    let service_name = service.to_str();
+    command
+        .arg("ps")
+        .arg(service_name)
+        .arg("--services")
+        .arg("--filter")
+        .arg("status=running");
+
+    let is_running = get_command_output(command)
+        .await
+        .map(|output| output.trim() == service_name)?;
+    Ok(is_running)
+}
+
+/// Get the given Docker Compose service information
+pub async fn get_service_informations(service: Service) -> Result<ServiceInformations> {
+    let mut command = create_compose_command();
+    let service_name = service.to_str();
+    command
+        .arg("ps")
+        .arg(service_name)
+        .arg("--format")
+        .arg("json");
+
+    let output = get_command_output(command).await?;
+    let infos: ServiceInformations = serde_yaml::from_str(output.as_str())?;
+    Ok(infos)
+}
+
+/// Get the given Docker Compose service published port
+pub async fn get_service_published_ports(service: Service) -> Result<Vec<u16>> {
+    let infos = get_service_informations(service).await?;
+    let ports = infos
+        .publishers
+        .iter()
+        .map(|publisher| publisher.published_port)
+        .unique()
+        .collect();
+    Ok(ports)
+}
+
 pub async fn execute_compose_service_command(service: &str, cmd: &[&str]) -> Result<String> {
     let mut command = create_compose_command();
 
@@ -379,44 +529,6 @@ pub async fn get_services_images(dev_conf: &Option<Dev>) -> ServiceImages {
                 ..Default::default()
             })
             .to_image(MONGO_IMAGE, MONGO_IMAGE_TAG),
-    }
-}
-
-#[derive(clap::ValueEnum, Clone, Debug, PartialEq)]
-pub enum Service {
-    App,
-    Devtool,
-    Postgres,
-    Mongo,
-}
-
-impl Service {
-    pub fn to_str(&self) -> &str {
-        match self {
-            Service::App => APP_SERVICE_NAME,
-            Service::Devtool => DEVTOOL_SERVICE_NAME,
-            Service::Postgres => POSTGRES_SERVICE_NAME,
-            Service::Mongo => MONGO_SERVICE_NAME,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ServiceImages {
-    pub app: String,
-    pub devtool: String,
-    pub postgres: String,
-    pub mongo: String,
-}
-
-impl ServiceImages {
-    pub fn get(&self, service: &Service) -> String {
-        match service {
-            Service::App => self.app.clone(),
-            Service::Devtool => self.devtool.clone(),
-            Service::Postgres => self.postgres.clone(),
-            Service::Mongo => self.mongo.clone(),
-        }
     }
 }
 

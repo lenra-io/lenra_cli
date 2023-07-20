@@ -8,7 +8,7 @@ use crate::cli::CliCommand;
 use crate::docker_compose::create_compose_command;
 use crate::errors::{CommandError, Error, Result};
 
-#[derive(Args, Clone)]
+#[derive(Args, Debug, Clone)]
 pub struct Stop;
 
 #[async_trait]

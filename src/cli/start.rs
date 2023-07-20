@@ -9,7 +9,7 @@ use crate::devtool::stop_app_env;
 use crate::docker_compose::{self, compose_up, Service};
 use crate::errors::Result;
 
-#[derive(Args, Default)]
+#[derive(Args, Default, Debug, Clone)]
 pub struct Start {
     /// The app configuration file.
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]

@@ -9,7 +9,7 @@ use crate::docker;
 use crate::docker_compose::{get_services_images, Service, ServiceImages};
 use crate::errors::{CommandError, Error, Result};
 
-#[derive(Args, Clone)]
+#[derive(Args, Debug, Clone)]
 pub struct Update {
     /// The app configuration file.
     #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]

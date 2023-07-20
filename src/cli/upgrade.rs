@@ -15,7 +15,7 @@ use crate::template::{
     clone_template, get_template_data, TemplateData, TEMPLATE_GIT_DIR, TEMPLATE_TEMP_DIR,
 };
 
-#[derive(clap::Args)]
+#[derive(clap::Args, Debug, Clone)]
 pub struct Upgrade {}
 
 #[async_trait]
