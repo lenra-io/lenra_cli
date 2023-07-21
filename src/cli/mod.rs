@@ -60,7 +60,7 @@ pub enum Command {
     Stop(Stop),
     /// Start the app in an interactive mode
     Dev(Dev),
-    /// Start a Lenra command terminal
+    /// Start a Lenra command terminal to run commands with a same context (verbose, config, expose, ...) and without having to write 'lenra' each time.
     Terminal(Terminal),
     /// Upgrade the app with the last template updates
     Upgrade(Upgrade),

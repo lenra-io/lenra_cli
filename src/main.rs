@@ -29,6 +29,9 @@ async fn main() -> () {
         expose: args.expose.clone(),
         verbose: args.verbose,
     };
+    if args.verbose {
+        command::set_inherit_stdio(true);
+    }
     match args.command.run(context).await {
         Ok(_) => (),
         Err(e) => {

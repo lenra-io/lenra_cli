@@ -11,7 +11,7 @@ use std::{convert::TryInto, env, fs, path::PathBuf};
 use strum::Display;
 use tokio::process;
 
-use crate::command::get_command_output;
+use crate::command::{get_command_output, is_inherit_stdio};
 use crate::config::Image;
 use crate::docker::normalize_tag;
 use crate::errors::Error;
@@ -103,14 +103,14 @@ pub struct ServiceImages {
 }
 
 impl ServiceImages {
-    pub fn get(&self, service: &Service) -> String {
-        match service {
-            Service::App => self.app.clone(),
-            Service::Devtool => self.devtool.clone(),
-            Service::Postgres => self.postgres.clone(),
-            Service::Mongo => self.mongo.clone(),
-        }
-    }
+    // pub fn get(&self, service: &Service) -> String {
+    //     match service {
+    //         Service::App => self.app.clone(),
+    //         Service::Devtool => self.devtool.clone(),
+    //         Service::Postgres => self.postgres.clone(),
+    //         Service::Mongo => self.mongo.clone(),
+    //     }
+    // }
 }
 
 #[derive(clap::ValueEnum, Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -343,19 +343,18 @@ pub fn create_compose_command() -> process::Command {
     let dockercompose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
     let mut cmd = process::Command::from(COMPOSE_COMMAND.clone());
     cmd.arg("-f").arg(dockercompose_path).kill_on_drop(true);
-
+    if is_inherit_stdio() {
+        cmd.stdout(Stdio::inherit()).stderr(Stdio::inherit());
+    } else {
+        cmd.stdout(Stdio::null()).stderr(Stdio::null());
+    }
     cmd
 }
 
 pub async fn compose_up() -> Result<()> {
     let mut command = create_compose_command();
 
-    command
-        .arg("up")
-        .arg("-d")
-        .arg("--wait")
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit());
+    command.arg("up").arg("-d").arg("--wait");
 
     log::debug!("cmd: {:?}", command);
     let output = command.spawn()?.wait_with_output().await?;
@@ -372,11 +371,7 @@ pub async fn compose_up() -> Result<()> {
 pub async fn compose_down() -> Result<()> {
     let mut command = create_compose_command();
 
-    command
-        .arg("down")
-        .arg("--volumes")
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit());
+    command.arg("down").arg("--volumes");
 
     log::debug!("cmd: {:?}", command);
     let output = command.spawn()?.wait_with_output().await?;
@@ -393,9 +388,6 @@ pub async fn compose_build() -> Result<()> {
 
     // Use Buildkit to improve performance
     command.env("DOCKER_BUILDKIT", "1");
-
-    // Display std out & err
-    command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
 
     log::debug!("Build: {:?}", command);
     let output = command.spawn()?.wait_with_output().await?;
@@ -457,22 +449,22 @@ pub async fn list_running_services() -> Result<Vec<Service>> {
     Ok(services)
 }
 
-/// Check if the given service is running in the current Docker Compose
-pub async fn is_service_runnin(service: Service) -> Result<bool> {
-    let mut command = create_compose_command();
-    let service_name = service.to_str();
-    command
-        .arg("ps")
-        .arg(service_name)
-        .arg("--services")
-        .arg("--filter")
-        .arg("status=running");
+// /// Check if the given service is running in the current Docker Compose
+// pub async fn is_service_runnin(service: Service) -> Result<bool> {
+//     let mut command = create_compose_command();
+//     let service_name = service.to_str();
+//     command
+//         .arg("ps")
+//         .arg(service_name)
+//         .arg("--services")
+//         .arg("--filter")
+//         .arg("status=running");
 
-    let is_running = get_command_output(command)
-        .await
-        .map(|output| output.trim() == service_name)?;
-    Ok(is_running)
-}
+//     let is_running = get_command_output(command)
+//         .await
+//         .map(|output| output.trim() == service_name)?;
+//     Ok(is_running)
+// }
 
 /// Get the given Docker Compose service information
 pub async fn get_service_informations(service: Service) -> Result<ServiceInformations> {
@@ -576,6 +568,8 @@ pub async fn get_services_images(dev_conf: &Option<Dev>) -> ServiceImages {
 fn get_compose_command() -> std::process::Command {
     match std::process::Command::new("docker-compose")
         .arg("version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .spawn()
     {
         Ok(_) => {

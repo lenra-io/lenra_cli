@@ -4,13 +4,6 @@ use std::{
 };
 
 use regex::Regex;
-use tokio::process::Command;
-
-pub fn pull(image: String) -> Command {
-    let mut cmd = Command::new("docker");
-    cmd.kill_on_drop(true).arg("pull").arg(image);
-    cmd
-}
 
 pub fn normalize_tag(tag: String) -> String {
     let re = Regex::new(r"[^A-Za-z0-9._-]").unwrap();

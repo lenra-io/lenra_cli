@@ -618,6 +618,7 @@ dependencies = [
  "env_logger",
  "itertools",
  "lazy_static",
+ "loading",
  "log",
  "mocktopus",
  "regex",
@@ -642,6 +643,12 @@ name = "linux-raw-sys"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "09fc20d2ca12cb9f044c93e3bd6d32d523e6e2ec3db4f7b2939cd99026ecd3f0"
+
+[[package]]
+name = "loading"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "676420b03272176423578148eee61319e893422694f6d96a394841cb0901357f"
 
 [[package]]
 name = "lock_api"

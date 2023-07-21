@@ -4,13 +4,16 @@ use std::{
     process::Stdio,
 };
 
+use loading::Loading;
 use rustyline::Editor;
 
 use crate::{
     command::get_command_output,
     config::{load_config_file, DOCKERCOMPOSE_DEFAULT_PATH, LENRA_CACHE_DIRECTORY},
     devtool::stop_app_env,
-    docker_compose::{self, compose_build, compose_down, compose_up, Service},
+    docker_compose::{
+        self, compose_build, compose_down, compose_up, list_running_services, Service,
+    },
     errors::{Error, Result},
     git,
     template::{self, TemplateData},
@@ -22,11 +25,13 @@ use mocktopus::macros::mockable;
 #[cfg_attr(test, mockable)]
 pub async fn create_new_project(template: &str, path: &PathBuf) -> Result<()> {
     log::info!("Creating a new project");
-    // TODO: check that the path does not exists or is empty
+    // check that the path does not exists or is empty
     if path.exists() && path.read_dir().map_err(Error::from)?.next().is_some() {
         return Err(Error::ProjectPathNotEmpty);
     }
 
+    let loading = Loading::default();
+    loading.text("Creating new project...");
     template::clone_template(template, path).await?;
 
     // create `.template` file to save template repo url and commit
@@ -54,6 +59,8 @@ fn create_cache_directories(path: &PathBuf, git_dir: &PathBuf) -> Result<()> {
     fs::create_dir_all(cache_dir.clone()).unwrap();
     // move the template `.git` directory
     fs::rename(git_dir, cache_dir.join(template::TEMPLATE_GIT_DIR))?;
+
+    log::info!("Project created");
     Ok(())
 }
 
@@ -63,16 +70,25 @@ pub async fn generate_app_env(
     production: bool,
 ) -> Result<()> {
     log::info!("Generating the app environment");
+    let loading = Loading::default();
+    loading.text("Generate app env...");
     let conf = load_config_file(config)?;
     // TODO: check the components API version
 
-    conf.generate_files(expose, !production).await
+    conf.generate_files(expose, !production).await?;
+    loading.success("App env generated");
+    loading.end();
+    Ok(())
 }
 
 pub async fn build_app() -> Result<()> {
     log::info!("Build the Docker image");
+    let loading = Loading::default();
+    loading.text("Build app...");
     compose_build().await?;
     log::info!("Image built");
+    loading.success("App built");
+    loading.end();
     Ok(())
 }
 
@@ -83,17 +99,37 @@ pub async fn start_env() -> Result<()> {
     }
 
     log::info!("Start the containers");
-    compose_up().await
+    let loading = Loading::default();
+    loading.text("Start app environment...");
+    compose_up().await?;
+    let running_services = list_running_services().await?;
+    if running_services.len() == 4 {
+        loading.success("App environment started");
+    } else {
+        loading.warn("Some services are not running");
+    }
+    loading.end();
+    Ok(())
 }
 
 pub async fn stop_env() -> Result<()> {
     log::info!("Stop the containers");
-    compose_down().await
+    let loading = Loading::default();
+    loading.text("Stop app environment...");
+    compose_down().await?;
+    loading.success("App environment stopped");
+    loading.end();
+    Ok(())
 }
 
 pub async fn clear_cache() -> Result<()> {
     log::info!("Clearing cache");
-    stop_app_env().await
+    let loading = Loading::default();
+    loading.text("Clearing cache...");
+    stop_app_env().await?;
+    loading.success("Cache cleared");
+    loading.end();
+    Ok(())
 }
 
 pub fn display_app_access_url() {
@@ -101,6 +137,16 @@ pub fn display_app_access_url() {
         "\nApplication available at http://localhost:{}\n",
         docker_compose::DEVTOOL_WEB_PORT
     );
+}
+
+pub async fn update_env_images(services: &Vec<Service>) -> Result<()> {
+    log::info!("Update the environment images");
+    let loading = Loading::default();
+    loading.text("Update environment images...");
+    docker_compose::compose_pull(services.iter().map(|service| service.to_str()).collect()).await?;
+    loading.success("Environment images updated");
+    loading.end();
+    Ok(())
 }
 
 pub async fn upgrade_app() -> Result<()> {
@@ -175,9 +221,7 @@ pub async fn upgrade_app() -> Result<()> {
             .arg("checkout")
             .arg("HEAD")
             .arg("--")
-            .arg(".")
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit());
+            .arg(".");
         cmd.spawn()?.wait_with_output().await.map_err(Error::from)?;
     }
     // save template data
