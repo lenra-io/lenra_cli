@@ -102,17 +102,6 @@ pub struct ServiceImages {
     pub mongo: String,
 }
 
-impl ServiceImages {
-    // pub fn get(&self, service: &Service) -> String {
-    //     match service {
-    //         Service::App => self.app.clone(),
-    //         Service::Devtool => self.devtool.clone(),
-    //         Service::Postgres => self.postgres.clone(),
-    //         Service::Mongo => self.mongo.clone(),
-    //     }
-    // }
-}
-
 #[derive(clap::ValueEnum, Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub enum ServiceState {
     Running,
@@ -625,22 +614,16 @@ mod test_get_services_images {
             ..Default::default()
         }))
         .await;
+        assert_eq!(images.app, format!("lenra/app/lenra_cli:{}", app_tag));
         assert_eq!(
-            images.get(&Service::App),
-            format!("lenra/app/lenra_cli:{}", app_tag)
-        );
-        assert_eq!(
-            images.get(&Service::Devtool),
+            images.devtool,
             format!("{}:{}", DEVTOOL_IMAGE, DEVTOOL_DEFAULT_TAG)
         );
         assert_eq!(
-            images.get(&Service::Postgres),
+            images.postgres,
             format!("{}:{}", POSTGRES_IMAGE, POSTGRES_IMAGE_TAG)
         );
-        assert_eq!(
-            images.get(&Service::Mongo),
-            format!("{}:{}", MONGO_IMAGE, MONGO_IMAGE_TAG)
-        );
+        assert_eq!(images.mongo, format!("{}:{}", MONGO_IMAGE, MONGO_IMAGE_TAG));
     }
 
     #[tokio::test]
@@ -648,10 +631,7 @@ mod test_get_services_images {
         git::get_current_branch
             .mock_safe(|_| MockResult::Return(Box::pin(async move { Ok("test".to_string()) })));
         let images: ServiceImages = get_services_images(&None).await;
-        assert_eq!(
-            images.get(&Service::App),
-            "lenra/app/lenra_cli:test".to_string()
-        );
+        assert_eq!(images.app, "lenra/app/lenra_cli:test".to_string());
     }
 
     #[tokio::test]
@@ -663,7 +643,7 @@ mod test_get_services_images {
         });
         let images: ServiceImages = get_services_images(&None).await;
         assert_eq!(
-            images.get(&Service::App),
+            images.app,
             "lenra/app/lenra_cli:prefixed-branch-name_withUnderscore".to_string()
         );
     }
@@ -688,9 +668,6 @@ mod test_get_services_images {
             MockResult::Return(Box::pin(async move { Ok(branch) }))
         });
         let images: ServiceImages = get_services_images(&None).await;
-        assert_eq!(
-            images.get(&Service::App),
-            format!("lenra/app/lenra_cli:{}", tag)
-        );
+        assert_eq!(images.app, format!("lenra/app/lenra_cli:{}", tag));
     }
 }
