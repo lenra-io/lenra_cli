@@ -3,16 +3,18 @@ use chrono::{DateTime, SecondsFormat, Utc};
 pub use clap::Args;
 use tokio::select;
 
-use crate::cli::build::Build;
-use crate::cli::dev::interactive::listen_interactive_command;
-use crate::cli::start::Start;
-use crate::cli::CliCommand;
+use crate::cli::{
+    build::Build,
+    dev::interactive::listen_interactive_command,
+    logs::Logs,
+    start::Start,
+    terminal::{run_command, TerminalCommand},
+    CliCommand, CommandContext,
+};
 use crate::config::DEFAULT_CONFIG_FILE;
 use crate::docker_compose::Service;
 use crate::errors::Result;
 
-use super::logs::Logs;
-use super::terminal::{run_command, TerminalCommand, TerminalContext};
 use interactive::{InteractiveCommand, KeyboardShorcut};
 
 mod interactive;
@@ -30,16 +32,14 @@ pub struct Dev {
 
 #[async_trait]
 impl CliCommand for Dev {
-    async fn run(&self) -> Result<()> {
+    async fn run(&self, context: CommandContext) -> Result<()> {
         log::info!("Run dev mode");
 
         let build = Build {
-            config: self.config.clone(),
-            expose: self.expose.clone(),
             ..Default::default()
         };
         log::debug!("Run build");
-        build.run().await?;
+        build.run(context.clone()).await?;
 
         let previous_log = Logs {
             services: vec![Service::App],
@@ -48,32 +48,25 @@ impl CliCommand for Dev {
         };
         let mut last_logs = Utc::now();
 
-        let start = Start {
-            config: self.config.clone(),
-            expose: self.expose.clone(),
-            ..Default::default()
-        };
         log::debug!("Run start");
-        start.run().await?;
+        Start.run(context.clone()).await?;
 
-        let mut context = TerminalContext {
-            config: self.config.clone(),
-            expose: self.expose.clone(),
-        };
+        let mut cmd_context = context;
 
         InteractiveCommand::Help.to_value();
         let mut interactive_cmd = None;
         loop {
             if let Some(command) = interactive_cmd {
-                let (ctx_opt, keep_running) = run_command(&command, &context).await;
+                let (ctx_opt, keep_running) = run_command(&command, cmd_context.clone()).await;
                 if !keep_running {
                     break;
                 }
                 if let Some(ctx) = ctx_opt {
-                    context = ctx.clone();
+                    cmd_context = ctx.clone();
                 }
             }
-            (last_logs, interactive_cmd) = run_logs(&previous_log, Some(last_logs)).await?;
+            (last_logs, interactive_cmd) =
+                run_logs(&previous_log, Some(last_logs), cmd_context.clone()).await?;
         }
 
         log::debug!("End of dev mode");
@@ -84,6 +77,7 @@ impl CliCommand for Dev {
 async fn run_logs(
     logs: &Logs,
     last_end: Option<DateTime<Utc>>,
+    context: CommandContext,
 ) -> Result<(DateTime<Utc>, Option<TerminalCommand>)> {
     let mut clone = logs.clone();
     if let Some(last_logs) = last_end {
@@ -93,7 +87,7 @@ async fn run_logs(
 
     let command = select! {
         res = listen_interactive_command() => {res?}
-        res = clone.run() => {res?; None}
+        res = clone.run(context) => {res?; None}
         // res = tokio::signal::ctrl_c() => {res?; None}
     };
     Ok((Utc::now(), command))

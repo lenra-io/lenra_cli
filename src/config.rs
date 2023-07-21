@@ -116,7 +116,7 @@ pub struct Dockerfile {
 
 impl Application {
     /// Generates all the files needed to build and run the application
-    pub async fn generate_files(&self, exposed_services: Vec<Service>, debug: bool) -> Result<()> {
+    pub async fn generate_files(&self, exposed_services: &Vec<Service>, debug: bool) -> Result<()> {
         self.generate_docker_files(debug)?;
         self.generate_docker_compose_file(exposed_services, debug)
             .await?;
@@ -148,7 +148,7 @@ impl Application {
 
     pub async fn generate_docker_compose_file(
         &self,
-        exposed_services: Vec<Service>,
+        exposed_services: &Vec<Service>,
         debug: bool,
     ) -> Result<()> {
         log::info!("Docker Compose file generation");

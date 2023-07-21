@@ -4,20 +4,14 @@ use log;
 use clap;
 
 use crate::cli::CliCommand;
-use crate::config::{load_config_file, DEFAULT_CONFIG_FILE};
-use crate::docker_compose::{compose_build, Service};
+use crate::config::load_config_file;
+use crate::docker_compose::compose_build;
 use crate::errors::Result;
+
+use super::CommandContext;
 
 #[derive(clap::Args, Default, Debug, Clone)]
 pub struct Build {
-    /// The app configuration file.
-    #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
-    pub config: std::path::PathBuf,
-
-    /// Exposes services ports.
-    #[clap(long, value_enum, default_values = &[], default_missing_values = &["app", "postgres", "mongo"])]
-    pub expose: Vec<Service>,
-
     /// Remove debug access to the app.
     #[clap(long, alias = "prod", action)]
     pub production: bool,
@@ -25,11 +19,11 @@ pub struct Build {
 
 #[async_trait]
 impl CliCommand for Build {
-    async fn run(&self) -> Result<()> {
-        let conf = load_config_file(&self.config)?;
+    async fn run(&self, context: CommandContext) -> Result<()> {
+        let conf = load_config_file(&context.config)?;
         // TODO: check the components API version
 
-        conf.generate_files(self.expose.clone(), !self.production)
+        conf.generate_files(&context.expose, !self.production)
             .await?;
 
         log::info!("Build the Docker image");

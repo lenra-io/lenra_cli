@@ -15,12 +15,14 @@ use crate::template::{
     clone_template, get_template_data, TemplateData, TEMPLATE_GIT_DIR, TEMPLATE_TEMP_DIR,
 };
 
+use super::CommandContext;
+
 #[derive(clap::Args, Debug, Clone)]
 pub struct Upgrade {}
 
 #[async_trait]
 impl CliCommand for Upgrade {
-    async fn run(&self) -> Result<()> {
+    async fn run(&self, _context: CommandContext) -> Result<()> {
         // get template data
         let template_data = get_template_data().await?;
         let git_dir = Path::new(LENRA_CACHE_DIRECTORY).join(TEMPLATE_GIT_DIR);

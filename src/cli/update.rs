@@ -9,6 +9,8 @@ use crate::docker;
 use crate::docker_compose::{get_services_images, Service, ServiceImages};
 use crate::errors::{CommandError, Error, Result};
 
+use super::CommandContext;
+
 #[derive(Args, Debug, Clone)]
 pub struct Update {
     /// The app configuration file.
@@ -22,7 +24,7 @@ pub struct Update {
 
 #[async_trait]
 impl CliCommand for Update {
-    async fn run(&self) -> Result<()> {
+    async fn run(&self, _context: CommandContext) -> Result<()> {
         log::info!("Updating Docker images");
 
         let conf = load_config_file(&self.config).ok();

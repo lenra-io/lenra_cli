@@ -14,7 +14,7 @@ use crate::{
 
 use self::template::TemplateChecker;
 
-use super::CliCommand;
+use super::{CliCommand, CommandContext};
 
 mod template;
 
@@ -38,7 +38,7 @@ pub enum CheckCommandType {
 
 #[async_trait]
 impl CliCommand for Check {
-    async fn run(&self) -> Result<()> {
+    async fn run(&self, _context: CommandContext) -> Result<()> {
         // check that the app service is exposed
         if get_service_published_ports(Service::App).await?.is_empty() {
             return Err(Error::ServiceNotExposed(Service::App));

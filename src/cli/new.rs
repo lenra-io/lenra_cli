@@ -19,6 +19,8 @@ use crate::template::{
 #[cfg(test)]
 use mocktopus::macros::mockable;
 
+use super::CommandContext;
+
 #[derive(Args, Debug, Clone)]
 pub struct New {
     /// The project template topics from which your project will be created.
@@ -34,7 +36,7 @@ pub struct New {
 
 #[async_trait]
 impl CliCommand for New {
-    async fn run(&self) -> Result<()> {
+    async fn run(&self, _context: CommandContext) -> Result<()> {
         log::debug!("topics {:?}", self.topics);
 
         let template = if self.topics.len() == 1 && GIT_REPO_REGEX.is_match(self.topics[0].as_str())
@@ -130,7 +132,11 @@ mod tests {
             assert_eq!(topics, &expected_topics);
             MockResult::Return(Box::pin(async move { Ok(vec![]) }))
         });
-        let result = new.run().await;
+        let result = new
+            .run(CommandContext {
+                ..Default::default()
+            })
+            .await;
         let call_count = *list_templates_call_counter.lock().unwrap();
         println!("called {} times", call_count);
         assert_eq!(call_count, 1);
@@ -200,7 +206,11 @@ mod tests {
             *num += 1;
             MockResult::Return(Ok(()))
         });
-        let result = new.run().await;
+        let result = new
+            .run(CommandContext {
+                ..Default::default()
+            })
+            .await;
         assert_eq!(*list_templates_call_counter.lock().unwrap(), 1);
         assert_eq!(*clone_template_call_counter.lock().unwrap(), 1);
         assert_eq!(*get_current_commit_call_counter.lock().unwrap(), 1);
@@ -283,7 +293,11 @@ mod tests {
             *num += 1;
             MockResult::Return(Ok(()))
         });
-        let result = new.run().await;
+        let result = new
+            .run(CommandContext {
+                ..Default::default()
+            })
+            .await;
         assert_eq!(*list_templates_call_counter.lock().unwrap(), 1);
         assert_eq!(*clone_template_call_counter.lock().unwrap(), 1);
         assert_eq!(*get_current_commit_call_counter.lock().unwrap(), 1);
@@ -335,7 +349,11 @@ mod tests {
             *num += 1;
             MockResult::Return(Ok(()))
         });
-        let result = new.run().await;
+        let result = new
+            .run(CommandContext {
+                ..Default::default()
+            })
+            .await;
         assert_eq!(*clone_template_call_counter.lock().unwrap(), 1);
         assert_eq!(*get_current_commit_call_counter.lock().unwrap(), 1);
         assert_eq!(*save_to_call_counter.lock().unwrap(), 1);
@@ -386,7 +404,11 @@ mod tests {
             *num += 1;
             MockResult::Return(Ok(()))
         });
-        let result = new.run().await;
+        let result = new
+            .run(CommandContext {
+                ..Default::default()
+            })
+            .await;
         assert_eq!(*clone_template_call_counter.lock().unwrap(), 1);
         assert_eq!(*get_current_commit_call_counter.lock().unwrap(), 1);
         assert_eq!(*save_to_call_counter.lock().unwrap(), 1);

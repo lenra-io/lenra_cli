@@ -128,7 +128,7 @@ pub enum ServiceState {
 pub async fn generate_docker_compose(
     dockerfile: PathBuf,
     dev_conf: &Option<Dev>,
-    exposed_services: Vec<Service>,
+    exposed_services: &Vec<Service>,
     debug: bool,
 ) -> Result<()> {
     let compose_content =
@@ -141,7 +141,7 @@ pub async fn generate_docker_compose(
 async fn generate_docker_compose_content(
     dockerfile: PathBuf,
     dev_conf: &Option<Dev>,
-    exposed_services: Vec<Service>,
+    exposed_services: &Vec<Service>,
     debug: bool,
 ) -> Result<String> {
     let mut devtool_env_vec: Vec<(String, Option<EnvTypes>)> = vec![

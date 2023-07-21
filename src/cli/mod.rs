@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 pub use clap::{Args, Parser, Subcommand};
 
-use crate::errors::Result;
+use crate::{config::DEFAULT_CONFIG_FILE, docker_compose::Service, errors::Result};
 
 use self::{
     build::Build, check::Check, dev::Dev, logs::Logs, new::New, reload::Reload, start::Start,
@@ -26,11 +26,23 @@ mod upgrade;
 pub struct Cli {
     #[clap(subcommand)]
     pub command: Command,
+
+    /// The app configuration file.
+    #[clap(global=true, parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
+    pub config: std::path::PathBuf,
+
+    /// Exposes services ports.
+    #[clap(global=true, long, value_enum, default_values = &[], default_missing_values = &["app", "postgres", "mongo"])]
+    pub expose: Vec<Service>,
+
+    /// Run the commands as verbose.
+    #[clap(global = true, short, long, action)]
+    pub verbose: bool,
 }
 
 #[async_trait]
 pub trait CliCommand {
-    async fn run(&self) -> Result<()>;
+    async fn run(&self, context: CommandContext) -> Result<()>;
 }
 
 /// The subcommands
@@ -62,22 +74,34 @@ pub enum Command {
 
 #[async_trait]
 impl CliCommand for Command {
-    async fn run(&self) -> Result<()> {
+    async fn run(&self, context: CommandContext) -> Result<()> {
         match self {
-            Command::New(new) => new.run(),
-            Command::Build(build) => build.run(),
-            Command::Start(start) => start.run(),
-            Command::Logs(logs) => logs.run(),
-            Command::Stop(stop) => stop.run(),
-            Command::Dev(dev) => dev.run(),
-            Command::Terminal(terminal) => terminal.run(),
-            Command::Upgrade(upgrade) => upgrade.run(),
-            Command::Update(update) => update.run(),
-            Command::Check(check) => check.run(),
-            Command::Reload(reload) => reload.run(),
+            Command::New(new) => new.run(context),
+            Command::Build(build) => build.run(context),
+            Command::Start(start) => start.run(context),
+            Command::Logs(logs) => logs.run(context),
+            Command::Stop(stop) => stop.run(context),
+            Command::Dev(dev) => dev.run(context),
+            Command::Terminal(terminal) => terminal.run(context),
+            Command::Upgrade(upgrade) => upgrade.run(context),
+            Command::Update(update) => update.run(context),
+            Command::Check(check) => check.run(context),
+            Command::Reload(reload) => reload.run(context),
         }
         .await
     }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct CommandContext {
+    /// The app configuration file.
+    pub config: std::path::PathBuf,
+
+    /// Exposes all services ports.
+    pub expose: Vec<Service>,
+
+    /// Run command as verbose.
+    pub verbose: bool,
 }
 
 #[cfg(test)]

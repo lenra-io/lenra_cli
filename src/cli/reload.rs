@@ -2,30 +2,24 @@ use async_trait::async_trait;
 pub use clap::Args;
 
 use crate::cli::CliCommand;
-use crate::config::{load_config_file, DEFAULT_CONFIG_FILE};
+use crate::config::load_config_file;
 use crate::devtool::stop_app_env;
-use crate::docker_compose::{compose_build, compose_up, Service};
+use crate::docker_compose::{compose_build, compose_up};
 use crate::errors::Result;
 
-#[derive(Args, Default, Debug, Clone)]
-pub struct Reload {
-    /// The app configuration file.
-    #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
-    pub config: std::path::PathBuf,
+use super::CommandContext;
 
-    /// Exposes services ports.
-    #[clap(long, value_enum, default_values = &[], default_missing_values = &["app", "postgres", "mongo"])]
-    pub expose: Vec<Service>,
-}
+#[derive(Args, Default, Debug, Clone)]
+pub struct Reload;
 
 #[async_trait]
 impl CliCommand for Reload {
-    async fn run(&self) -> Result<()> {
+    async fn run(&self, context: CommandContext) -> Result<()> {
         log::info!("Reload the app");
-        let conf = load_config_file(&self.config)?;
+        let conf = load_config_file(&context.config)?;
 
         log::debug!("Generates files");
-        conf.generate_files(self.expose.clone(), true).await?;
+        conf.generate_files(&context.expose, true).await?;
 
         log::debug!("Docker compose build");
         compose_build().await?;

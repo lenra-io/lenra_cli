@@ -18,7 +18,7 @@ use crate::cli::{check::Check, logs::Logs, CliCommand};
 
 use super::{
     build::Build, dev::Dev, reload::Reload, start::Start, stop::Stop, update::Update,
-    upgrade::Upgrade,
+    upgrade::Upgrade, CommandContext,
 };
 
 const LENRA_COMMAND: &str = "lenra";
@@ -38,7 +38,7 @@ pub struct Terminal {
 
 #[async_trait]
 impl CliCommand for Terminal {
-    async fn run(&self) -> Result<()> {
+    async fn run(&self, context: CommandContext) -> Result<()> {
         let history_path = config_dir()
             .ok_or(Error::Custom("Can't get the user config directory".into()))?
             .join("lenra")
@@ -50,10 +50,7 @@ impl CliCommand for Terminal {
             debug!("No previous history.");
         }
 
-        let mut context = TerminalContext {
-            config: self.config.clone(),
-            expose: self.expose.clone(),
-        };
+        let mut context = context.clone();
 
         loop {
             let readline = rl.readline(READLINE_PROMPT);
@@ -94,7 +91,7 @@ impl CliCommand for Terminal {
             };
 
             debug!("Run command {:#?}", command);
-            let (ctx_opt, keep_running) = run_command(&command, &context).await;
+            let (ctx_opt, keep_running) = run_command(&command, context.clone()).await;
             if !keep_running {
                 break;
             }
@@ -110,10 +107,10 @@ impl CliCommand for Terminal {
 
 pub async fn run_command(
     command: &TerminalCommand,
-    context: &TerminalContext,
-) -> (Option<TerminalContext>, bool) {
+    context: CommandContext,
+) -> (Option<CommandContext>, bool) {
     debug!("Run command {:#?}", command);
-    let context = command.run(&context).await.unwrap_or_else(|error| {
+    let context = command.run(context).await.unwrap_or_else(|error| {
         eprintln!("{}", error.to_string().color(Color::Red));
         None
     });
@@ -147,15 +144,6 @@ fn parse_command_line(line: String) -> Result<TerminalCli, clap::Error> {
 fn format_error(err: clap::Error) -> clap::Error {
     let mut command = <TerminalCli as CommandFactory>::command();
     err.format(&mut command)
-}
-
-#[derive(Clone, Debug)]
-pub struct TerminalContext {
-    /// The app configuration file.
-    pub config: std::path::PathBuf,
-
-    /// Exposes all services ports.
-    pub expose: Vec<Service>,
 }
 
 /// The Lenra interactive command line interface
@@ -201,12 +189,12 @@ pub struct Expose {
 }
 
 impl TerminalCommand {
-    pub async fn run(&self, context: &TerminalContext) -> Result<Option<TerminalContext>> {
+    pub async fn run(&self, context: CommandContext) -> Result<Option<CommandContext>> {
         match self {
             TerminalCommand::Exit => {}
             TerminalCommand::Expose(expose) => {
                 let conf = load_config_file(&context.config)?;
-                conf.generate_files(expose.services.clone(), true).await?;
+                conf.generate_files(&expose.services, true).await?;
 
                 compose_up().await?;
 
@@ -214,15 +202,15 @@ impl TerminalCommand {
                 ctx.expose = expose.services.clone();
                 return Ok(Some(ctx));
             }
-            TerminalCommand::Build(build) => build.run().await?,
-            TerminalCommand::Start(start) => start.run().await?,
-            TerminalCommand::Logs(logs) => logs.run().await?,
-            TerminalCommand::Stop(stop) => stop.run().await?,
-            TerminalCommand::Dev(dev) => dev.run().await?,
-            TerminalCommand::Upgrade(upgrade) => upgrade.run().await?,
-            TerminalCommand::Update(update) => update.run().await?,
-            TerminalCommand::Check(check) => check.run().await?,
-            TerminalCommand::Reload(reload) => reload.run().await?,
+            TerminalCommand::Build(build) => build.run(context).await?,
+            TerminalCommand::Start(start) => start.run(context).await?,
+            TerminalCommand::Logs(logs) => logs.run(context).await?,
+            TerminalCommand::Stop(stop) => stop.run(context).await?,
+            TerminalCommand::Dev(dev) => dev.run(context).await?,
+            TerminalCommand::Upgrade(upgrade) => upgrade.run(context).await?,
+            TerminalCommand::Update(update) => update.run(context).await?,
+            TerminalCommand::Check(check) => check.run(context).await?,
+            TerminalCommand::Reload(reload) => reload.run(context).await?,
         };
         Ok(None)
     }

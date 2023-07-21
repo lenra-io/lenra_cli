@@ -8,12 +8,14 @@ use crate::cli::CliCommand;
 use crate::docker_compose::create_compose_command;
 use crate::errors::{CommandError, Error, Result};
 
+use super::CommandContext;
+
 #[derive(Args, Debug, Clone)]
 pub struct Stop;
 
 #[async_trait]
 impl CliCommand for Stop {
-    async fn run(&self) -> Result<()> {
+    async fn run(&self, _context: CommandContext) -> Result<()> {
         log::info!("Stoping the app");
 
         let mut command = create_compose_command();
