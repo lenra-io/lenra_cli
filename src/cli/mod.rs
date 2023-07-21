@@ -75,6 +75,7 @@ pub enum Command {
 #[async_trait]
 impl CliCommand for Command {
     async fn run(&self, context: CommandContext) -> Result<()> {
+        log::debug!("Run command {:?}", self);
         match self {
             Command::New(new) => new.run(context),
             Command::Build(build) => build.run(context),

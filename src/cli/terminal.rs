@@ -1,6 +1,6 @@
 use std::fs;
 
-use crate::config::{load_config_file, DEFAULT_CONFIG_FILE};
+use crate::lenra;
 use async_trait::async_trait;
 pub use clap::{Args, Parser, Subcommand};
 use clap::{CommandFactory, FromArgMatches};
@@ -10,7 +10,7 @@ use log::{debug, warn};
 use rustyline::{error::ReadlineError, Editor};
 
 use crate::{
-    docker_compose::{compose_up, Service},
+    docker_compose::Service,
     errors::{Error, Result},
 };
 
@@ -26,15 +26,7 @@ const READLINE_PROMPT: &str = "[lenra]$ ";
 // const ESCAPE_EVENT: KeyEvent = KeyEvent(KeyCode::Esc, Modifiers::NONE);
 
 #[derive(Args, Default, Debug, Clone)]
-pub struct Terminal {
-    /// The app configuration file.
-    #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
-    pub config: std::path::PathBuf,
-
-    /// Exposes services ports.
-    #[clap(long, value_enum, default_values = &[], default_missing_values = &["app", "postgres", "mongo"])]
-    pub expose: Vec<Service>,
-}
+pub struct Terminal;
 
 #[async_trait]
 impl CliCommand for Terminal {
@@ -190,13 +182,12 @@ pub struct Expose {
 
 impl TerminalCommand {
     pub async fn run(&self, context: CommandContext) -> Result<Option<CommandContext>> {
+        log::debug!("Run terminal command {:?}", self);
         match self {
             TerminalCommand::Exit => {}
             TerminalCommand::Expose(expose) => {
-                let conf = load_config_file(&context.config)?;
-                conf.generate_files(&expose.services, true).await?;
-
-                compose_up().await?;
+                lenra::generate_app_env(&context.config, &expose.services, false).await?;
+                lenra::start_env().await?;
 
                 let mut ctx = context.clone();
                 ctx.expose = expose.services.clone();

@@ -3,17 +3,17 @@ use chrono::{DateTime, SecondsFormat, Utc};
 pub use clap::Args;
 use tokio::select;
 
-use crate::cli::{
-    build::Build,
-    dev::interactive::listen_interactive_command,
-    logs::Logs,
-    start::Start,
-    terminal::{run_command, TerminalCommand},
-    CliCommand, CommandContext,
-};
-use crate::config::DEFAULT_CONFIG_FILE;
 use crate::docker_compose::Service;
 use crate::errors::Result;
+use crate::{
+    cli::{
+        dev::interactive::listen_interactive_command,
+        logs::Logs,
+        terminal::{run_command, TerminalCommand},
+        CliCommand, CommandContext,
+    },
+    lenra,
+};
 
 use interactive::{InteractiveCommand, KeyboardShorcut};
 
@@ -21,13 +21,9 @@ mod interactive;
 
 #[derive(Args, Debug, Clone)]
 pub struct Dev {
-    /// The app configuration file.
-    #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
-    pub config: std::path::PathBuf,
-
-    /// Exposes services ports.
-    #[clap(long, value_enum, default_values = &[], default_missing_values = &["app", "postgres", "mongo"])]
-    pub expose: Vec<Service>,
+    /// Attach the dev mode without rebuilding the app and restarting it.
+    #[clap(long, action)]
+    pub attach: bool,
 }
 
 #[async_trait]
@@ -35,24 +31,23 @@ impl CliCommand for Dev {
     async fn run(&self, context: CommandContext) -> Result<()> {
         log::info!("Run dev mode");
 
-        let build = Build {
-            ..Default::default()
-        };
-        log::debug!("Run build");
-        build.run(context.clone()).await?;
+        if !self.attach {
+            lenra::generate_app_env(&context.config, &context.expose, false).await?;
+            lenra::build_app().await?;
+            lenra::start_env().await?;
+            lenra::clear_cache().await?;
+        }
 
         let previous_log = Logs {
             services: vec![Service::App],
             follow: true,
             ..Default::default()
         };
-        let mut last_logs = Utc::now();
-
-        log::debug!("Run start");
-        Start.run(context.clone()).await?;
+        let mut last_logs: Option<DateTime<Utc>> = None;
 
         let mut cmd_context = context;
 
+        lenra::display_app_access_url();
         InteractiveCommand::Help.to_value();
         let mut interactive_cmd = None;
         loop {
@@ -65,8 +60,10 @@ impl CliCommand for Dev {
                     cmd_context = ctx.clone();
                 }
             }
-            (last_logs, interactive_cmd) =
-                run_logs(&previous_log, Some(last_logs), cmd_context.clone()).await?;
+            let end_date;
+            (end_date, interactive_cmd) =
+                run_logs(&previous_log, last_logs, cmd_context.clone()).await?;
+            last_logs = Some(end_date);
         }
 
         log::debug!("End of dev mode");

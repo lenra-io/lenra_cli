@@ -4,7 +4,7 @@ use log::{info, warn};
 use tokio::task::JoinSet;
 
 use crate::cli::CliCommand;
-use crate::config::{load_config_file, DEFAULT_CONFIG_FILE};
+use crate::config::load_config_file;
 use crate::docker;
 use crate::docker_compose::{get_services_images, Service, ServiceImages};
 use crate::errors::{CommandError, Error, Result};
@@ -13,10 +13,6 @@ use super::CommandContext;
 
 #[derive(Args, Debug, Clone)]
 pub struct Update {
-    /// The app configuration file.
-    #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
-    pub config: std::path::PathBuf,
-
     /// The service list to pull
     #[clap(value_enum, default_values = &["devtool", "postgres", "mongo"])]
     pub services: Vec<Service>,
@@ -24,10 +20,10 @@ pub struct Update {
 
 #[async_trait]
 impl CliCommand for Update {
-    async fn run(&self, _context: CommandContext) -> Result<()> {
+    async fn run(&self, context: CommandContext) -> Result<()> {
         log::info!("Updating Docker images");
 
-        let conf = load_config_file(&self.config).ok();
+        let conf = load_config_file(&context.config).ok();
         let dev_conf = if let Some(dev_opt) = conf.iter().map(|c| &c.dev).next() {
             dev_opt
         } else {

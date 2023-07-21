@@ -16,6 +16,7 @@ mod errors;
 mod git;
 mod github;
 mod keyboard_event;
+mod lenra;
 mod matching;
 mod template;
 

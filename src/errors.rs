@@ -32,6 +32,8 @@ pub enum Error {
     FromUtf8(#[from] FromUtf8Error),
     #[error("The {0} service is not exposed")]
     ServiceNotExposed(Service),
+    #[error("The app must be built before running it")]
+    NeverBuiltApp,
     #[error("Check error")]
     Check,
     #[error("The next GitHub topic is not correct: {0}")]
