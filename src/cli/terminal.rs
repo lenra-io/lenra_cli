@@ -167,7 +167,7 @@ pub enum TerminalCommand {
     Check(Check),
     /// Reload the app by rebuilding and restarting it
     Reload(Reload),
-    /// 'stop' alias
+    /// Exits the terminal
     Exit,
     /// Exposes the app ports
     Expose(Expose),

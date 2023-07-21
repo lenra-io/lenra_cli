@@ -10,8 +10,11 @@ lenra-upgrade
 Upgrade the app with the last template updates
 
 USAGE:
-    lenra upgrade
+    lenra upgrade [OPTIONS]
 
 OPTIONS:
-    -h, --help    Print help information
+        --config <CONFIG>    The app configuration file [default: lenra.yml]
+        --expose <EXPOSE>    Exposes services ports [possible values: app, devtool, postgres, mongo]
+    -h, --help               Print help information
+    -v, --verbose            Run the commands as verbose
 ```

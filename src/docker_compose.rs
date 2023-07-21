@@ -389,7 +389,7 @@ pub async fn compose_build() -> Result<()> {
     // Use Buildkit to improve performance
     command.env("DOCKER_BUILDKIT", "1");
 
-    log::debug!("Build: {:?}", command);
+    log::debug!("cmd: {:?}", command);
     let output = command.spawn()?.wait_with_output().await?;
 
     if !output.status.success() {
@@ -409,10 +409,7 @@ pub async fn compose_pull(services: Vec<&str>) -> Result<()> {
         command.arg(service);
     });
 
-    // Display std out & err
-    command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
-
-    log::debug!("Build: {:?}", command);
+    log::debug!("cmd: {:?}", command);
     let output = command.spawn()?.wait_with_output().await?;
 
     if !output.status.success() {

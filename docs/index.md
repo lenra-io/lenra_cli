@@ -27,7 +27,7 @@ git init
 lenra dev
 ```
 
-Look the [`lenra dev` subcommand](commands/dev/index.md) to understand the new dev mode and terminal.
+Look the [`lenra dev` subcommand](commands/dev/index.md) to understand the new dev mode.
 
 ## Configure your app container
 

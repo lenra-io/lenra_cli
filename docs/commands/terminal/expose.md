@@ -1,8 +1,8 @@
 ---
-description: This subcommand exposes the containers ports.
+description: This command exposes the containers ports.
 ---
 
-This subcommand exposes the containers ports.
+This command exposes the containers ports.
 
 ```bash
 [lenra]$ expose --help
