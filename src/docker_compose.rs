@@ -369,12 +369,53 @@ pub async fn compose_up() -> Result<()> {
     Ok(())
 }
 
+pub async fn compose_down() -> Result<()> {
+    let mut command = create_compose_command();
+
+    command
+        .arg("down")
+        .arg("--volumes")
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
+
+    log::debug!("cmd: {:?}", command);
+    let output = command.spawn()?.wait_with_output().await?;
+    if !output.status.success() {
+        warn!("An error occured while stoping the docker-compose app");
+        return Err(Error::Command(CommandError { command, output }));
+    }
+    Ok(())
+}
+
 pub async fn compose_build() -> Result<()> {
     let mut command = create_compose_command();
     command.arg("build");
 
     // Use Buildkit to improve performance
     command.env("DOCKER_BUILDKIT", "1");
+
+    // Display std out & err
+    command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
+
+    log::debug!("Build: {:?}", command);
+    let output = command.spawn()?.wait_with_output().await?;
+
+    if !output.status.success() {
+        warn!(
+            "An error occured while building the Docker image:\n{}",
+            CommandError { command, output }
+        )
+    }
+    Ok(())
+}
+
+pub async fn compose_pull(services: Vec<&str>) -> Result<()> {
+    log::debug!("Pulling services: {:?}", services);
+    let mut command = create_compose_command();
+    command.arg("pull");
+    services.iter().for_each(|service| {
+        command.arg(service);
+    });
 
     // Display std out & err
     command.stdout(Stdio::inherit()).stderr(Stdio::inherit());

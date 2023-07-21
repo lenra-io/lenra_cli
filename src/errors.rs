@@ -34,6 +34,8 @@ pub enum Error {
     ServiceNotExposed(Service),
     #[error("The app must be built before running it")]
     NeverBuiltApp,
+    #[error("The new project directory is not empty")]
+    ProjectPathNotEmpty,
     #[error("Check error")]
     Check,
     #[error("The next GitHub topic is not correct: {0}")]

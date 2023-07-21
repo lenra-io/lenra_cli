@@ -115,7 +115,7 @@ pub async fn choose_repository(repos: Vec<Repository>) -> Result<Repository> {
 }
 
 #[cfg_attr(test, mockable)]
-pub async fn clone_template(template: String, target_dir: PathBuf) -> Result<()> {
+pub async fn clone_template(template: &str, target_dir: &PathBuf) -> Result<()> {
     log::debug!(
         "clone the template {} into {}",
         template,
