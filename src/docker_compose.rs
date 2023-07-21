@@ -435,23 +435,6 @@ pub async fn list_running_services() -> Result<Vec<Service>> {
     Ok(services)
 }
 
-// /// Check if the given service is running in the current Docker Compose
-// pub async fn is_service_runnin(service: Service) -> Result<bool> {
-//     let mut command = create_compose_command();
-//     let service_name = service.to_str();
-//     command
-//         .arg("ps")
-//         .arg(service_name)
-//         .arg("--services")
-//         .arg("--filter")
-//         .arg("status=running");
-
-//     let is_running = get_command_output(command)
-//         .await
-//         .map(|output| output.trim() == service_name)?;
-//     Ok(is_running)
-// }
-
 /// Get the given Docker Compose service information
 pub async fn get_service_informations(service: Service) -> Result<ServiceInformations> {
     let mut command = create_compose_command();
