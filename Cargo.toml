@@ -42,3 +42,5 @@ strum = { version = "0.24.1", features = ["strum_macros", "derive"] }
 
 [dev-dependencies]
 mocktopus = "0.8.0"
+# assert_cmd = "2.0.11"
+# predicates = "3.0.3"
