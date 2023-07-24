@@ -12,8 +12,7 @@ use crate::config::LENRA_CACHE_DIRECTORY;
 use crate::errors::{Error, Result};
 use crate::git::{self, create_git_command, get_current_commit};
 use crate::template::{
-    clone_template, get_template_data, save_template_data, TemplateData, TEMPLATE_GIT_DIR,
-    TEMPLATE_TEMP_DIR,
+    clone_template, get_template_data, TemplateData, TEMPLATE_GIT_DIR, TEMPLATE_TEMP_DIR,
 };
 
 #[derive(clap::Args)]
@@ -98,10 +97,11 @@ impl CliCommand for Upgrade {
             cmd.spawn()?.wait_with_output().await.map_err(Error::from)?;
         }
         // save template data
-        save_template_data(TemplateData {
+        TemplateData {
             template: template_data.template,
             commit: Some(current_commit),
-        })
+        }
+        .save()
         .await
     }
 }

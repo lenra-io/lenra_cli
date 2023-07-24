@@ -5,7 +5,6 @@
 use clap::Parser;
 use cli::{Cli, CliCommand};
 use env_logger;
-use errors::Result;
 
 mod cli;
 mod command;
@@ -15,14 +14,20 @@ mod docker;
 mod docker_compose;
 mod errors;
 mod git;
+mod github;
 mod keyboard_event;
 mod matching;
 mod template;
 
-// #![cfg_attr(test, feature(proc_macro_hygiene))]
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> () {
     env_logger::init();
     let args = Cli::parse();
-    args.command.run().await
+    match args.command.run().await {
+        Ok(_) => (),
+        Err(e) => {
+            println!("{}", e.to_string());
+            std::process::exit(1);
+        }
+    }
 }

@@ -4,7 +4,7 @@ description: This CLI contains many subcommands to help you doing what you need.
 
 This CLI contains many subcommands to help you doing what you need.
 
-- [new](./new.md): creates a new Lenra app project
+- [new](./new.md): creates a new Lenra app project from a template
 - [dev](./dev/index.md): starts your app in dev mode
 - [update](./update.md): updates the tools Docker images
 - [upgrade](./upgrade.md): upgrades the app with the last template updates
@@ -34,7 +34,7 @@ SUBCOMMANDS:
     dev        Start the app in an interactive mode
     help       Print this message or the help of the given subcommand(s)
     logs       View output from the containers
-    new        Create a new Lenra app project
+    new        Create a new Lenra app project from a template
     start      Start your app previously built with the build command
     stop       Stop your app previously started with the start command
     update     Update the tools Docker images
