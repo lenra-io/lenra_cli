@@ -70,7 +70,6 @@ mod tests {
     const NODE_TEMPLATE_HTTP_URL: &str = "https://github.com/lenra-io/template-javascript.git";
     const NODE_TEMPLATE_SSH_URL: &str = "git@github.com:lenra-io/template-javascript.git";
     const BUN_TEMPLATE_HTTP_URL: &str = "https://github.com/taorepoara/lenra-template-bun-js.git";
-    const COMMIT_NUMBER: &str = "398416b76fc237291280de3efb719504c43cf563";
 
     fn mock_all() {
         template::list_templates.mock_safe(|_| unreachable!());
