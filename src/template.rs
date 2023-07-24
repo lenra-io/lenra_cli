@@ -95,8 +95,8 @@ pub async fn choose_repository(repos: Vec<Repository>) -> Result<Repository> {
     let mut max_index = 0;
     for repo in &repos {
         println!(
-            "[{}]: {} ({} stars) - {}",
-            index + 1,
+            "{:5} {} ({} stars) - {}",
+            format!("[{}]:", index + 1),
             repo.name,
             repo.stars,
             repo.description
