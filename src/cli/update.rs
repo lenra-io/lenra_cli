@@ -6,7 +6,7 @@ use crate::docker_compose::Service;
 use crate::errors::Result;
 use crate::lenra;
 
-use super::{CommandContext, loader};
+use super::{loader, CommandContext};
 
 #[derive(Args, Debug, Clone)]
 pub struct Update {
