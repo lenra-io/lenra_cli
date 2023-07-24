@@ -7,8 +7,10 @@ use crate::docker_compose::Service;
 use crate::errors::Result;
 use crate::{
     cli::{
+        build,
         dev::interactive::listen_interactive_command,
         logs::Logs,
+        start,
         terminal::{run_command, TerminalCommand},
         CliCommand, CommandContext,
     },
@@ -32,10 +34,10 @@ impl CliCommand for Dev {
         log::info!("Run dev mode");
 
         if !self.attach {
-            lenra::generate_app_env(&context.config, &context.expose, false).await?;
-            lenra::build_app().await?;
-            lenra::start_env().await?;
-            lenra::clear_cache().await?;
+            build::generate_app_env_loader(context.clone(), false).await?;
+            build::build_loader().await?;
+            start::start_loader().await?;
+            start::clear_cache_loader().await?;
         }
 
         let previous_log = Logs {

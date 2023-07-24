@@ -6,7 +6,7 @@ use crate::docker_compose::Service;
 use crate::errors::Result;
 use crate::lenra;
 
-use super::CommandContext;
+use super::{CommandContext, loader};
 
 #[derive(Args, Debug, Clone)]
 pub struct Update {
@@ -18,6 +18,16 @@ pub struct Update {
 #[async_trait]
 impl CliCommand for Update {
     async fn run(&self, _context: CommandContext) -> Result<()> {
-        lenra::update_env_images(&self.services).await
+        update_loader(&self.services).await
     }
+}
+
+pub async fn update_loader(services: &Vec<Service>) -> Result<()> {
+    loader(
+        "Update environment images...",
+        "Environment images updated",
+        "Failed updating environment images",
+        || async { lenra::update_env_images(services).await },
+    )
+    .await
 }

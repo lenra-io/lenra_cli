@@ -1,5 +1,8 @@
+use std::future::Future;
+
 use async_trait::async_trait;
 pub use clap::{Args, Parser, Subcommand};
+use loading::Loading;
 
 use crate::{config::DEFAULT_CONFIG_FILE, docker_compose::Service, errors::Result};
 
@@ -103,6 +106,23 @@ pub struct CommandContext {
 
     /// Run command as verbose.
     pub verbose: bool,
+}
+
+pub async fn loader<F, Fut, R>(text: &str, success: &str, fail: &str, task: F) -> Result<R>
+where
+    F: FnOnce() -> Fut,
+    Fut: Future<Output = Result<R>>,
+{
+    let loading = Loading::default();
+    loading.text(text);
+    let res = task().await;
+    if res.is_ok() {
+        loading.success(success);
+    } else {
+        loading.fail(fail);
+    }
+    loading.end();
+    res
 }
 
 #[cfg(test)]

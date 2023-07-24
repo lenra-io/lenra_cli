@@ -3,9 +3,12 @@ pub use clap::Args;
 
 use crate::cli::CliCommand;
 use crate::errors::Result;
-use crate::lenra;
 
-use super::CommandContext;
+use super::{
+    build::{build_loader, generate_app_env_loader},
+    start::{clear_cache_loader, start_loader},
+    CommandContext,
+};
 
 #[derive(Args, Default, Debug, Clone)]
 pub struct Reload;
@@ -13,9 +16,9 @@ pub struct Reload;
 #[async_trait]
 impl CliCommand for Reload {
     async fn run(&self, context: CommandContext) -> Result<()> {
-        lenra::generate_app_env(&context.config, &context.expose, false).await?;
-        lenra::build_app().await?;
-        lenra::start_env().await?;
-        lenra::clear_cache().await
+        generate_app_env_loader(context, false).await?;
+        build_loader().await?;
+        start_loader().await?;
+        clear_cache_loader().await
     }
 }

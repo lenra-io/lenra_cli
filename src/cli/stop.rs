@@ -5,7 +5,7 @@ use crate::cli::CliCommand;
 use crate::errors::Result;
 use crate::lenra;
 
-use super::CommandContext;
+use super::{loader, CommandContext};
 
 #[derive(Args, Debug, Clone)]
 pub struct Stop;
@@ -13,6 +13,16 @@ pub struct Stop;
 #[async_trait]
 impl CliCommand for Stop {
     async fn run(&self, _context: CommandContext) -> Result<()> {
-        lenra::stop_env().await
+        stop_loader().await
     }
+}
+
+pub async fn stop_loader() -> Result<()> {
+    loader(
+        "Stop app environment...",
+        "App environment stopped",
+        "Failed stopping app environment",
+        || async { lenra::stop_env().await },
+    )
+    .await
 }

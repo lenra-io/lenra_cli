@@ -4,7 +4,6 @@ use std::{
     process::Stdio,
 };
 
-use loading::Loading;
 use rustyline::Editor;
 
 use crate::{
@@ -30,16 +29,8 @@ pub async fn create_new_project(template: &str, path: &PathBuf) -> Result<()> {
         return Err(Error::ProjectPathNotEmpty);
     }
 
-    let loading = Loading::default();
-    loading.text("New project: cloning template...");
-    let res = template::clone_template(template, path).await;
-    if res.is_err() {
-        loading.fail("New project: failed cloning template");
-        loading.end();
-        return res;
-    }
+    template::clone_template(template, path).await?;
 
-    loading.text("New project: creating '.template' file...");
     // create `.template` file to save template repo url and commit
     let git_dir = path.join(".git");
     let commit = git::get_current_commit(Some(git_dir.clone())).await?;
@@ -76,25 +67,17 @@ pub async fn generate_app_env(
     production: bool,
 ) -> Result<()> {
     log::info!("Generating the app environment");
-    let loading = Loading::default();
-    loading.text("Generate app env...");
     let conf = load_config_file(config)?;
     // TODO: check the components API version
 
     conf.generate_files(expose, !production).await?;
-    loading.success("App env generated");
-    loading.end();
     Ok(())
 }
 
 pub async fn build_app() -> Result<()> {
     log::info!("Build the Docker image");
-    let loading = Loading::default();
-    loading.text("Build app...");
     compose_build().await?;
     log::info!("Image built");
-    loading.success("App built");
-    loading.end();
     Ok(())
 }
 
@@ -105,36 +88,23 @@ pub async fn start_env() -> Result<()> {
     }
 
     log::info!("Start the containers");
-    let loading = Loading::default();
-    loading.text("Start app environment...");
     compose_up().await?;
-    let running_services = list_running_services().await?;
-    if running_services.len() == 4 {
-        loading.success("App environment started");
-    } else {
-        loading.warn("Some services are not running");
+    let running_services: Vec<Service> = list_running_services().await?;
+    if running_services.len() < 4 {
+        return Err(Error::NotStartedServices);
     }
-    loading.end();
     Ok(())
 }
 
 pub async fn stop_env() -> Result<()> {
     log::info!("Stop the containers");
-    let loading = Loading::default();
-    loading.text("Stop app environment...");
     compose_down().await?;
-    loading.success("App environment stopped");
-    loading.end();
     Ok(())
 }
 
 pub async fn clear_cache() -> Result<()> {
     log::info!("Clearing cache");
-    let loading = Loading::default();
-    loading.text("Clearing cache...");
     stop_app_env().await?;
-    loading.success("Cache cleared");
-    loading.end();
     Ok(())
 }
 
@@ -147,11 +117,7 @@ pub fn display_app_access_url() {
 
 pub async fn update_env_images(services: &Vec<Service>) -> Result<()> {
     log::info!("Update the environment images");
-    let loading = Loading::default();
-    loading.text("Update environment images...");
     docker_compose::compose_pull(services.iter().map(|service| service.to_str()).collect()).await?;
-    loading.success("Environment images updated");
-    loading.end();
     Ok(())
 }
 

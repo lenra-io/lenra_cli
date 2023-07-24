@@ -7,7 +7,7 @@ pub use clap::Args;
 
 use crate::cli::CliCommand;
 use crate::errors::{Error, Result};
-use crate::{git, lenra, template};
+use crate::{cli, git, lenra, template};
 
 use super::CommandContext;
 
@@ -44,7 +44,13 @@ impl CliCommand for New {
             };
 
         println!("Using template: {}", template);
-        lenra::create_new_project(template.as_str(), &self.path).await
+        cli::loader(
+            "Creating new project...",
+            "Project created",
+            "Failed creating new project",
+            || async { lenra::create_new_project(template.as_str(), &self.path).await },
+        )
+        .await
     }
 }
 
