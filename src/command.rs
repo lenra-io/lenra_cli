@@ -1,4 +1,4 @@
-use std::process::Stdio;
+use std::process::{Output, Stdio};
 
 use tokio::process::Command;
 
@@ -27,13 +27,19 @@ pub fn create_command(cmd: &str) -> Command {
     cmd
 }
 
-pub async fn get_command_output(command: Command) -> Result<String> {
+pub async fn run_command(command: Command) -> Result<Output> {
     let mut command = Command::from(command);
     let output = command.output().await?;
 
     if !output.status.success() {
         return Err(Error::Command(CommandError { command, output }));
     }
+
+    Ok(output)
+}
+
+pub async fn get_command_output(command: Command) -> Result<String> {
+    let output = run_command(command).await?;
 
     String::from_utf8(output.stdout)
         .map(|name| name.trim().to_string())

@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    command::get_command_output,
+    command::{get_command_output, run_command},
     config::LENRA_CACHE_DIRECTORY,
     errors::{Error, Result},
     git::{create_git_command, Repository},
@@ -121,14 +121,9 @@ pub async fn clone_template(template: &str, target_dir: &PathBuf) -> Result<()> 
         template,
         target_dir.display()
     );
-    create_git_command()
-        .arg("clone")
-        .arg(template)
-        .arg(target_dir.as_os_str())
-        .spawn()?
-        .wait_with_output()
-        .await
-        .map_err(Error::from)?;
+    let mut cmd = create_git_command();
+    cmd.arg("clone").arg(template).arg(target_dir.as_os_str());
+    run_command(cmd).await?;
 
     Ok(())
 }

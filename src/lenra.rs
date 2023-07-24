@@ -31,9 +31,15 @@ pub async fn create_new_project(template: &str, path: &PathBuf) -> Result<()> {
     }
 
     let loading = Loading::default();
-    loading.text("Creating new project...");
-    template::clone_template(template, path).await?;
+    loading.text("New project: cloning template...");
+    let res = template::clone_template(template, path).await;
+    if res.is_err() {
+        loading.fail("New project: failed cloning template");
+        loading.end();
+        return res;
+    }
 
+    loading.text("New project: creating '.template' file...");
     // create `.template` file to save template repo url and commit
     let git_dir = path.join(".git");
     let commit = git::get_current_commit(Some(git_dir.clone())).await?;
