@@ -2,12 +2,16 @@ use docker_compose_types::{
     AdvancedBuildStep, BuildStep, Command, Compose, DependsCondition, DependsOnOptions, Deploy,
     EnvTypes, Environment, Healthcheck, HealthcheckTest, Limits, Resources, Services,
 };
+use itertools::Itertools;
 use lazy_static::lazy_static;
 use log::{debug, warn};
+use serde::{Deserialize, Serialize};
 use std::process::Stdio;
 use std::{convert::TryInto, env, fs, path::PathBuf};
+use strum::Display;
 use tokio::process;
 
+use crate::command::{get_command_output, is_inherit_stdio};
 use crate::config::Image;
 use crate::docker::normalize_tag;
 use crate::errors::Error;
@@ -20,7 +24,7 @@ use crate::{
 pub const APP_SERVICE_NAME: &str = "app";
 pub const DEVTOOL_SERVICE_NAME: &str = "devtool";
 pub const POSTGRES_SERVICE_NAME: &str = "postgres";
-pub const MONGO_SERVICE_NAME: &str = "mongodb";
+pub const MONGO_SERVICE_NAME: &str = "mongo";
 const APP_BASE_IMAGE: &str = "lenra/app/";
 const APP_DEFAULT_IMAGE: &str = "my";
 const APP_DEFAULT_IMAGE_TAG: &str = "latest";
@@ -29,7 +33,7 @@ const DEVTOOL_DEFAULT_TAG: &str = "beta";
 const POSTGRES_IMAGE: &str = "postgres";
 const POSTGRES_IMAGE_TAG: &str = "13";
 const MONGO_IMAGE: &str = "mongo";
-const MONGO_IMAGE_TAG: &str = "5.0.11-focal";
+const MONGO_IMAGE_TAG: &str = "5";
 pub const OF_WATCHDOG_PORT: u16 = 8080;
 pub const DEVTOOL_WEB_PORT: u16 = 4000;
 pub const DEVTOOL_API_PORT: u16 = 4001;
@@ -43,11 +47,77 @@ lazy_static! {
     static ref COMPOSE_COMMAND: std::process::Command = get_compose_command();
 }
 
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[serde(rename_all = "PascalCase")]
+pub struct ServiceInformations {
+    service: Service,
+    #[serde(rename = "ID")]
+    id: String,
+    name: String,
+    image: String,
+    command: String,
+    project: String,
+    state: ServiceState,
+    status: String,
+    created: String,
+    health: String,
+    exit_code: String,
+    publishers: Vec<Publisher>,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[serde(rename_all = "PascalCase")]
+pub struct Publisher {
+    #[serde(rename = "URL")]
+    url: String,
+    target_port: u16,
+    published_port: u16,
+    protocol: String,
+}
+
+#[derive(clap::ValueEnum, Serialize, Deserialize, Clone, Debug, PartialEq, Display)]
+pub enum Service {
+    App,
+    Devtool,
+    Postgres,
+    Mongo,
+}
+
+impl Service {
+    pub fn to_str(&self) -> &str {
+        match self {
+            Service::App => APP_SERVICE_NAME,
+            Service::Devtool => DEVTOOL_SERVICE_NAME,
+            Service::Postgres => POSTGRES_SERVICE_NAME,
+            Service::Mongo => MONGO_SERVICE_NAME,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct ServiceImages {
+    pub app: String,
+    pub devtool: String,
+    pub postgres: String,
+    pub mongo: String,
+}
+
+#[derive(clap::ValueEnum, Serialize, Deserialize, Clone, Debug, PartialEq)]
+pub enum ServiceState {
+    Running,
+    Paused,
+    Restarting,
+    Removing,
+    Dead,
+    Created,
+    Exited,
+}
+
 /// Generates the docker-compose.yml file
 pub async fn generate_docker_compose(
     dockerfile: PathBuf,
     dev_conf: &Option<Dev>,
-    exposed_services: Vec<Service>,
+    exposed_services: &Vec<Service>,
     debug: bool,
 ) -> Result<()> {
     let compose_content =
@@ -60,7 +130,7 @@ pub async fn generate_docker_compose(
 async fn generate_docker_compose_content(
     dockerfile: PathBuf,
     dev_conf: &Option<Dev>,
-    exposed_services: Vec<Service>,
+    exposed_services: &Vec<Service>,
     debug: bool,
 ) -> Result<String> {
     let mut devtool_env_vec: Vec<(String, Option<EnvTypes>)> = vec![
@@ -262,19 +332,18 @@ pub fn create_compose_command() -> process::Command {
     let dockercompose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
     let mut cmd = process::Command::from(COMPOSE_COMMAND.clone());
     cmd.arg("-f").arg(dockercompose_path).kill_on_drop(true);
-
+    if is_inherit_stdio() {
+        cmd.stdout(Stdio::inherit()).stderr(Stdio::inherit());
+    } else {
+        cmd.stdout(Stdio::null()).stderr(Stdio::null());
+    }
     cmd
 }
 
 pub async fn compose_up() -> Result<()> {
     let mut command = create_compose_command();
 
-    command
-        .arg("up")
-        .arg("-d")
-        .arg("--wait")
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit());
+    command.arg("up").arg("-d").arg("--wait");
 
     log::debug!("cmd: {:?}", command);
     let output = command.spawn()?.wait_with_output().await?;
@@ -288,6 +357,20 @@ pub async fn compose_up() -> Result<()> {
     Ok(())
 }
 
+pub async fn compose_down() -> Result<()> {
+    let mut command = create_compose_command();
+
+    command.arg("down").arg("--volumes");
+
+    log::debug!("cmd: {:?}", command);
+    let output = command.spawn()?.wait_with_output().await?;
+    if !output.status.success() {
+        warn!("An error occured while stoping the docker-compose app");
+        return Err(Error::Command(CommandError { command, output }));
+    }
+    Ok(())
+}
+
 pub async fn compose_build() -> Result<()> {
     let mut command = create_compose_command();
     command.arg("build");
@@ -295,10 +378,7 @@ pub async fn compose_build() -> Result<()> {
     // Use Buildkit to improve performance
     command.env("DOCKER_BUILDKIT", "1");
 
-    // Display std out & err
-    command.stdout(Stdio::inherit()).stderr(Stdio::inherit());
-
-    log::debug!("Build: {:?}", command);
+    log::debug!("cmd: {:?}", command);
     let output = command.spawn()?.wait_with_output().await?;
 
     if !output.status.success() {
@@ -308,6 +388,78 @@ pub async fn compose_build() -> Result<()> {
         )
     }
     Ok(())
+}
+
+pub async fn compose_pull(services: Vec<&str>) -> Result<()> {
+    log::debug!("Pulling services: {:?}", services);
+    let mut command = create_compose_command();
+    command.arg("pull");
+    services.iter().for_each(|service| {
+        command.arg(service);
+    });
+
+    log::debug!("cmd: {:?}", command);
+    let output = command.spawn()?.wait_with_output().await?;
+
+    if !output.status.success() {
+        warn!(
+            "An error occured while building the Docker image:\n{}",
+            CommandError { command, output }
+        )
+    }
+    Ok(())
+}
+
+/// List all the current Docker Compose running services
+pub async fn list_running_services() -> Result<Vec<Service>> {
+    let mut command = create_compose_command();
+    command
+        .arg("ps")
+        .arg("--services")
+        .arg("--filter")
+        .arg("status=running");
+
+    let services: Vec<Service> = get_command_output(command).await.map(|output| {
+        output
+            .lines()
+            .map(|service| match service.trim() {
+                APP_SERVICE_NAME => Some(Service::App),
+                DEVTOOL_SERVICE_NAME => Some(Service::Devtool),
+                POSTGRES_SERVICE_NAME => Some(Service::Postgres),
+                MONGO_SERVICE_NAME => Some(Service::Mongo),
+                _ => None,
+            })
+            .filter_map(|service| service)
+            .collect()
+    })?;
+    Ok(services)
+}
+
+/// Get the given Docker Compose service information
+pub async fn get_service_informations(service: Service) -> Result<ServiceInformations> {
+    let mut command = create_compose_command();
+    let service_name = service.to_str();
+    command
+        .arg("ps")
+        .arg(service_name)
+        .arg("--format")
+        .arg("json");
+
+    let output = get_command_output(command).await?;
+    let infos: ServiceInformations = serde_yaml::from_str(output.as_str())?;
+    Ok(infos)
+}
+
+/// Get the given Docker Compose service published port
+pub async fn get_service_published_ports(service: Service) -> Result<Vec<u16>> {
+    let infos = get_service_informations(service).await?;
+    let ports = infos
+        .publishers
+        .iter()
+        .map(|publisher| publisher.published_port)
+        .unique()
+        .collect();
+    Ok(ports)
 }
 
 pub async fn execute_compose_service_command(service: &str, cmd: &[&str]) -> Result<String> {
@@ -382,47 +534,11 @@ pub async fn get_services_images(dev_conf: &Option<Dev>) -> ServiceImages {
     }
 }
 
-#[derive(clap::ValueEnum, Clone, Debug, PartialEq)]
-pub enum Service {
-    App,
-    Devtool,
-    Postgres,
-    Mongo,
-}
-
-impl Service {
-    pub fn to_str(&self) -> &str {
-        match self {
-            Service::App => APP_SERVICE_NAME,
-            Service::Devtool => DEVTOOL_SERVICE_NAME,
-            Service::Postgres => POSTGRES_SERVICE_NAME,
-            Service::Mongo => MONGO_SERVICE_NAME,
-        }
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct ServiceImages {
-    pub app: String,
-    pub devtool: String,
-    pub postgres: String,
-    pub mongo: String,
-}
-
-impl ServiceImages {
-    pub fn get(&self, service: &Service) -> String {
-        match service {
-            Service::App => self.app.clone(),
-            Service::Devtool => self.devtool.clone(),
-            Service::Postgres => self.postgres.clone(),
-            Service::Mongo => self.mongo.clone(),
-        }
-    }
-}
-
 fn get_compose_command() -> std::process::Command {
     match std::process::Command::new("docker-compose")
         .arg("version")
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
         .spawn()
     {
         Ok(_) => {
@@ -481,22 +597,16 @@ mod test_get_services_images {
             ..Default::default()
         }))
         .await;
+        assert_eq!(images.app, format!("lenra/app/lenra_cli:{}", app_tag));
         assert_eq!(
-            images.get(&Service::App),
-            format!("lenra/app/lenra_cli:{}", app_tag)
-        );
-        assert_eq!(
-            images.get(&Service::Devtool),
+            images.devtool,
             format!("{}:{}", DEVTOOL_IMAGE, DEVTOOL_DEFAULT_TAG)
         );
         assert_eq!(
-            images.get(&Service::Postgres),
+            images.postgres,
             format!("{}:{}", POSTGRES_IMAGE, POSTGRES_IMAGE_TAG)
         );
-        assert_eq!(
-            images.get(&Service::Mongo),
-            format!("{}:{}", MONGO_IMAGE, MONGO_IMAGE_TAG)
-        );
+        assert_eq!(images.mongo, format!("{}:{}", MONGO_IMAGE, MONGO_IMAGE_TAG));
     }
 
     #[tokio::test]
@@ -504,10 +614,7 @@ mod test_get_services_images {
         git::get_current_branch
             .mock_safe(|_| MockResult::Return(Box::pin(async move { Ok("test".to_string()) })));
         let images: ServiceImages = get_services_images(&None).await;
-        assert_eq!(
-            images.get(&Service::App),
-            "lenra/app/lenra_cli:test".to_string()
-        );
+        assert_eq!(images.app, "lenra/app/lenra_cli:test".to_string());
     }
 
     #[tokio::test]
@@ -519,7 +626,7 @@ mod test_get_services_images {
         });
         let images: ServiceImages = get_services_images(&None).await;
         assert_eq!(
-            images.get(&Service::App),
+            images.app,
             "lenra/app/lenra_cli:prefixed-branch-name_withUnderscore".to_string()
         );
     }
@@ -544,9 +651,6 @@ mod test_get_services_images {
             MockResult::Return(Box::pin(async move { Ok(branch) }))
         });
         let images: ServiceImages = get_services_images(&None).await;
-        assert_eq!(
-            images.get(&Service::App),
-            format!("lenra/app/lenra_cli:{}", tag)
-        );
+        assert_eq!(images.app, format!("lenra/app/lenra_cli:{}", tag));
     }
 }

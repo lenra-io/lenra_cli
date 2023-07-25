@@ -7,13 +7,14 @@ use log::{debug, info};
 use serde_json::Value;
 
 use crate::{
+    docker_compose::{get_service_published_ports, Service},
     errors::{Error, Result},
     matching::{Matching, MatchingErrorType},
 };
 
 use self::template::TemplateChecker;
 
-use super::CliCommand;
+use super::{CliCommand, CommandContext};
 
 mod template;
 
@@ -37,7 +38,11 @@ pub enum CheckCommandType {
 
 #[async_trait]
 impl CliCommand for Check {
-    async fn run(&self) -> Result<()> {
+    async fn run(&self, _context: CommandContext) -> Result<()> {
+        // check that the app service is exposed
+        if get_service_published_ports(Service::App).await?.is_empty() {
+            return Err(Error::ServiceNotExposed(Service::App));
+        }
         match self.command.clone() {
             CheckCommandType::Template(params) => {
                 let template_checker = TemplateChecker;

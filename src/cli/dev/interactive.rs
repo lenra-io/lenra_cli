@@ -1,5 +1,9 @@
-use super::terminal::{DevCli, DevTermCommand};
 use crate::{
+    cli::{
+        reload::Reload,
+        stop::Stop,
+        terminal::{TerminalCli, TerminalCommand},
+    },
     errors::Result,
     keyboard_event::{keyevent_to_string, KeyEventListener, KeyboardListener},
 };
@@ -17,7 +21,7 @@ const ENTER_EVENT: KeyEvent = KeyEvent(KeyCode::Enter, Modifiers::NONE);
 pub trait KeyboardShorcut<T> {
     fn about(&self) -> String;
     fn events(&self) -> Vec<KeyEvent>;
-    fn run(&self) -> Option<T>;
+    fn to_value(&self) -> Option<T>;
 }
 
 #[derive(EnumIter, Display, Debug, PartialEq, Clone)]
@@ -34,15 +38,13 @@ impl InteractiveCommand {
     }
 }
 
-impl KeyboardShorcut<DevTermCommand> for InteractiveCommand {
+impl KeyboardShorcut<TerminalCommand> for InteractiveCommand {
     fn about(&self) -> String {
         match self {
             InteractiveCommand::Help => "Print this message".into(),
-            InteractiveCommand::Quit => {
-                "Quit the interactive mode and open the Lenra dev terminal".into()
-            }
+            InteractiveCommand::Quit => "Quit the interactive mode".into(),
             _ => {
-                let main_command = DevCli::command();
+                let main_command = TerminalCli::command();
                 let command = main_command.find_subcommand(self.name().to_lowercase().as_str());
                 command.unwrap().get_about().unwrap().into()
             }
@@ -65,21 +67,24 @@ impl KeyboardShorcut<DevTermCommand> for InteractiveCommand {
         }
     }
 
-    fn run(&self) -> Option<DevTermCommand> {
+    fn to_value(&self) -> Option<TerminalCommand> {
         match self {
             InteractiveCommand::Help => {
                 display_help();
-                Some(DevTermCommand::Continue)
+                None
             }
-            InteractiveCommand::Reload => Some(DevTermCommand::Reload),
-            InteractiveCommand::Quit => None,
-            InteractiveCommand::Stop => Some(DevTermCommand::Stop),
+            InteractiveCommand::Reload => Some(TerminalCommand::Reload(Reload {
+                ..Default::default()
+            })),
+            InteractiveCommand::Quit => Some(TerminalCommand::Exit),
+            InteractiveCommand::Stop => Some(TerminalCommand::Stop(Stop)),
         }
     }
 }
 
-pub async fn listen_interactive_command() -> Result<Option<DevTermCommand>> {
-    let command: Arc<Mutex<Option<DevTermCommand>>> = Arc::new(Mutex::new(None));
+pub async fn listen_interactive_command() -> Result<Option<TerminalCommand>> {
+    debug!("Listen interactive command");
+    let command: Arc<Mutex<Option<TerminalCommand>>> = Arc::new(Mutex::new(None));
     let mut listener = KeyboardListener::new()?;
     InteractiveCommand::iter().for_each(|cmd| {
         cmd.events().iter().for_each(|&event| {
@@ -87,7 +92,7 @@ pub async fn listen_interactive_command() -> Result<Option<DevTermCommand>> {
             let local_command = command.clone();
             let f = move || {
                 let mut c = local_command.lock().unwrap();
-                *c = cmd.run();
+                *c = cmd.to_value();
                 debug!("{}", cmd.name());
                 Some(Cmd::AcceptLine)
             };
@@ -101,6 +106,7 @@ pub async fn listen_interactive_command() -> Result<Option<DevTermCommand>> {
     listener.listen().await?;
     let mutex = command.lock().unwrap();
     let command = mutex.deref();
+    debug!("Interactive command: {:?}", command);
     Ok(command.clone())
 }
 

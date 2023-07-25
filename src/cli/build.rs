@@ -1,23 +1,15 @@
 use async_trait::async_trait;
-use log;
 
 use clap;
 
 use crate::cli::CliCommand;
-use crate::config::{load_config_file, DEFAULT_CONFIG_FILE};
-use crate::docker_compose::{compose_build, Service};
 use crate::errors::Result;
+use crate::lenra;
 
-#[derive(clap::Args, Default)]
+use super::{loader, CommandContext};
+
+#[derive(clap::Args, Default, Debug, Clone)]
 pub struct Build {
-    /// The app configuration file.
-    #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
-    pub config: std::path::PathBuf,
-
-    /// Exposes services ports.
-    #[clap(long, value_enum, default_values = &[], default_missing_values = &["app", "postgres", "mongo"])]
-    pub expose: Vec<Service>,
-
     /// Remove debug access to the app.
     #[clap(long, alias = "prod", action)]
     pub production: bool,
@@ -25,16 +17,28 @@ pub struct Build {
 
 #[async_trait]
 impl CliCommand for Build {
-    async fn run(&self) -> Result<()> {
-        let conf = load_config_file(&self.config)?;
-        // TODO: check the components API version
-
-        conf.generate_files(self.expose.clone(), !self.production)
-            .await?;
-
-        log::info!("Build the Docker image");
-        compose_build().await?;
-        log::info!("Image built");
-        Ok(())
+    async fn run(&self, context: CommandContext) -> Result<()> {
+        generate_app_env_loader(context, self.production).await?;
+        build_loader().await
     }
+}
+
+pub async fn generate_app_env_loader(context: CommandContext, production: bool) -> Result<()> {
+    loader(
+        "Generate app env...",
+        "App env generated",
+        "Failed generating app env",
+        || async { lenra::generate_app_env(&context.config, &context.expose, production).await },
+    )
+    .await
+}
+
+pub async fn build_loader() -> Result<()> {
+    loader(
+        "Build app...",
+        "App built",
+        "Failed building app",
+        || async { lenra::build_app().await },
+    )
+    .await
 }

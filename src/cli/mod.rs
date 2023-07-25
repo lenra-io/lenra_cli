@@ -1,11 +1,14 @@
+use std::future::Future;
+
 use async_trait::async_trait;
 pub use clap::{Args, Parser, Subcommand};
+use loading::Loading;
 
-use crate::errors::Result;
+use crate::{config::DEFAULT_CONFIG_FILE, docker_compose::Service, errors::Result};
 
 use self::{
-    build::Build, check::Check, dev::Dev, logs::Logs, new::New, start::Start, stop::Stop,
-    update::Update, upgrade::Upgrade,
+    build::Build, check::Check, dev::Dev, logs::Logs, new::New, reload::Reload, start::Start,
+    stop::Stop, update::Update, upgrade::Upgrade,
 };
 
 mod build;
@@ -13,26 +16,40 @@ mod check;
 mod dev;
 mod logs;
 mod new;
+mod reload;
 mod start;
 mod stop;
+pub mod terminal;
 mod update;
 mod upgrade;
 
 /// The Lenra command line interface
-#[derive(Parser)]
+#[derive(Parser, Debug, Clone)]
 #[clap(author, version, about, long_about = None, rename_all = "kebab-case")]
 pub struct Cli {
     #[clap(subcommand)]
-    pub command: Command,
+    pub command: Option<Command>,
+
+    /// The app configuration file.
+    #[clap(global=true, parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
+    pub config: std::path::PathBuf,
+
+    /// Exposes services ports.
+    #[clap(global=true, long, value_enum, default_values = &[], default_missing_values = &["app", "postgres", "mongo"])]
+    pub expose: Vec<Service>,
+
+    /// Run the commands as verbose.
+    #[clap(global = true, short, long, action)]
+    pub verbose: bool,
 }
 
 #[async_trait]
 pub trait CliCommand {
-    async fn run(&self) -> Result<()>;
+    async fn run(&self, context: CommandContext) -> Result<()>;
 }
 
 /// The subcommands
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug, Clone)]
 pub enum Command {
     /// Create a new Lenra app project from a template
     New(New),
@@ -52,24 +69,57 @@ pub enum Command {
     Update(Update),
     /// Checks the running app
     Check(Check),
+    /// Reload the app by rebuilding and restarting it
+    Reload(Reload),
 }
 
 #[async_trait]
 impl CliCommand for Command {
-    async fn run(&self) -> Result<()> {
+    async fn run(&self, context: CommandContext) -> Result<()> {
+        log::debug!("Run command {:?}", self);
         match self {
-            Command::New(new) => new.run(),
-            Command::Build(build) => build.run(),
-            Command::Start(start) => start.run(),
-            Command::Logs(logs) => logs.run(),
-            Command::Stop(stop) => stop.run(),
-            Command::Dev(dev) => dev.run(),
-            Command::Upgrade(upgrade) => upgrade.run(),
-            Command::Update(update) => update.run(),
-            Command::Check(check) => check.run(),
+            Command::New(new) => new.run(context),
+            Command::Build(build) => build.run(context),
+            Command::Start(start) => start.run(context),
+            Command::Logs(logs) => logs.run(context),
+            Command::Stop(stop) => stop.run(context),
+            Command::Dev(dev) => dev.run(context),
+            Command::Upgrade(upgrade) => upgrade.run(context),
+            Command::Update(update) => update.run(context),
+            Command::Check(check) => check.run(context),
+            Command::Reload(reload) => reload.run(context),
         }
         .await
     }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct CommandContext {
+    /// The app configuration file.
+    pub config: std::path::PathBuf,
+
+    /// Exposes all services ports.
+    pub expose: Vec<Service>,
+
+    /// Run command as verbose.
+    pub verbose: bool,
+}
+
+pub async fn loader<F, Fut, R>(text: &str, success: &str, fail: &str, task: F) -> Result<R>
+where
+    F: FnOnce() -> Fut,
+    Fut: Future<Output = Result<R>>,
+{
+    let loading = Loading::default();
+    loading.text(text);
+    let res = task().await;
+    if res.is_ok() {
+        loading.success(success);
+    } else {
+        loading.fail(fail);
+    }
+    loading.end();
+    res
 }
 
 #[cfg(test)]
