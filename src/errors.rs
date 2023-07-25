@@ -4,6 +4,8 @@ use rustyline::error::ReadlineError;
 use thiserror::Error;
 use tokio::{process::Command, task::JoinError};
 
+use crate::docker_compose::Service;
+
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[derive(Error, Debug)]
@@ -28,6 +30,14 @@ pub enum Error {
     Command(#[from] CommandError),
     #[error("{0}")]
     FromUtf8(#[from] FromUtf8Error),
+    #[error("The {0} service is not exposed")]
+    ServiceNotExposed(Service),
+    #[error("Some services are not started")]
+    NotStartedServices,
+    #[error("The app must be built before running it")]
+    NeverBuiltApp,
+    #[error("The new project directory is not empty")]
+    ProjectPathNotEmpty,
     #[error("Check error")]
     Check,
     #[error("The next GitHub topic is not correct: {0}")]

@@ -17,4 +17,6 @@ OPTIONS:
         --config <CONFIG>    The app configuration file [default: lenra.yml]
         --expose <EXPOSE>    Exposes services ports [possible values: app, devtool, postgres, mongo]
     -h, --help               Print help information
+        --production         Remove debug access to the app
+    -v, --verbose            Run the commands as verbose
 ```

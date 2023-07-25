@@ -1,68 +1,93 @@
 use async_trait::async_trait;
+use chrono::{DateTime, SecondsFormat, Utc};
 pub use clap::Args;
+use tokio::select;
 
-use crate::cli::build::Build;
-use crate::cli::dev::terminal::{run_dev_terminal, DevTermContext};
-use crate::cli::start::Start;
-use crate::cli::stop::Stop;
-use crate::cli::CliCommand;
-use crate::config::DEFAULT_CONFIG_FILE;
 use crate::docker_compose::Service;
 use crate::errors::Result;
+use crate::{
+    cli::{
+        build,
+        dev::interactive::listen_interactive_command,
+        logs::Logs,
+        start,
+        terminal::{run_command, TerminalCommand},
+        CliCommand, CommandContext,
+    },
+    lenra,
+};
+
+use interactive::{InteractiveCommand, KeyboardShorcut};
 
 mod interactive;
-mod terminal;
 
-#[derive(Args)]
+#[derive(Args, Debug, Clone)]
 pub struct Dev {
-    /// The app configuration file.
-    #[clap(parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
-    pub config: std::path::PathBuf,
-
-    /// Open the dev terminal instead of starting the interactive mode
-    #[clap(short, long, action)]
-    pub terminal: bool,
-
-    /// Exposes services ports.
-    #[clap(long, value_enum, default_values = &[], default_missing_values = &["app", "postgres", "mongo"])]
-    pub expose: Vec<Service>,
+    /// Attach the dev mode without rebuilding the app and restarting it.
+    #[clap(long, action)]
+    pub attach: bool,
 }
 
 #[async_trait]
 impl CliCommand for Dev {
-    async fn run(&self) -> Result<()> {
+    async fn run(&self, context: CommandContext) -> Result<()> {
         log::info!("Run dev mode");
 
-        let build = Build {
-            config: self.config.clone(),
-            expose: self.expose.clone(),
+        if !self.attach {
+            build::generate_app_env_loader(context.clone(), false).await?;
+            build::build_loader().await?;
+            start::start_loader().await?;
+            start::clear_cache_loader().await?;
+        }
+
+        let previous_log = Logs {
+            services: vec![Service::App],
+            follow: true,
             ..Default::default()
         };
-        log::debug!("Run build");
-        build.run().await?;
+        let mut last_logs: Option<DateTime<Utc>> = None;
 
-        let start = Start {
-            config: self.config.clone(),
-            expose: self.expose.clone(),
-            ..Default::default()
-        };
-        log::debug!("Run start");
-        start.run().await?;
+        let mut cmd_context = context;
 
-        run_dev_terminal(
-            &DevTermContext {
-                config: self.config.clone(),
-                expose: self.expose.clone(),
-            },
-            self.terminal,
-        )
-        .await?;
-
-        let stop = Stop;
-        log::debug!("Run stop");
-        stop.run().await?;
+        lenra::display_app_access_url();
+        InteractiveCommand::Help.to_value();
+        let mut interactive_cmd = None;
+        loop {
+            if let Some(command) = interactive_cmd {
+                let (ctx_opt, keep_running) = run_command(&command, cmd_context.clone()).await;
+                if !keep_running {
+                    break;
+                }
+                if let Some(ctx) = ctx_opt {
+                    cmd_context = ctx.clone();
+                }
+            }
+            let end_date;
+            (end_date, interactive_cmd) =
+                run_logs(&previous_log, last_logs, cmd_context.clone()).await?;
+            last_logs = Some(end_date);
+        }
 
         log::debug!("End of dev mode");
         Ok(())
     }
+}
+
+async fn run_logs(
+    logs: &Logs,
+    last_end: Option<DateTime<Utc>>,
+    context: CommandContext,
+) -> Result<(DateTime<Utc>, Option<TerminalCommand>)> {
+    let mut clone = logs.clone();
+    if let Some(last_logs) = last_end {
+        // Only displays new logs
+        clone.since = Some(last_logs.to_rfc3339_opts(SecondsFormat::Secs, true));
+    }
+
+    let command = select! {
+        res = listen_interactive_command() => {res?}
+        res = clone.run(context) => {res?; None}
+        // res = tokio::signal::ctrl_c() => {res?; None}
+    };
+    Ok((Utc::now(), command))
 }

@@ -8,6 +8,8 @@ use crate::cli::CliCommand;
 use crate::docker_compose::{create_compose_command, Service};
 use crate::errors::Result;
 
+use super::CommandContext;
+
 #[derive(Args, Default, Clone, Debug)]
 pub struct Logs {
     /// Follow log output
@@ -45,7 +47,7 @@ pub struct Logs {
 
 #[async_trait]
 impl CliCommand for Logs {
-    async fn run(&self) -> Result<()> {
+    async fn run(&self, _context: CommandContext) -> Result<()> {
         log::info!("Show logs");
 
         let mut command = create_compose_command();

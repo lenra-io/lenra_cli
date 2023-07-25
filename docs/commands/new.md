@@ -22,6 +22,9 @@ ARGS:
                    You also can set the template project full url to use custom ones
 
 OPTIONS:
-    -h, --help           Print help information
-    -p, --path <PATH>    The new project path [default: .]
+        --config <CONFIG>    The app configuration file [default: lenra.yml]
+        --expose <EXPOSE>    Exposes services ports [possible values: app, devtool, postgres, mongo]
+    -h, --help               Print help information
+    -p, --path <PATH>        The new project path [default: .]
+    -v, --verbose            Run the commands as verbose
 ```

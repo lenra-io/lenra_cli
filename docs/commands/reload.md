@@ -1,16 +1,16 @@
 ---
-description: This subcommand starts the Lenra app of the current directory previously built.
+description: This subcommand reloads the app by rebuilding and restarting it.
 ---
 
-This subcommand starts the Lenra app of the current directory previously built.
+This subcommand reloads the app by rebuilding and restarting it.
 
 ```bash
-$ lenra start --help
-lenra-start 
-Start your app previously built with the build command
+$ lenra reload --help
+lenra-reload 
+Reload the app by rebuilding and restarting it
 
 USAGE:
-    lenra start [OPTIONS]
+    lenra reload [OPTIONS]
 
 OPTIONS:
         --config <CONFIG>    The app configuration file [default: lenra.yml]
