@@ -3,7 +3,7 @@
 //! The Lenra's command line interface
 
 use clap::Parser;
-use cli::{Cli, CliCommand, CommandContext};
+use cli::{terminal::start_terminal, Cli, CliCommand, CommandContext};
 use env_logger;
 
 mod cli;
@@ -32,7 +32,11 @@ async fn main() -> () {
     if args.verbose {
         command::set_inherit_stdio(true);
     }
-    match args.command.run(context).await {
+    let res = match args.command {
+        Some(command) => command.run(context).await,
+        None => start_terminal(context).await,
+    };
+    match res {
         Ok(_) => (),
         Err(e) => {
             println!("{}", e.to_string());

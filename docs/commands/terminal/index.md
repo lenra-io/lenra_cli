@@ -4,17 +4,19 @@ description: The terminal is a command prompt that let you run only Lenra specif
 
 The terminal is a command prompt that let you run only Lenra specific commands. It has his own history and keep the same command context during it lifetime.
 
+To start the terminal, run the `lenra` command without any subcommand:
+
 ```bash
-$ lenra terminal --help
-lenra-terminal 
-Start a Lenra command terminal to run commands with a same context (verbose, config, expose, ...)
-and without having to write 'lenra' each time
+$ lenra
+```
 
-USAGE:
-    lenra terminal [OPTIONS]
+You can use the global options to configure the terminal context:
 
+```bash
 OPTIONS:
-    -h, --help               Print help information
+        --config <CONFIG>    The app configuration file [default: lenra.yml]
+        --expose <EXPOSE>    Exposes services ports [possible values: app, devtool, postgres, mongo]
+    -v, --verbose            Run the commands as verbose
 ```
 
 ## Commands

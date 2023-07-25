@@ -1,7 +1,6 @@
 use std::fs;
 
 use crate::lenra;
-use async_trait::async_trait;
 pub use clap::{Args, Parser, Subcommand};
 use clap::{CommandFactory, FromArgMatches};
 use colored::{Color, Colorize};
@@ -25,76 +24,70 @@ const LENRA_COMMAND: &str = "lenra";
 const READLINE_PROMPT: &str = "[lenra]$ ";
 // const ESCAPE_EVENT: KeyEvent = KeyEvent(KeyCode::Esc, Modifiers::NONE);
 
-#[derive(Args, Default, Debug, Clone)]
-pub struct Terminal;
+pub async fn start_terminal(context: CommandContext) -> Result<()> {
+    let history_path = config_dir()
+        .ok_or(Error::Custom("Can't get the user config directory".into()))?
+        .join("lenra")
+        .join("dev.history");
+    let mut rl = Editor::<()>::new()?;
 
-#[async_trait]
-impl CliCommand for Terminal {
-    async fn run(&self, context: CommandContext) -> Result<()> {
-        let history_path = config_dir()
-            .ok_or(Error::Custom("Can't get the user config directory".into()))?
-            .join("lenra")
-            .join("dev.history");
-        let mut rl = Editor::<()>::new()?;
+    debug!("Load history from {:?}", history_path);
+    if rl.load_history(&history_path).is_err() {
+        debug!("No previous history.");
+    }
 
-        debug!("Load history from {:?}", history_path);
-        if rl.load_history(&history_path).is_err() {
-            debug!("No previous history.");
-        }
+    let mut context = context.clone();
 
-        let mut context = context.clone();
+    loop {
+        let readline = rl.readline(READLINE_PROMPT);
+        let command = match readline {
+            Ok(line) => {
+                if line.trim().is_empty() {
+                    continue;
+                }
 
-        loop {
-            let readline = rl.readline(READLINE_PROMPT);
-            let command = match readline {
-                Ok(line) => {
-                    if line.trim().is_empty() {
+                rl.add_history_entry(line.as_str());
+
+                let parse_result = parse_command_line(line.clone()).map_err(Error::from);
+                match parse_result {
+                    Ok(dev_cli) => dev_cli.command,
+                    Err(Error::ParseCommand(clap_error)) => {
+                        clap_error.print().ok();
                         continue;
                     }
-
-                    rl.add_history_entry(line.as_str());
-
-                    let parse_result = parse_command_line(line.clone()).map_err(Error::from);
-                    match parse_result {
-                        Ok(dev_cli) => dev_cli.command,
-                        Err(Error::ParseCommand(clap_error)) => {
-                            clap_error.print().ok();
-                            continue;
-                        }
-                        Err(err) => {
-                            debug!("Parse command error: {}", err);
-                            warn!("not a valid command {}", line);
-                            continue;
-                        }
+                    Err(err) => {
+                        debug!("Parse command error: {}", err);
+                        warn!("not a valid command {}", line);
+                        continue;
                     }
                 }
-                Err(ReadlineError::Interrupted) => {
-                    debug!("CTRL-C");
-                    break;
-                }
-                Err(ReadlineError::Eof) => {
-                    debug!("CTRL-D");
-                    break;
-                }
-                Err(err) => {
-                    println!("Error: {:?}", err);
-                    break;
-                }
-            };
-
-            debug!("Run command {:#?}", command);
-            let (ctx_opt, keep_running) = run_command(&command, context.clone()).await;
-            if !keep_running {
+            }
+            Err(ReadlineError::Interrupted) => {
+                debug!("CTRL-C");
                 break;
             }
-            if let Some(ctx) = ctx_opt {
-                context = ctx.clone();
+            Err(ReadlineError::Eof) => {
+                debug!("CTRL-D");
+                break;
             }
+            Err(err) => {
+                println!("Error: {:?}", err);
+                break;
+            }
+        };
+
+        debug!("Run command {:#?}", command);
+        let (ctx_opt, keep_running) = run_command(&command, context.clone()).await;
+        if !keep_running {
+            break;
         }
-        debug!("Save history to {:?}", history_path);
-        fs::create_dir_all(history_path.parent().unwrap())?;
-        rl.save_history(&history_path).map_err(Error::from)
+        if let Some(ctx) = ctx_opt {
+            context = ctx.clone();
+        }
     }
+    debug!("Save history to {:?}", history_path);
+    fs::create_dir_all(history_path.parent().unwrap())?;
+    rl.save_history(&history_path).map_err(Error::from)
 }
 
 pub async fn run_command(

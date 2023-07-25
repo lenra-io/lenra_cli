@@ -8,7 +8,7 @@ use crate::{config::DEFAULT_CONFIG_FILE, docker_compose::Service, errors::Result
 
 use self::{
     build::Build, check::Check, dev::Dev, logs::Logs, new::New, reload::Reload, start::Start,
-    stop::Stop, terminal::Terminal, update::Update, upgrade::Upgrade,
+    stop::Stop, update::Update, upgrade::Upgrade,
 };
 
 mod build;
@@ -19,7 +19,7 @@ mod new;
 mod reload;
 mod start;
 mod stop;
-mod terminal;
+pub mod terminal;
 mod update;
 mod upgrade;
 
@@ -28,7 +28,7 @@ mod upgrade;
 #[clap(author, version, about, long_about = None, rename_all = "kebab-case")]
 pub struct Cli {
     #[clap(subcommand)]
-    pub command: Command,
+    pub command: Option<Command>,
 
     /// The app configuration file.
     #[clap(global=true, parse(from_os_str), long, default_value = DEFAULT_CONFIG_FILE)]
@@ -63,8 +63,6 @@ pub enum Command {
     Stop(Stop),
     /// Start the app in an interactive mode
     Dev(Dev),
-    /// Start a Lenra command terminal to run commands with a same context (verbose, config, expose, ...) and without having to write 'lenra' each time.
-    Terminal(Terminal),
     /// Upgrade the app with the last template updates
     Upgrade(Upgrade),
     /// Update the tools Docker images
@@ -86,7 +84,6 @@ impl CliCommand for Command {
             Command::Logs(logs) => logs.run(context),
             Command::Stop(stop) => stop.run(context),
             Command::Dev(dev) => dev.run(context),
-            Command::Terminal(terminal) => terminal.run(context),
             Command::Upgrade(upgrade) => upgrade.run(context),
             Command::Update(update) => update.run(context),
             Command::Check(check) => check.run(context),
