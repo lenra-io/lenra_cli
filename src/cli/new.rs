@@ -82,7 +82,7 @@ mod tests {
         let cli = cli::test::parse_command_line(String::from("lenra new js"))?;
         let command = cli.command;
         let new = match command {
-            Command::New(new) => new,
+            Some(Command::New(new)) => new,
             _ => panic!("wrong command"),
         };
         let expected_topics = vec!["js".to_string()];
@@ -121,7 +121,7 @@ mod tests {
         let cli = cli::test::parse_command_line(String::from("lenra new js"))?;
         let command = cli.command;
         let new = match command {
-            Command::New(new) => new,
+            Some(Command::New(new)) => new,
             _ => panic!("wrong command"),
         };
         let expected_topics = vec!["js".to_string()];
@@ -167,7 +167,7 @@ mod tests {
         let cli = cli::test::parse_command_line(String::from("lenra new js"))?;
         let command = cli.command;
         let new = match command {
-            Command::New(new) => new,
+            Some(Command::New(new)) => new,
             _ => panic!("wrong command"),
         };
         let expected_topics = vec!["js".to_string()];
@@ -229,7 +229,7 @@ mod tests {
         let cli = cli::test::parse_command_line(format!("lenra new {}", NODE_TEMPLATE_HTTP_URL))?;
         let command = cli.command;
         let new = match command {
-            Command::New(new) => new,
+            Some(Command::New(new)) => new,
             _ => panic!("wrong command"),
         };
         let expected_topics = vec![NODE_TEMPLATE_HTTP_URL.to_string()];
@@ -259,7 +259,7 @@ mod tests {
         let cli = cli::test::parse_command_line(format!("lenra new {}", NODE_TEMPLATE_SSH_URL))?;
         let command = cli.command;
         let new = match command {
-            Command::New(new) => new,
+            Some(Command::New(new)) => new,
             _ => panic!("wrong command"),
         };
         let expected_topics = vec![NODE_TEMPLATE_SSH_URL.to_string()];
