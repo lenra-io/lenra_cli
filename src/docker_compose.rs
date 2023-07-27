@@ -37,6 +37,7 @@ const MONGO_IMAGE_TAG: &str = "5";
 pub const OF_WATCHDOG_PORT: u16 = 8080;
 pub const DEVTOOL_WEB_PORT: u16 = 4000;
 pub const DEVTOOL_API_PORT: u16 = 4001;
+pub const DEVTOOL_OAUTH_PORT: u16 = 4444;
 pub const MONGO_PORT: u16 = 27017;
 pub const POSTGRES_PORT: u16 = 5432;
 pub const NON_ROOT_USER: &str = "12000";
@@ -240,7 +241,7 @@ async fn generate_docker_compose_content(
                     DEVTOOL_SERVICE_NAME.into(),
                     Some(docker_compose_types::Service {
                         image: Some(service_images.devtool),
-                        ports: Some(vec![DEVTOOL_WEB_PORT, DEVTOOL_API_PORT].into_iter().map(port_to_port_binding).collect()),
+                        ports: Some(vec![DEVTOOL_WEB_PORT, DEVTOOL_API_PORT, DEVTOOL_OAUTH_PORT].into_iter().map(port_to_port_binding).collect()),
                         environment: Some(Environment::KvPair(devtool_envs.into())),
                         healthcheck: Some(Healthcheck {
                             test: Some(HealthcheckTest::Multiple(vec![
