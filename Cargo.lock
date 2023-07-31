@@ -327,12 +327,12 @@ dependencies = [
 
 [[package]]
 name = "docker-compose-types"
-version = "0.4.1"
+version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0ee50caf01e7a34feba906df016260b8850ccc7f5b3cf3a7e7841349af071e8b"
+checksum = "a7e6db99dbe26656f967901125f74ac4d949f941c0caad1d1b079ff2bda96ebf"
 dependencies = [
  "derive_builder",
- "indexmap 1.9.3",
+ "indexmap 2.0.0",
  "serde",
  "serde_yaml",
 ]
@@ -550,7 +550,6 @@ checksum = "bd070e393353796e801d209ad339e89596eb4c8d430d18ede6a1cced8fafbd99"
 dependencies = [
  "autocfg",
  "hashbrown 0.12.3",
- "serde",
 ]
 
 [[package]]
@@ -561,6 +560,7 @@ checksum = "d5477fe2230a79769d8dc68e0eabf5437907c0457a5614a9e8dddb67f65eb65d"
 dependencies = [
  "equivalent",
  "hashbrown 0.14.0",
+ "serde",
 ]
 
 [[package]]
