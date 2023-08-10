@@ -48,7 +48,7 @@ lazy_static! {
     static ref COMPOSE_COMMAND: std::process::Command = get_compose_command();
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct ServiceInformations {
     service: Service,
@@ -66,7 +66,7 @@ pub struct ServiceInformations {
     publishers: Vec<Publisher>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[serde(rename_all = "PascalCase")]
 pub struct Publisher {
     #[serde(rename = "URL")]
@@ -77,6 +77,7 @@ pub struct Publisher {
 }
 
 #[derive(clap::ValueEnum, Serialize, Deserialize, Clone, Debug, PartialEq, Display)]
+#[serde(rename_all = "camelCase")]
 pub enum Service {
     App,
     Devtool,
@@ -104,6 +105,7 @@ pub struct ServiceImages {
 }
 
 #[derive(clap::ValueEnum, Serialize, Deserialize, Clone, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub enum ServiceState {
     Running,
     Paused,
@@ -447,8 +449,16 @@ pub async fn get_service_informations(service: Service) -> Result<ServiceInforma
         .arg("json");
 
     let output = get_command_output(command).await?;
-    let infos: ServiceInformations = serde_yaml::from_str(output.as_str())?;
-    Ok(infos)
+    debug!("Service {} infos: {}", service_name, output);
+    let infos: Vec<ServiceInformations> = serde_yaml::from_str(output.as_str())?;
+    let opt = infos.get(0);
+    opt.ok_or(Error::Custom("No service found".into()))
+        .map(|info| info.clone())
+    // if let Some(info) = opt {
+    //     Ok(info.clone())
+    // } else {
+    //     Err(Error::Custom("No service found".into()))
+    // }
 }
 
 /// Get the given Docker Compose service published port

@@ -1,0 +1,19 @@
+{
+  "name": "javascript-template",
+  "version": "1.0.0",
+  "description": "Lenra's javascript template",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "app-lenra",
+    "index": "app-lenra index",
+    "test": "echo \"Error: no test specified\" && exit 0"
+  },
+  "keywords": [],
+  "author": "Lenra",
+  "license": "MIT",
+  "dependencies": {
+    "@lenra/app-server": "^1.0.0-beta.1",
+    "@lenra/components": "^1.0.0-beta.5"
+  }
+}

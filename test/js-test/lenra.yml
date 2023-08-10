@@ -1,0 +1,27 @@
+componentsApi: "1.0"
+generator:
+  dofigen:
+    builders:
+      - from: "docker.io/bitnami/node:18"
+        workdir: /app
+        root:
+          script:
+            - chown -R 1000 /app
+        adds:
+          - "*.json"
+        script:
+          - npm ci --omit=dev
+    from: builder-0
+    adds:
+      - .
+    cmd:
+      - node
+      - node_modules/@lenra/app-server/dist/bin/app-lenra.js
+    envs:
+      NODE_ENV: production
+    ports:
+      - 3000
+    ignores:
+      - "**"
+      - "!/*.json"
+      - "!/src/"

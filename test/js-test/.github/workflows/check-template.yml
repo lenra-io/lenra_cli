@@ -1,0 +1,27 @@
+name: Check Lenra Template
+
+on:
+  push:
+
+jobs:
+  release:
+    name: Check template
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Install Compose
+        uses: ndeloof/install-compose-action@v0.0.1
+      - run: docker-compose --version
+      - name: Install Lenra CLI
+        run: wget -c https://github.com/lenra-io/lenra_cli/releases/latest/download/lenra-linux-x86_64.tar.gz -O - | tar -xz
+      - name: Build app
+        run: ./lenra build --expose app
+      - name: Start app
+        run: ./lenra start
+      - name: Check template
+        run: ./lenra check template --strict
+      - name: Stop app
+        if: always()
+        run: ./lenra stop
