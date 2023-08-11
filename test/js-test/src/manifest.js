@@ -1,8 +1,9 @@
+import { View } from "@lenra/components";
 import { views } from "./index.gen.js";
 
 export const lenraRoutes = [
     {
         path: "/",
-        view: views.main
+        view: View(views.main)
     }
 ];
