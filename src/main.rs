@@ -6,6 +6,7 @@ use clap::Parser;
 use cli::{terminal::start_terminal, Cli, CliCommand, CommandContext};
 use env_logger;
 
+mod app_checker;
 mod cli;
 mod command;
 mod config;

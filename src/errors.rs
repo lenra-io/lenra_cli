@@ -16,6 +16,8 @@ pub enum Error {
     Stdio(#[from] std::io::Error),
     #[error("Error while deserializing the document: {0}")]
     Deserialize(#[from] serde_yaml::Error),
+    #[error("Error while deserializing the document: {0}")]
+    DeserializeJson(#[from] serde_json::Error),
     #[error("{0}")]
     Dofigen(#[from] dofigen_lib::Error),
     #[error("Could not read command: {0}")]

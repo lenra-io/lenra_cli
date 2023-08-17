@@ -1,0 +1,55 @@
+{
+    "$id": "https://test.fr/manifest.json",
+    "title": "Manifest",
+    "description": "The Lenra application manifest",
+    "type": "object",
+    "properties": {
+        "manifest": {
+            "type": "object",
+            "properties": {
+                "lenraRoutes": {
+                    "description": "The Lenra routes of the application",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/route"
+                    }
+                },
+                "jsonRoutes": {
+                    "description": "The JSON routes of the application",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/route"
+                    }
+                },
+                "rootView": {
+                    "description": "The root Lenra view of the application",
+                    "type": "string",
+                    "deprecated": true
+                }
+            },
+            "additionalProperties": false
+        }
+    },
+    "required": [
+        "manifest"
+    ],
+    "additionalProperties": false,
+    "definitions": {
+        "route": {
+            "type": "object",
+            "properties": {
+                "path": {
+                    "type": "string"
+                },
+                "view": {
+                    "type": "object"
+                }
+            },
+            "required": [
+                "path",
+                "view"
+            ],
+            "additionalProperties": false
+        }
+    }
+}

@@ -1,0 +1,6 @@
+{
+    "$id": "https://test.fr/view_result.json",
+    "title": "View Result",
+    "description": "The Lenra application view result",
+    "type": "object"
+}
