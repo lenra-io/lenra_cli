@@ -1,6 +1,11 @@
+use std::{
+    fs::{self},
+    path::PathBuf,
+};
+
 use crate::errors::{Error, Result};
-use boon::{Compiler, Schemas};
 use colored::Color;
+use jsonschema::{Draft, JSONSchema};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -9,6 +14,15 @@ pub trait Route {
     fn view(&self) -> &str;
     fn props(&self) -> Value {
         json!({})
+    }
+    fn check(&self) -> Result<Vec<CheckerLevel>> {
+        let request = json!({
+            "view": self.view(),
+            "data": [],
+            "props":self.props(),
+        });
+        let result = load_check_schema(request, PathBuf::from("./schemas/view_result.json"))?;
+        Ok(vec![CheckerLevel::Ok])
     }
 }
 
@@ -86,74 +100,69 @@ pub struct ViewComponent {
     props: Option<Value>,
 }
 
-pub fn check_app() -> Result<CheckerLevel> {
+pub fn check_app() -> Result<Vec<CheckerLevel>> {
     // TODO: load schema from url
-    // let path = PathBuf::from("../../schemas/manifest.json");
-    // let file = fs::File::open(path.clone()).map_err(|err| Error::OpenFile(err, path.clone()))?;
-    // load manifest JSON Schema
-    // let schema = include_str!("../schemas/manifest.json");
-    // let schema = serde_json::from_str(schema).map_err(Error::from)?;
 
     // load manifest
-    let manifest = load_check_schema(json!({}), "./schemas/manifest.json")?;
+    let manifest = load_check_schema(json!({}), PathBuf::from("./schemas/manifest.json"))?;
     let manifest: Manifest = serde_json::from_value(manifest).map_err(Error::from)?;
 
-    let mut results: Vec<CheckerLevel> = match manifest.manifest {
-        ManifestContent::RootView(root_view) => vec![check_route(&root_view)?],
+    let results: Vec<CheckerLevel> = match manifest.manifest {
+        ManifestContent::RootView(root_view) => root_view.check()?,
         ManifestContent::RoutesDefinition(routes_def) => {
             let mut routes_results = vec![];
             if let Some(routes) = routes_def.lenra_routes {
-                routes.iter().for_each(|route| {
-                    routes_results.push(check_route(route).unwrap());
-                });
+                for route in routes {
+                    route
+                        .check()?
+                        .iter()
+                        .for_each(|r| routes_results.push(r.clone()));
+                }
             }
             if let Some(routes) = routes_def.json_routes {
-                routes.iter().for_each(|route| {
-                    routes_results.push(check_route(route).unwrap());
-                });
+                for route in routes {
+                    route
+                        .check()?
+                        .iter()
+                        .for_each(|r| routes_results.push(r.clone()));
+                }
             }
             routes_results
         }
     };
 
-    Ok(CheckerLevel::Ok)
+    Ok(results)
 }
 
-pub fn check_route(route: &dyn Route) -> Result<CheckerLevel> {
-    let request = json!({
-        "view": route.view(),
-        "data": [],
-        "props":route.props(),
-    });
-    let result = load_check_schema(request, "./schemas/view_result.json")?;
-    println!("view result: {:?}", result);
-    Ok(CheckerLevel::Ok)
-}
-
-fn load_check_schema(request: Value, schema_path: &str) -> Result<Value> {
-    let mut schemas = Schemas::new(); // container for compiled schemas
-    let mut compiler = Compiler::new();
-    compiler.set_default_draft(boon::Draft::V2020_12);
-
-    let json = call_app(request).map_err(Error::from)?;
-
-    let sch_index = compiler
-        .compile(schema_path, &mut schemas)
+fn load_check_schema(request: Value, schema_path: PathBuf) -> Result<Value> {
+    // TODO: load schema from schema_path
+    let mut schema = serde_json::from_reader(
+        fs::File::open(schema_path.clone())
+            .map_err(|err| Error::OpenFile(err, schema_path.clone()))?,
+    )?;
+    let compiled_schema = JSONSchema::options()
+        .with_draft(Draft::Draft7)
+        .compile(&schema)
         .map_err(|error| {
             Error::Custom(format!(
-                "Error while compiling the schema[{}]: {}",
+                "Error while compiling the schema[{:?}]: {}",
                 schema_path, error
             ))
         })?;
 
-    let result = schemas.validate(&json, sch_index);
+    let json: Value = call_app(request).map_err(Error::from)?;
+    let response = json.clone();
+    let result = compiled_schema.validate(&json);
 
-    if let Err(error) = result {
-        println!("error: {}", error);
+    if let Err(errors) = result {
+        println!("Validation failed.");
+        for error in errors {
+            println!("error: {}", error);
+        }
         // return Ok(CheckerLevel::Error);
     }
 
-    Ok(json)
+    Ok(response)
 }
 
 pub fn call_app<T: DeserializeOwned>(request: Value) -> Result<T> {
@@ -164,7 +173,7 @@ pub fn call_app<T: DeserializeOwned>(request: Value) -> Result<T> {
         .map_err(Error::from)
 }
 
-#[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Clone)]
 pub enum CheckerLevel {
     Ok,
     Warning,
