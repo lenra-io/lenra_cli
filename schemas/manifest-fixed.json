@@ -4,33 +4,28 @@
     "description": "The Lenra application manifest",
     "type": "object",
     "properties": {
-        "manifest": {
-            "type": "object",
-            "properties": {
-                "lenra": {
-                    "description": "The Lenra exposer definition of the application",
-                    "$ref": "#/definitions/exposer"
-                },
-                "json": {
-                    "description": "The JSON exposer definition of the application",
-                    "$ref": "#/definitions/exposer"
-                }
-            },
-            "additionalProperties": false,
-            "oneOf": [
-                {
-                    "required": [
-                        "lenra"
-                    ]
-                },
-                {
-                    "required": [
-                        "json"
-                    ]
-                }
-            ]
+        "lenra": {
+            "description": "The Lenra exposer definition of the application",
+            "$ref": "#/definitions/exposer"
+        },
+        "json": {
+            "description": "The JSON exposer definition of the application",
+            "$ref": "#/definitions/exposer"
         }
     },
+    "additionalProperties": false,
+    "oneOf": [
+        {
+            "required": [
+                "lenra"
+            ]
+        },
+        {
+            "required": [
+                "json"
+            ]
+        }
+    ],
     "definitions": {
         "exposer": {
             "type": "object",

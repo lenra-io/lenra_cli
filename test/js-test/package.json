@@ -13,7 +13,7 @@
   "author": "Lenra",
   "license": "MIT",
   "dependencies": {
-    "@lenra/app-server": "^1.0.0-beta.1",
+    "@lenra/app-server": "^1.0.0-beta.4",
     "@lenra/components": "^1.0.0-beta.5"
   }
 }

@@ -6,6 +6,7 @@ use std::{
 use crate::errors::{Error, Result};
 use colored::Color;
 use jsonschema::{Draft, JSONSchema};
+use log::debug;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
 
@@ -22,43 +23,36 @@ pub trait Route {
             "props":self.props(),
         });
         let result = load_check_schema(request, PathBuf::from("./schemas/view_result.json"))?;
+        debug!("result: {:?}", result);
         Ok(vec![CheckerLevel::Ok])
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-#[serde(rename_all = "camelCase")]
+pub struct ManifestResponse {
+    manifest: Manifest,
+}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 pub struct Manifest {
-    manifest: ManifestContent,
+    lenra: Option<Exposer<LenraRoute>>,
+    json: Option<Exposer<JsonRoute>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-#[serde(untagged)]
-pub enum ManifestContent {
-    RootView(RootView),
-    RoutesDefinition(RoutesDefinition),
+pub struct Exposer<T: Route> {
+    version: Option<String>,
+    routes: Vec<T>,
 }
 
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct RootView {
-    root_view: String,
-}
-
-impl Route for RootView {
-    fn path(&self) -> &str {
-        "/"
+impl<T: Route> Exposer<T> {
+    pub fn check(&self) -> Result<Vec<CheckerLevel>> {
+        let mut results = vec![];
+        for route in &self.routes {
+            route.check()?.iter().for_each(|r| results.push(r.clone()));
+        }
+        Ok(results)
     }
-    fn view(&self) -> &str {
-        &self.root_view
-    }
-}
-
-#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct RoutesDefinition {
-    lenra_routes: Option<Vec<LenraRoute>>,
-    json_routes: Option<Vec<JsonRoute>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
@@ -105,31 +99,17 @@ pub fn check_app() -> Result<Vec<CheckerLevel>> {
 
     // load manifest
     let manifest = load_check_schema(json!({}), PathBuf::from("./schemas/manifest.json"))?;
-    let manifest: Manifest = serde_json::from_value(manifest).map_err(Error::from)?;
+    let manifest: ManifestResponse = serde_json::from_value(manifest).map_err(Error::from)?;
 
-    let results: Vec<CheckerLevel> = match manifest.manifest {
-        ManifestContent::RootView(root_view) => root_view.check()?,
-        ManifestContent::RoutesDefinition(routes_def) => {
-            let mut routes_results = vec![];
-            if let Some(routes) = routes_def.lenra_routes {
-                for route in routes {
-                    route
-                        .check()?
-                        .iter()
-                        .for_each(|r| routes_results.push(r.clone()));
-                }
-            }
-            if let Some(routes) = routes_def.json_routes {
-                for route in routes {
-                    route
-                        .check()?
-                        .iter()
-                        .for_each(|r| routes_results.push(r.clone()));
-                }
-            }
-            routes_results
-        }
-    };
+    debug!("manifest: {:?}", manifest);
+
+    let mut results: Vec<CheckerLevel> = vec![];
+    if let Some(exposer) = manifest.manifest.lenra {
+        results.append(&mut exposer.check()?);
+    }
+    if let Some(exposer) = manifest.manifest.json {
+        results.append(&mut exposer.check()?);
+    }
 
     Ok(results)
 }

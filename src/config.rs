@@ -48,8 +48,6 @@ pub fn load_config_file(path: &std::path::PathBuf) -> Result<Application> {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Application {
-    #[serde(rename = "componentsApi")]
-    pub components_api: String,
     pub generator: Generator,
     pub dev: Option<Dev>,
 }
@@ -372,7 +370,6 @@ mod dofigen_of_overlay_tests {
             ..Default::default()
         };
         let config = Application {
-            components_api: "".to_string(),
             generator: Generator::Dofigen(Dofigen {
                 dofigen: image.clone(),
             }),
@@ -390,7 +387,6 @@ mod dofigen_of_overlay_tests {
             ..Default::default()
         };
         let config = Application {
-            components_api: "".to_string(),
             generator: Generator::Dofigen(Dofigen {
                 dofigen: image.clone(),
             }),
