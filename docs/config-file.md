@@ -8,7 +8,7 @@ The Lenra's configuration file describes your Lenra app configurations, like API
 Here is an example using a Dofigen file:
 
 ```yaml
-componentsApi: "1.0"
+path: "."
 generator:
   dofigen: dofigen.yml
 ```
@@ -17,17 +17,19 @@ generator:
 
 The configuration is the main element of the file:
 
-| Field           | Type                    | Description                 |
-| --------------- | ----------------------- | --------------------------- |
-| `componentsApi` | String                  | The components API version  |
-| `generator`     | [Generator](#generator) | The generator configuration |
+| Field       | Type                    | Description                    |
+| ----------- | ----------------------- | ------------------------------ |
+| `path`      | String                  | The project path (default ".") |
+| `generator` | [Generator](#generator) | The generator configuration    |
 
 ## Generator
 
 The generator define your application is built. There are many configurators:
 
-- [Dofigen](#dofigen)
-- [Docker](#docker)
+- [Configuration](#configuration)
+- [Generator](#generator)
+  - [Dofigen](#dofigen)
+  - [Docker](#docker)
 
 ### Dofigen
 
