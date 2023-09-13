@@ -25,15 +25,16 @@ async fn main() -> () {
     env_logger::init();
     let args = Cli::parse();
     let context = CommandContext {
-        config: args.config.clone(),
-        expose: args.expose.clone(),
+        config_path: args.config,
+        config: None,
+        expose: args.expose,
         verbose: args.verbose,
     };
     if args.verbose {
         command::set_inherit_stdio(true);
     }
     let res = match args.command {
-        Some(command) => command.run(context).await,
+        Some(command) => command.run(&mut context).await,
         None => start_terminal(context).await,
     };
     match res {

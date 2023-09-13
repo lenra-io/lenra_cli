@@ -45,11 +45,11 @@ pub fn load_config_file(path: &std::path::PathBuf) -> Result<Application> {
 }
 
 /** The main component of the config file */
-#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Application {
     #[serde(rename = "componentsApi")]
-    pub components_api: String,
+    pub path: Option<PathBuf>,
     pub generator: Generator,
     pub dev: Option<Dev>,
 }
@@ -78,7 +78,7 @@ pub struct DebugDofigen {
 }
 
 /** The application generator configuration */
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[serde(untagged)]
 pub enum Generator {
     Dofigen(Dofigen),
@@ -90,26 +90,26 @@ pub enum Generator {
 }
 
 /** The Dofigen configuration */
-#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Dofigen {
     pub dofigen: dofigen_lib::Image,
 }
 
 /** The Dofigen configuration file */
-#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct DofigenFile {
     pub dofigen: std::path::PathBuf,
 }
 
 /** The Docker configuration */
-#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Docker {
     pub docker: String,
     pub ignore: Option<String>,
 }
 
 /** The Docker configuration file */
-#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Dockerfile {
     pub docker: std::path::PathBuf,
 }
@@ -372,7 +372,6 @@ mod dofigen_of_overlay_tests {
             ..Default::default()
         };
         let config = Application {
-            components_api: "".to_string(),
             generator: Generator::Dofigen(Dofigen {
                 dofigen: image.clone(),
             }),
@@ -390,7 +389,6 @@ mod dofigen_of_overlay_tests {
             ..Default::default()
         };
         let config = Application {
-            components_api: "".to_string(),
             generator: Generator::Dofigen(Dofigen {
                 dofigen: image.clone(),
             }),

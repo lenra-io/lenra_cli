@@ -4,7 +4,11 @@ use async_trait::async_trait;
 pub use clap::{Args, Parser, Subcommand};
 use loading::Loading;
 
-use crate::{config::DEFAULT_CONFIG_FILE, docker_compose::Service, errors::Result};
+use crate::{
+    config::{load_config_file, Application, DEFAULT_CONFIG_FILE},
+    docker_compose::Service,
+    errors::Result,
+};
 
 use self::{
     build::Build, check::Check, dev::Dev, logs::Logs, new::New, reload::Reload, start::Start,
@@ -45,7 +49,10 @@ pub struct Cli {
 
 #[async_trait]
 pub trait CliCommand {
-    async fn run(&self, context: CommandContext) -> Result<()>;
+    async fn run(&self, context: &mut CommandContext) -> Result<()>;
+    fn need_config(&self) -> bool {
+        true
+    }
 }
 
 /// The subcommands
@@ -75,8 +82,11 @@ pub enum Command {
 
 #[async_trait]
 impl CliCommand for Command {
-    async fn run(&self, context: CommandContext) -> Result<()> {
+    async fn run(&self, context: &mut CommandContext) -> Result<()> {
         log::debug!("Run command {:?}", self);
+        if self.need_config() {
+            context.load_config()?;
+        }
         match self {
             Command::New(new) => new.run(context),
             Command::Build(build) => build.run(context),
@@ -91,18 +101,35 @@ impl CliCommand for Command {
         }
         .await
     }
+
+    fn need_config(&self) -> bool {
+        match self {
+            Command::New(_) => false,
+            _ => true,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Default)]
 pub struct CommandContext {
     /// The app configuration file.
-    pub config: std::path::PathBuf,
+    pub config_path: std::path::PathBuf,
+
+    /// The app configuration.
+    pub config: Option<Application>,
 
     /// Exposes all services ports.
     pub expose: Vec<Service>,
 
     /// Run command as verbose.
     pub verbose: bool,
+}
+
+impl CommandContext {
+    pub fn load_config(mut self) -> Result<()> {
+        self.config = Some(load_config_file(&self.config_path)?);
+        Ok(())
+    }
 }
 
 pub async fn loader<F, Fut, R>(text: &str, success: &str, fail: &str, task: F) -> Result<R>

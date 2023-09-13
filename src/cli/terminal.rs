@@ -179,7 +179,7 @@ impl TerminalCommand {
         match self {
             TerminalCommand::Exit => {}
             TerminalCommand::Expose(expose) => {
-                lenra::generate_app_env(&context.config, &expose.services, false).await?;
+                lenra::generate_app_env(&context.config_path, &expose.services, false).await?;
                 lenra::start_env().await?;
 
                 let mut ctx = context.clone();
