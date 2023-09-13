@@ -258,7 +258,6 @@ mod test {
         ),
     }
 
-
     macro_rules! get_app_workdir_tests {
         ($($name:ident: $value:expr,)*) => {
         mod get_app_workdir {

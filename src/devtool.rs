@@ -1,8 +1,9 @@
 use log::debug;
 
 use crate::{
+    cli::CommandContext,
     docker_compose::{execute_compose_service_command, Service},
-    errors::Result, cli::CommandContext,
+    errors::Result,
 };
 
 pub async fn stop_app_env(context: &mut CommandContext) -> Result<()> {

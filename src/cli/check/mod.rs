@@ -40,7 +40,10 @@ pub enum CheckCommandType {
 impl CliCommand for Check {
     async fn run(&self, context: &mut CommandContext) -> Result<()> {
         // check that the app service is exposed
-        if get_service_published_ports(context, Service::App).await?.is_empty() {
+        if get_service_published_ports(context, Service::App)
+            .await?
+            .is_empty()
+        {
             return Err(Error::ServiceNotExposed(Service::App));
         }
         match self.command.clone() {
