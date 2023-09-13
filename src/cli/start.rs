@@ -12,30 +12,30 @@ pub struct Start;
 
 #[async_trait]
 impl CliCommand for Start {
-    async fn run(&self, _context: CommandContext) -> Result<()> {
-        start_loader().await?;
-        clear_cache_loader().await?;
+    async fn run(&self, context: &mut CommandContext) -> Result<()> {
+        start_loader(context).await?;
+        clear_cache_loader(context).await?;
         lenra::display_app_access_url();
         Ok(())
     }
 }
 
-pub async fn start_loader() -> Result<()> {
+pub async fn start_loader(context: &mut CommandContext) -> Result<()> {
     loader(
         "Start app environment...",
         "App environment started",
         "Failed starting app",
-        || async { lenra::start_env().await },
+        || async { lenra::start_env(context).await },
     )
     .await
 }
 
-pub async fn clear_cache_loader() -> Result<()> {
+pub async fn clear_cache_loader(context: &mut CommandContext) -> Result<()> {
     loader(
         "Clearing cache...",
         "Cache cleared",
         "Failed clearing cache",
-        || async { lenra::clear_cache().await },
+        || async { lenra::clear_cache(context).await },
     )
     .await
 }

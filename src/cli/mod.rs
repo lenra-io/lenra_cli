@@ -1,8 +1,9 @@
-use std::future::Future;
+use std::{future::Future, path::PathBuf};
 
 use async_trait::async_trait;
 pub use clap::{Args, Parser, Subcommand};
 use loading::Loading;
+use log::debug;
 
 use crate::{
     config::{load_config_file, Application, DEFAULT_CONFIG_FILE},
@@ -126,9 +127,34 @@ pub struct CommandContext {
 }
 
 impl CommandContext {
-    pub fn load_config(mut self) -> Result<()> {
-        self.config = Some(load_config_file(&self.config_path)?);
-        Ok(())
+    pub fn load_config(&mut self) -> Result<Application> {
+        debug!("Load config from {:?}", self.config_path);
+        let app: Application = load_config_file(&self.config_path)?;
+        self.config = Some(app.clone());
+        Ok(app)
+    }
+
+    /// Resolve a path relative to the current directory and base on the path property of the config.
+    pub fn resolve_path(&self, path: &PathBuf) -> PathBuf {
+        let mut resolved_path = self.get_app_workdir();
+        resolved_path.push(path);
+        debug!("Resolved path {:?} to {:?}", path, resolved_path);
+        resolved_path
+    }
+
+    pub fn get_app_workdir(&self) -> PathBuf {
+        let mut workdir = self.config_path.clone();
+        workdir.pop();
+        if let Some(app_dir_path) = self.get_app_path_config() {
+            workdir.push(app_dir_path);
+        };
+        workdir
+    }
+
+    fn get_app_path_config(&self) -> Option<PathBuf> {
+        self.config
+            .as_ref()
+            .map(|app| app.path.clone().unwrap_or(PathBuf::from(".")))
     }
 }
 
@@ -151,9 +177,11 @@ where
 
 #[cfg(test)]
 mod test {
+    use std::path::PathBuf;
+
     use clap::{CommandFactory, FromArgMatches};
 
-    use super::Cli;
+    use super::*;
 
     pub fn parse_command_line(line: String) -> Result<Cli, clap::Error> {
         let args = &mut line.split_whitespace().collect::<Vec<&str>>();
@@ -168,5 +196,129 @@ mod test {
     fn format_error(err: clap::Error) -> clap::Error {
         let mut command = <Cli as CommandFactory>::command();
         err.format(&mut command)
+    }
+
+    #[test]
+    fn test_load_config() {
+        let mut context = CommandContext::default();
+        context.config_path = PathBuf::from("test/config/app_path.yml");
+        let app = context.load_config().unwrap();
+        assert_eq!(app.path, Some(PathBuf::from("test_app")));
+    }
+
+    macro_rules! resolve_path_tests {
+        ($($name:ident: $value:expr,)*) => {
+        mod resolve_path {
+            use std::path::PathBuf;
+            use super::super::*;
+        $(
+            #[test]
+            fn $name() {
+                let (config_path, config, expected) = $value;
+                let mut context = CommandContext::default();
+                context.config_path = PathBuf::from(config_path);
+                context.config = config;
+                let path = PathBuf::from(".lenra/compose.yml");
+                let resolved_path = context.resolve_path(&path);
+                assert_eq!(
+                    resolved_path,
+                    PathBuf::from(expected)
+                );
+            }
+        )*
+        }
+        }
+    }
+
+    resolve_path_tests! {
+        simple: (
+            "",
+            Some(Application {..Default::default()}),
+            "./.lenra/compose.yml"
+        ),
+        app_path: (
+            "",
+            Some(Application {path: Some(PathBuf::from("test_app")), ..Default::default()}),
+            "test_app/.lenra/compose.yml"
+        ),
+        app_path_and_config_file: (
+            "test/config/lenra.yml",
+            Some(Application {path: Some(PathBuf::from("test_app")), ..Default::default()}),
+            "test/config/test_app/.lenra/compose.yml"
+        ),
+        app_path_in_parent_dir: (
+            "",
+            Some(Application {path: Some(PathBuf::from("../test_app")), ..Default::default()}),
+            "../test_app/.lenra/compose.yml"
+        ),
+        app_path_in_parent_dir_and_config_file: (
+            "test/config/lenra.yml",
+            Some(Application {path: Some(PathBuf::from("../test_app")), ..Default::default()}),
+            "test/config/../test_app/.lenra/compose.yml"
+        ),
+    }
+
+
+    macro_rules! get_app_workdir_tests {
+        ($($name:ident: $value:expr,)*) => {
+        mod get_app_workdir {
+            use std::path::PathBuf;
+            use super::super::*;
+        $(
+            #[test]
+            fn $name() {
+                let (config_path, config, expected) = $value;
+                let mut context = CommandContext::default();
+                context.config_path = PathBuf::from(config_path);
+                context.config = config;
+                let workdir = context.get_app_workdir();
+                assert_eq!(
+                    workdir,
+                    PathBuf::from(expected)
+                );
+            }
+        )*
+        }
+        }
+    }
+
+    get_app_workdir_tests! {
+        simple: (
+            "",
+            Some(Application {..Default::default()}),
+            "."
+        ),
+        app_path: (
+            "",
+            Some(Application {path: Some(PathBuf::from("test_app")), ..Default::default()}),
+            "test_app"
+        ),
+        app_path_and_config_file: (
+            "test/config/lenra.yml",
+            Some(Application {path: Some(PathBuf::from("test_app")), ..Default::default()}),
+            "test/config/test_app"
+        ),
+        app_path_in_parent_dir: (
+            "",
+            Some(Application {path: Some(PathBuf::from("../test_app")), ..Default::default()}),
+            "../test_app"
+        ),
+        app_path_in_parent_dir_and_config_file: (
+            "test/config/lenra.yml",
+            Some(Application {path: Some(PathBuf::from("../test_app")), ..Default::default()}),
+            "test/config/../test_app"
+        ),
+    }
+
+    #[test]
+    fn test_get_app_path_config() {
+        let mut context = CommandContext::default();
+        let app = Application {
+            path: Some(PathBuf::from("test_app")),
+            ..Default::default()
+        };
+        context.config = Some(app);
+        let app_path = context.get_app_path_config().unwrap();
+        assert_eq!(app_path, PathBuf::from("test_app"));
     }
 }

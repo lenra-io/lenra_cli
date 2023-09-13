@@ -1,14 +1,15 @@
 use log::debug;
 
 use crate::{
-    docker_compose::{execute_compose_service_command, DEVTOOL_SERVICE_NAME},
-    errors::Result,
+    docker_compose::{execute_compose_service_command, Service},
+    errors::Result, cli::CommandContext,
 };
 
-pub async fn stop_app_env() -> Result<()> {
+pub async fn stop_app_env(context: &mut CommandContext) -> Result<()> {
     debug!("Stop app environment");
     execute_compose_service_command(
-        DEVTOOL_SERVICE_NAME,
+        context,
+        Service::Devtool,
         &[
             "bin/dev_tools",
             "rpc",

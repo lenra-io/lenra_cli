@@ -15,10 +15,10 @@ pub struct Reload;
 
 #[async_trait]
 impl CliCommand for Reload {
-    async fn run(&self, context: CommandContext) -> Result<()> {
+    async fn run(&self, context: &mut CommandContext) -> Result<()> {
         generate_app_env_loader(context, false).await?;
-        build_loader().await?;
-        start_loader().await?;
-        clear_cache_loader().await
+        build_loader(context).await?;
+        start_loader(context).await?;
+        clear_cache_loader(context).await
     }
 }

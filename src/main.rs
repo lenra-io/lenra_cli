@@ -24,7 +24,7 @@ mod template;
 async fn main() -> () {
     env_logger::init();
     let args = Cli::parse();
-    let context = CommandContext {
+    let context = &mut CommandContext {
         config_path: args.config,
         config: None,
         expose: args.expose,
@@ -34,7 +34,7 @@ async fn main() -> () {
         command::set_inherit_stdio(true);
     }
     let res = match args.command {
-        Some(command) => command.run(&mut context).await,
+        Some(command) => command.run(context).await,
         None => start_terminal(context).await,
     };
     match res {

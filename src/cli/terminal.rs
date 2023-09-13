@@ -24,7 +24,7 @@ const LENRA_COMMAND: &str = "lenra";
 const READLINE_PROMPT: &str = "[lenra]$ ";
 // const ESCAPE_EVENT: KeyEvent = KeyEvent(KeyCode::Esc, Modifiers::NONE);
 
-pub async fn start_terminal(context: CommandContext) -> Result<()> {
+pub async fn start_terminal(context: &mut CommandContext) -> Result<()> {
     let history_path = config_dir()
         .ok_or(Error::Custom("Can't get the user config directory".into()))?
         .join("lenra")
@@ -35,8 +35,6 @@ pub async fn start_terminal(context: CommandContext) -> Result<()> {
     if rl.load_history(&history_path).is_err() {
         debug!("No previous history.");
     }
-
-    let mut context = context.clone();
 
     loop {
         let readline = rl.readline(READLINE_PROMPT);
@@ -77,12 +75,9 @@ pub async fn start_terminal(context: CommandContext) -> Result<()> {
         };
 
         debug!("Run command {:#?}", command);
-        let (ctx_opt, keep_running) = run_command(&command, context.clone()).await;
+        let keep_running = run_command(&command, context).await;
         if !keep_running {
             break;
-        }
-        if let Some(ctx) = ctx_opt {
-            context = ctx.clone();
         }
     }
     debug!("Save history to {:?}", history_path);
@@ -90,20 +85,16 @@ pub async fn start_terminal(context: CommandContext) -> Result<()> {
     rl.save_history(&history_path).map_err(Error::from)
 }
 
-pub async fn run_command(
-    command: &TerminalCommand,
-    context: CommandContext,
-) -> (Option<CommandContext>, bool) {
+pub async fn run_command(command: &TerminalCommand, context: &mut CommandContext) -> bool {
     debug!("Run command {:#?}", command);
-    let context = command.run(context).await.unwrap_or_else(|error| {
+    command.run(context).await.unwrap_or_else(|error| {
         eprintln!("{}", error.to_string().color(Color::Red));
-        None
     });
     let keep_running = match command {
         TerminalCommand::Exit | TerminalCommand::Stop(_) => false,
         _ => true,
     };
-    (context, keep_running)
+    keep_running
 }
 
 fn parse_command_line(line: String) -> Result<TerminalCli, clap::Error> {
@@ -174,17 +165,18 @@ pub struct Expose {
 }
 
 impl TerminalCommand {
-    pub async fn run(&self, context: CommandContext) -> Result<Option<CommandContext>> {
+    pub async fn run(&self, context: &mut CommandContext) -> Result<()> {
         log::debug!("Run terminal command {:?}", self);
+        if self.need_config_reload() {
+            context.load_config()?;
+        }
         match self {
             TerminalCommand::Exit => {}
             TerminalCommand::Expose(expose) => {
-                lenra::generate_app_env(&context.config_path, &expose.services, false).await?;
-                lenra::start_env().await?;
+                lenra::generate_app_env(context, false).await?;
+                lenra::start_env(context).await?;
 
-                let mut ctx = context.clone();
-                ctx.expose = expose.services.clone();
-                return Ok(Some(ctx));
+                context.expose = expose.services.clone();
             }
             TerminalCommand::Build(build) => build.run(context).await?,
             TerminalCommand::Start(start) => start.run(context).await?,
@@ -196,6 +188,16 @@ impl TerminalCommand {
             TerminalCommand::Check(check) => check.run(context).await?,
             TerminalCommand::Reload(reload) => reload.run(context).await?,
         };
-        Ok(None)
+        Ok(())
+    }
+
+    fn need_config_reload(&self) -> bool {
+        match self {
+            TerminalCommand::Build(_)
+            | TerminalCommand::Start(_)
+            | TerminalCommand::Reload(_)
+            | TerminalCommand::Update(_) => true,
+            _ => false,
+        }
     }
 }

@@ -1,0 +1,4 @@
+path: test_app
+generator:
+  dofigen:
+    from: scratch

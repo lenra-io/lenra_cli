@@ -30,14 +30,14 @@ pub struct Dev {
 
 #[async_trait]
 impl CliCommand for Dev {
-    async fn run(&self, context: CommandContext) -> Result<()> {
+    async fn run(&self, context: &mut CommandContext) -> Result<()> {
         log::info!("Run dev mode");
 
         if !self.attach {
-            build::generate_app_env_loader(context.clone(), false).await?;
-            build::build_loader().await?;
-            start::start_loader().await?;
-            start::clear_cache_loader().await?;
+            build::generate_app_env_loader(context, false).await?;
+            build::build_loader(context).await?;
+            start::start_loader(context).await?;
+            start::clear_cache_loader(context).await?;
         }
 
         let previous_log = Logs {
@@ -47,24 +47,18 @@ impl CliCommand for Dev {
         };
         let mut last_logs: Option<DateTime<Utc>> = None;
 
-        let mut cmd_context = context;
-
         lenra::display_app_access_url();
         InteractiveCommand::Help.to_value();
         let mut interactive_cmd = None;
         loop {
             if let Some(command) = interactive_cmd {
-                let (ctx_opt, keep_running) = run_command(&command, cmd_context.clone()).await;
+                let keep_running = run_command(&command, context).await;
                 if !keep_running {
                     break;
                 }
-                if let Some(ctx) = ctx_opt {
-                    cmd_context = ctx.clone();
-                }
             }
             let end_date;
-            (end_date, interactive_cmd) =
-                run_logs(&previous_log, last_logs, cmd_context.clone()).await?;
+            (end_date, interactive_cmd) = run_logs(&previous_log, last_logs, context).await?;
             last_logs = Some(end_date);
         }
 
@@ -76,7 +70,7 @@ impl CliCommand for Dev {
 async fn run_logs(
     logs: &Logs,
     last_end: Option<DateTime<Utc>>,
-    context: CommandContext,
+    context: &mut CommandContext,
 ) -> Result<(DateTime<Utc>, Option<TerminalCommand>)> {
     let mut clone = logs.clone();
     if let Some(last_logs) = last_end {

@@ -7,8 +7,9 @@ use std::{
 use rustyline::Editor;
 
 use crate::{
+    cli::CommandContext,
     command::get_command_output,
-    config::{load_config_file, DOCKERCOMPOSE_DEFAULT_PATH, LENRA_CACHE_DIRECTORY},
+    config::{DOCKERCOMPOSE_DEFAULT_PATH, LENRA_CACHE_DIRECTORY},
     devtool::stop_app_env,
     docker_compose::{
         self, compose_build, compose_down, compose_up, list_running_services, Service,
@@ -61,50 +62,50 @@ fn create_cache_directories(path: &PathBuf, git_dir: &PathBuf) -> Result<()> {
     Ok(())
 }
 
-pub async fn generate_app_env(
-    config: &PathBuf,
-    expose: &Vec<Service>,
-    production: bool,
-) -> Result<()> {
+pub async fn generate_app_env(context: &mut CommandContext, production: bool) -> Result<()> {
     log::info!("Generating the app environment");
-    let conf = load_config_file(config)?;
+    let conf = context
+        .config
+        .clone()
+        .ok_or(Error::Custom("The config is missing".into()))?;
     // TODO: check the components API version
 
-    conf.generate_files(expose, !production).await?;
+    conf.generate_files(context, !production).await?;
     Ok(())
 }
 
-pub async fn build_app() -> Result<()> {
+pub async fn build_app(context: &mut CommandContext) -> Result<()> {
     log::info!("Build the Docker image");
-    compose_build().await?;
+    compose_build(context).await?;
     log::info!("Image built");
     Ok(())
 }
 
-pub async fn start_env() -> Result<()> {
-    let dockercompose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
+pub async fn start_env(context: &mut CommandContext) -> Result<()> {
+    let dockercompose_path: PathBuf =
+        context.resolve_path(&DOCKERCOMPOSE_DEFAULT_PATH.iter().collect());
     if !dockercompose_path.exists() {
         return Err(Error::NeverBuiltApp);
     }
 
     log::info!("Start the containers");
-    compose_up().await?;
-    let running_services: Vec<Service> = list_running_services().await?;
+    compose_up(context).await?;
+    let running_services: Vec<Service> = list_running_services(context).await?;
     if running_services.len() < 4 {
         return Err(Error::NotStartedServices);
     }
     Ok(())
 }
 
-pub async fn stop_env() -> Result<()> {
+pub async fn stop_env(context: &mut CommandContext) -> Result<()> {
     log::info!("Stop the containers");
-    compose_down().await?;
+    compose_down(context).await?;
     Ok(())
 }
 
-pub async fn clear_cache() -> Result<()> {
+pub async fn clear_cache(context: &mut CommandContext) -> Result<()> {
     log::info!("Clearing cache");
-    stop_app_env().await?;
+    stop_app_env(context).await?;
     Ok(())
 }
 
@@ -115,9 +116,12 @@ pub fn display_app_access_url() {
     );
 }
 
-pub async fn update_env_images(services: &Vec<Service>) -> Result<()> {
+pub async fn update_env_images(
+    context: &mut CommandContext,
+    services: &Vec<Service>,
+) -> Result<()> {
     log::info!("Update the environment images");
-    docker_compose::compose_pull(services.iter().map(|service| service.to_str()).collect()).await?;
+    docker_compose::compose_pull(context, services).await?;
     Ok(())
 }
 
