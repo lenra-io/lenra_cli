@@ -1,0 +1,11 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/brightness.schema.json",
+    "title": "Brightness",
+    "description": "Component of type Brightness.",
+    "type": "string",
+    "enum": [
+        "dark",
+        "light"
+    ]
+}

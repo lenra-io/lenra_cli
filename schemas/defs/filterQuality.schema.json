@@ -1,0 +1,14 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/filterQuality.schema.json",
+    "title": "Filter Quality",
+    "description": "The filter quality to use.",
+    "type": "string",
+    "enum": [
+        "high",
+        "medium",
+        "low",
+        "none"
+    ],
+    "default": "low"
+}

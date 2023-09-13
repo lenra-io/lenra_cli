@@ -1,0 +1,30 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/boxConstraints.schema.json",
+    "title": "BoxConstraints",
+    "description": "Element of type BoxConstraints",
+    "type": "object",
+    "properties": {
+        "minWidth": {
+            "description": "The minWidth of the constraint",
+            "type": "number",
+            "default": 0.0
+        },
+        "maxWidth": {
+            "description": "The maxWidth of the constraint, -1 means Infinity",
+            "type": "number",
+            "default": -1
+        },
+        "minHeight": {
+            "description": "The minHeight of the constraint",
+            "type": "number",
+            "default": 0.0
+        },
+        "maxHeight": {
+            "description": "The maxHeight of the constraint, -1 means Infinity",
+            "type": "number",
+            "default": -1
+        }
+    },
+    "additionalProperties": false
+}

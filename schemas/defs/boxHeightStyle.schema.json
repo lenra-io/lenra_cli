@@ -1,0 +1,15 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/boxHeightStyle.schema.json",
+    "title": "BoxHeightStyle",
+    "description": "Component of type BoxHeightStyle.",
+    "type": "string",
+    "enum": [
+        "includeLineSpacingBottom",
+        "includeLineSpacingMiddle",
+        "includeLineSpacingTop",
+        "max",
+        "strut",
+        "tight"
+    ]
+}

@@ -1,0 +1,14 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/visualDensity.schema.json",
+    "title": "VisualDensity",
+    "description": "The visual density of UI components.",
+    "type": "string",
+    "enum": [
+        "comfortable",
+        "compact",
+        "standard"
+    ],
+    "default": "standard",
+    "additionalProperties": false
+}

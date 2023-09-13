@@ -1,0 +1,12 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/direction.schema.json",
+    "title": "Direction",
+    "description": "The direction of the component (horizontal/vertical)",
+    "type": "string",
+    "enum": [
+        "horizontal",
+        "vertical"
+    ],
+    "default": "horizontal"
+}

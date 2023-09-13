@@ -1,0 +1,26 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/textInputType.schema.json",
+    "title": "TextInputType",
+    "description": "Element of textInput Type",
+    "type": "object",
+    "properties": {
+        "copy": {
+            "description": "Whether to show copy option in toolbar",
+            "type": "boolean"
+        },
+        "cut": {
+            "description": "Whether to show cut option in toolbar",
+            "type": "boolean"
+        },
+        "paste": {
+            "description": "Whether to show past option in toolbar",
+            "type": "boolean"
+        },
+        "selectAll": {
+            "description": "Whether to show select all option in toolbar",
+            "type": "boolean"
+        }
+    },
+    "additionalProperties": false
+}

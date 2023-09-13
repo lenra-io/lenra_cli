@@ -1,0 +1,44 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "components/view.schema.json",
+    "title": "View",
+    "description": "Element of type view",
+    "type": "component",
+    "properties": {
+        "type": {
+            "description": "The identifier of the component",
+            "enum": [
+                "view"
+            ]
+        },
+        "name": {
+            "description": "The name of the view",
+            "type": "string"
+        },
+        "props": {
+            "$ref": "../defs/props.schema.json"
+        },
+        "find": {
+            "description": "Find query.",
+            "$ref": "../defs/find.schema.json"
+        },
+        "query": {
+            "description": "The query to apply to the data.",
+            "type": "object",
+            "deprecated": true
+        },
+        "coll": {
+            "description": "the collection where the query is applied",
+            "type": "string",
+            "deprecated": true
+        },
+        "context": {
+            "type": "boolean"
+        }
+    },
+    "required": [
+        "type",
+        "name"
+    ],
+    "additionalProperties": false
+}

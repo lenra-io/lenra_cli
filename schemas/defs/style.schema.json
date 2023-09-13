@@ -1,0 +1,13 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/style.schema.json",
+    "title": "Style",
+    "description": "The style to use, the component will be changed according to the theme.",
+    "type": "string",
+    "enum": [
+        "primary",
+        "secondary",
+        "tertiary"
+    ],
+    "default": "primary"
+}

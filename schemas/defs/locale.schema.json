@@ -1,0 +1,22 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/locale.schema.json",
+    "title": "Locale",
+    "description": "Element of type locale",
+    "type": "object",
+    "properties": {
+        "countryCode": {
+            "description": "The region subtag for the locale.",
+            "type": "string"
+        },
+        "languageCode": {
+            "description": "The primary language subtag for the locale.",
+            "type": "string"
+        },
+        "scriptCode": {
+            "description": "The script subtag for the locale.",
+            "type": "string"
+        }
+    },
+    "additionalProperties": false
+}

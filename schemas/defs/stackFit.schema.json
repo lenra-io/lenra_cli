@@ -1,0 +1,13 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/stackFit.schema.json",
+    "title": "StackFit",
+    "description": "The StackFit enum.",
+    "type": "string",
+    "enum": [
+        "expand",
+        "loose",
+        "passthrough"
+    ],
+    "default": "passthrough"
+}

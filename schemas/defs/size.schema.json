@@ -1,0 +1,13 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/size.schema.json",
+    "title": "Size",
+    "description": "The size to use, the component will be sized according to the value.",
+    "type": "string",
+    "enum": [
+        "small",
+        "medium",
+        "large"
+    ],
+    "default": "medium"
+}

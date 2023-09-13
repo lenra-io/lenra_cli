@@ -1,0 +1,22 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/boxDecoration.schema.json",
+    "title": "BoxDecoration",
+    "description": "Element of type BoxDecoration",
+    "type": "object",
+    "properties": {
+        "borderRadius": {
+            "$ref": "../defs/borderRadius.schema.json"
+        },
+        "boxShadow": {
+            "$ref": "../defs/boxShadow.schema.json"
+        },
+        "color": {
+            "$ref": "../defs/color.schema.json"
+        },
+        "shape": {
+            "$ref": "../defs/boxShape.schema.json"
+        }
+    },
+    "additionalProperties": false
+}

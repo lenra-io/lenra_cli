@@ -1,0 +1,12 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/verticalDirection.schema.json",
+    "title": "Vertical Direction",
+    "description": "How the objects should be aligned following the vertical axis.",
+    "type": "string",
+    "enum": [
+        "down",
+        "up"
+    ],
+    "default": "down"
+}

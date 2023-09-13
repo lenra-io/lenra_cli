@@ -1,0 +1,12 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/textDirection.schema.json",
+    "title": "Text Direction",
+    "description": "In which direction the elements should be placed following the horizontal axis.",
+    "type": "string",
+    "enum": [
+        "ltr",
+        "rtl"
+    ],
+    "default": "ltr"
+}

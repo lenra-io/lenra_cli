@@ -1,0 +1,26 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/rect.schema.json",
+    "title": "Rect",
+    "description": "Element of type Rect",
+    "type": "object",
+    "properties": {
+        "left": {
+            "description": "The left position of the rectangle.",
+            "type": "number"
+        },
+        "top": {
+            "description": "The top position of the rectangle.",
+            "type": "number"
+        },
+        "width": {
+            "description": "The width of the rectangle.",
+            "type": "number"
+        },
+        "height": {
+            "description": "The height of the rectangle.",
+            "type": "number"
+        }
+    },
+    "additionalProperties": false
+}

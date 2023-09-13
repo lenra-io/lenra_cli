@@ -1,0 +1,102 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/textStyle.schema.json",
+    "title": "TextStyle",
+    "description": "The style of the Text.",
+    "type": "object",
+    "properties": {
+        "color": {
+            "description": "The color of the text.",
+            "$ref": "../defs/color.schema.json"
+        },
+        "decoration": {
+            "$ref": "../defs/textDecoration.schema.json"
+        },
+        "decorationColor": {
+            "description": "The color of the decoration.",
+            "$ref": "../defs/color.schema.json"
+        },
+        "decorationStyle": {
+            "$ref": "../defs/textDecorationStyle.schema.json"
+        },
+        "decorationThickness": {
+            "description": "The thickness of the decoration.",
+            "type": "number"
+        },
+        "fontFamily": {
+            "description": "The font family of the text.",
+            "type": "string"
+        },
+        "fontFamilyFallback": {
+            "description": "The list of font families to use if the first font family could not be found.",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
+        "fontSize": {
+            "description": "The size of the text.",
+            "type": "number"
+        },
+        "fontStyle": {
+            "description": "The style of the text.",
+            "type": "string",
+            "enum": [
+                "italic",
+                "normal"
+            ]
+        },
+        "fontWeight": {
+            "description": "The weight of the text.",
+            "type": "string",
+            "enum": [
+                "bold",
+                "normal",
+                "w100",
+                "w200",
+                "w300",
+                "w400",
+                "w500",
+                "w600",
+                "w700",
+                "w800",
+                "w900"
+            ]
+        },
+        "height": {
+            "description": "The height of this text.",
+            "type": "number",
+            "default": 1
+        },
+        "letterSpacing": {
+            "description": "The amount of space to add between each letter.",
+            "type": "number"
+        },
+        "overflow": {
+            "description": "How visual text overflow should be handled.",
+            "type": "string",
+            "enum": [
+                "clip",
+                "ellipsis",
+                "fade",
+                "visible"
+            ]
+        },
+        "shadows": {
+            "description": "A list of Shadows that will be painted underneath the text.",
+            "type": "array",
+            "items": {
+                "$ref": "../defs/boxShadow.schema.json"
+            }
+        },
+        "textBaseline": {
+            "description": "The common baseline that should be aligned between this text and its parent text.",
+            "$ref": "../defs/textBaseline.schema.json"
+        },
+        "wordSpacing": {
+            "description": "The amount of space to add at each sequence of white-space.",
+            "type": "number"
+        }
+    },
+    "additionalProperties": false
+}

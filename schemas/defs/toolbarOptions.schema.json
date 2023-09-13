@@ -1,0 +1,18 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/toolbarOptions.schema.json",
+    "title": "ToolbarOptions",
+    "description": "Element of type toolbar options",
+    "type": "object",
+    "properties": {
+        "decimal": {
+            "description": "The number is decimal, allowing a decimal point to provide fractional",
+            "type": "boolean"
+        },
+        "signed": {
+            "description": "The number is signed, allowing a positive or negative sign at the start.",
+            "type": "boolean"
+        }
+    },
+    "additionalProperties": false
+}

@@ -1,0 +1,26 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/padding.schema.json",
+    "title": "Padding",
+    "description": "Element of type Padding",
+    "type": "object",
+    "properties": {
+        "top": {
+            "type": "number",
+            "default": 0.0
+        },
+        "left": {
+            "type": "number",
+            "default": 0.0
+        },
+        "bottom": {
+            "type": "number",
+            "default": 0.0
+        },
+        "right": {
+            "type": "number",
+            "default": 0.0
+        }
+    },
+    "additionalProperties": false
+}

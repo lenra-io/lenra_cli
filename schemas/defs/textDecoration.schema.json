@@ -1,0 +1,14 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/textDecoration.schema.json",
+    "title": "Text Decoration",
+    "description": "Allows you to underline, overline or strike out the text.",
+    "type": "string",
+    "enum": [
+        "lineThrough",
+        "overline",
+        "underline",
+        "none"
+    ],
+    "default": "none"
+}

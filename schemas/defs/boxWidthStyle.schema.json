@@ -1,0 +1,11 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/boxWidthStyle.schema.json",
+    "title": "BoxWidthStyle",
+    "description": "Component of type BoxWidthStyle.",
+    "type": "string",
+    "enum": [
+        "max",
+        "tight"
+    ]
+}

@@ -1,0 +1,22 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/textInputAction.schema.json",
+    "title": "TextInputAction",
+    "description": "Component of type TextInputAction.",
+    "type": "string",
+    "enum": [
+        "continueAction",
+        "done",
+        "emergencyCall",
+        "go",
+        "join",
+        "newline",
+        "next",
+        "none",
+        "previous",
+        "route",
+        "search",
+        "send",
+        "unspecified"
+    ]
+}

@@ -1,0 +1,200 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/inputDecoration.schema.json",
+    "title": "InputDecoration",
+    "description": "Element of type InputDecoration",
+    "type": "object",
+    "properties": {
+        "alignLabelWithHint": {
+            "description": "Whether to align the label with the hint or not. Defaults to false.",
+            "type": "boolean",
+            "default": false
+        },
+        "border": {
+            "description": "The border to display around the input. Will render a border by default when border is null.",
+            "$ref": "../defs/inputBorder.schema.json"
+        },
+        "constraints": {
+            "description": "The constraints to be applied to the input.",
+            "$ref": "../defs/boxConstraints.schema.json"
+        },
+        "contentPadding": {
+            "description": "The padding to be applied to the input.",
+            "$ref": "../defs/padding.schema.json"
+        },
+        "counter": {
+            "type": "component"
+        },
+        "counterStyle": {
+            "description": "The style use for the counterText.",
+            "$ref": "../defs/textStyle.schema.json"
+        },
+        "counterText": {
+            "description": "The text to place below the line as a character counter.",
+            "type": "string"
+        },
+        "disabledBorder": {
+            "description": "The border to display when the input is disabled and not showing an error.",
+            "$ref": "../defs/inputBorder.schema.json"
+        },
+        "enabled": {
+            "description": "Whether the input is enabled or disabled.",
+            "type": "boolean"
+        },
+        "enabledBorder": {
+            "description": "The border to display when the input is enabled and not showing an error.",
+            "$ref": "../defs/inputBorder.schema.json"
+        },
+        "errorBorder": {
+            "description": "The border to display when the input has an error and does not have the focus.",
+            "$ref": "../defs/inputBorder.schema.json"
+        },
+        "errorMaxLines": {
+            "description": "The maximum number of lines the error text can use.",
+            "type": "integer"
+        },
+        "errorStyle": {
+            "description": "The style to use for the error text.",
+            "$ref": "../defs/textStyle.schema.json"
+        },
+        "errorText": {
+            "description": "The error text to display when the input has an error.",
+            "type": "string"
+        },
+        "fillColor": {
+            "description": "The fill color of the input.",
+            "$ref": "../defs/color.schema.json"
+        },
+        "filled": {
+            "description": "Whether the input is filled with fillColor.",
+            "type": "boolean"
+        },
+        "floatingLabelBehavior": {
+            "description": "Defines how the floating label should be displayed.",
+            "$ref": "../defs/floatingLabelBehavior.schema.json"
+        },
+        "floatingLabelStyle": {
+            "description": "The style to use for the floating label.",
+            "$ref": "../defs/textStyle.schema.json"
+        },
+        "focusColor": {
+            "description": "The color to use when the input is focused.",
+            "$ref": "../defs/color.schema.json"
+        },
+        "focusedBorder": {
+            "description": "The border to display when the input has the focus.",
+            "$ref": "../defs/inputBorder.schema.json"
+        },
+        "focusedErrorBorder": {
+            "description": "The border to display when the input has the focus and has an error.",
+            "$ref": "../defs/inputBorder.schema.json"
+        },
+        "helperMaxLines": {
+            "description": "The maximum number of lines the helper text can use.",
+            "type": "integer"
+        },
+        "helperStyle": {
+            "description": "The style to use for the helper text.",
+            "$ref": "../defs/textStyle.schema.json"
+        },
+        "helperText": {
+            "description": "The helper text to display.",
+            "type": "string"
+        },
+        "hintMaxLines": {
+            "description": "The maximum number of lines the hint text can use.",
+            "type": "integer"
+        },
+        "hintStyle": {
+            "description": "The style to use for the hint text.",
+            "$ref": "../defs/textStyle.schema.json"
+        },
+        "hintText": {
+            "description": "The hint text to display.",
+            "type": "string"
+        },
+        "hintTextDirection": {
+            "description": "The direction of the hint text.",
+            "$ref": "../defs/textDirection.schema.json"
+        },
+        "hoverColor": {
+            "description": "The color to use when the input is hovered.",
+            "$ref": "../defs/color.schema.json"
+        },
+        "icon": {
+            "$ref": "../components/icon.schema.json"
+        },
+        "iconColor": {
+            "description": "The color for the icon",
+            "$ref": "../defs/color.schema.json"
+        },
+        "isCollapsed": {
+            "description": "Whether the decoration is the same size as the input field.",
+            "type": "boolean"
+        },
+        "isDense": {
+            "description": "Whether the decoration is dense.",
+            "type": "boolean"
+        },
+        "label": {
+            "$ref": "../component.schema.json"
+        },
+        "labelStyle": {
+            "description": "The style to use for the label.",
+            "$ref": "../defs/textStyle.schema.json"
+        },
+        "labelText": {
+            "description": "The text that describes the input field.",
+            "type": "string"
+        },
+        "prefix": {
+            "$ref": "../component.schema.json"
+        },
+        "prefixIcon": {
+            "$ref": "../components/icon.schema.json"
+        },
+        "prefixIconColor":{
+            "description": "the color of the prefixIcon",
+            "$ref": "../defs/color.schema.json"
+        },
+        "prefixIconConstraints": {
+            "description": "The constraints for the prefixIcon.",
+            "$ref": "../defs/boxConstraints.schema.json"
+        },
+        "prefixStyle": {
+            "description": "The style to use for the prefixText.",
+            "$ref": "../defs/textStyle.schema.json"
+        },
+        "prefixText": {
+            "description": "The text to display before the input.",
+            "type": "string"
+        },
+        "semanticCounterText": {
+            "description": "The semantic label for the counterText.",
+            "type": "string"
+        },
+        "suffix": {
+            "type":"component"
+        },
+        "suffixIcon": {
+            "$ref": "../components/icon.schema.json"
+        },
+        "suffixIconColor":{
+            "description": "the color of the sufficIcon",
+            "$ref": "../defs/color.schema.json"
+        },
+        "suffixIconConstraints": {
+            "description": "The constraints for the suffixIcon.",
+            "$ref": "../defs/boxConstraints.schema.json"
+        },
+        "suffixStyle": {
+            "description": "The style to use for the suffixText.",
+            "$ref": "../defs/textStyle.schema.json"
+        },
+        "suffixText": {
+            "description": "The text to display after the input.",
+            "type": "string"
+        }
+    },
+    "additionalProperties": false
+}

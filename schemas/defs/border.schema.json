@@ -1,0 +1,22 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/border.schema.json",
+    "title": "Border",
+    "description": "Element of type Border",
+    "type": "object",
+    "properties": {
+        "top": {
+            "$ref": "../defs/borderSide.schema.json"
+        },
+        "left": {
+            "$ref": "../defs/borderSide.schema.json"
+        },
+        "bottom": {
+            "$ref": "../defs/borderSide.schema.json"
+        },
+        "right": {
+            "$ref": "../defs/borderSide.schema.json"
+        }
+    },
+    "additionalProperties": false
+}

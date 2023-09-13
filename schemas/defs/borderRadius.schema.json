@@ -1,0 +1,38 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/borderRadius.schema.json",
+    "title": "BorderRadius",
+    "description": "Element of type BorderRadius",
+    "type": "object",
+    "properties": {
+        "topLeft": {
+            "$ref": "#/definitions/radiusType"
+        },
+        "topRight": {
+            "$ref": "#/definitions/radiusType"
+        },
+        "bottomLeft": {
+            "$ref": "#/definitions/radiusType"
+        },
+        "bottomRight": {
+            "$ref": "#/definitions/radiusType"
+        }
+    },
+    "additionalProperties": false,
+    "definitions": {
+        "radiusType": {
+            "type": "object",
+            "properties": {
+                "x": {
+                    "type": "number",
+                    "default": 0
+                },
+                "y": {
+                    "type": "number",
+                    "default": 0
+                }
+            },
+            "additionalProperties": false
+        }
+    }
+}

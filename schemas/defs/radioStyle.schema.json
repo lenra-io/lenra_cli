@@ -1,0 +1,33 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/radioStyle.schema.json",
+    "title": "Radio Style",
+    "description": "Element of type RadioStyle",
+    "type": "object",
+    "properties": {
+        "activeColor": {
+            "description": "Color of the active radio button",
+            "$ref": "../defs/color.schema.json"
+        },
+        "focusColor": {
+            "description": "Color of the radio when it is focused",
+            "$ref": "../defs/color.schema.json"
+        },
+        "hovercolor": {
+            "description": "Color when the mouse is over the element",
+            "$ref": "../defs/color.schema.json"
+        },
+        "unselectedColor": {
+            "description": "Color when the radio is not selected",
+            "$ref": "../defs/color.schema.json"
+        },
+        "splashRadius": {
+            "description": "The splash radius of the radio button",
+            "type": "number"
+        },
+        "visualDensity": {
+            "$ref": "../defs/visualDensity.schema.json"
+        }
+    },
+    "additionalProperties": false
+}

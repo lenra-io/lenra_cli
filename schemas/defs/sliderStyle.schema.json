@@ -1,0 +1,19 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/sliderStyle.schema.json",
+    "title": "SliderStyle",
+    "description": "Element of type SliderStyle",
+    "type": "object",
+    "properties": {
+        "activeColor": {
+            "$ref": "../defs/color.schema.json"
+        },
+        "inactiveColor": {
+            "$ref": "../defs/color.schema.json"
+        },
+        "thumbColor": {
+            "$ref": "../defs/color.schema.json"
+        }
+    },
+    "additionalProperties": false
+}

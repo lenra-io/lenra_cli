@@ -1,0 +1,13 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/wrapCrossAlignment.schema.json",
+    "title": "Wrap CrossAlignment",
+    "description": "How the objects in the Wrap should be aligned on the CrossAxis.",
+    "type": "string",
+    "enum": [
+        "start",
+        "end",
+        "center"
+    ],
+    "default": "start"
+}

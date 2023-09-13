@@ -1,0 +1,12 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/textBaseline.schema.json",
+    "title": "TextBaseline",
+    "description": "A horizontal line used for aligning text.",
+    "type": "string",
+    "enum": [
+        "alphabetic",
+        "ideographic"
+    ],
+    "default": "alphabetic"
+}

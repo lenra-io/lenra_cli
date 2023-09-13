@@ -58,7 +58,7 @@
                     "type": "string"
                 },
                 "view": {
-                    "type": "object"
+                    "$ref": "components/view.schema.json"
                 }
             },
             "required": [

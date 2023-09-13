@@ -1,0 +1,12 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/textLeadingDistribution.schema.json",
+    "title": "TextLeadingDitribution",
+    "description": "The TextLeadingDistribution enum.",
+    "type": "string",
+    "enum": [
+        "even",
+        "proportional"
+    ],
+    "default": "even"
+}

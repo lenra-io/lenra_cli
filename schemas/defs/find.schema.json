@@ -1,0 +1,25 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/find.schema.json",
+    "title": "Find",
+    "description": "Find query.",
+    "type": "object",
+    "properties": {
+        "query": {
+            "description": "The query to apply to the data.",
+            "type": "object"
+        },
+        "coll": {
+            "description": "the collection where the query is applied",
+            "type": "string"
+        },
+        "projection": {
+            "description": "Filter data object.",
+            "type": "object"
+        }
+    },
+    "required": [
+        "coll"
+    ],
+    "additionalProperties": false
+}

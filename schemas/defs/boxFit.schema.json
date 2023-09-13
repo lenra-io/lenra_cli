@@ -1,0 +1,17 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/boxFit.schema.json",
+    "title": "Box Fit",
+    "description": "How the box should be fitted in its parent.",
+    "type": "string",
+    "enum": [
+        "contain",
+        "cover",
+        "fill",
+        "fitHeight",
+        "fitWidth",
+        "none",
+        "scaleDown"
+    ],
+    "default": "contain"
+}

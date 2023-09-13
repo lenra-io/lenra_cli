@@ -1,0 +1,15 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/textDecorationStyle.schema.json",
+    "title": "Text Decoration Style",
+    "description": "The style in which to draw a text decoration.",
+    "type": "string",
+    "enum": [
+        "dashed",
+        "dotted",
+        "double",
+        "solid",
+        "wavy"
+    ],
+    "default": "solid"
+}

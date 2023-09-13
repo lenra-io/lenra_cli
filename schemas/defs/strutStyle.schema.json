@@ -1,0 +1,45 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/strutStyle.schema.json",
+    "title": "StrutStyle",
+    "description": "Defines the strut of a text line.",
+    "type": "object",
+    "properties": {
+        "debugLabel": {
+            "type": "string",
+            "description": "A label to help identify this strut style."
+        },
+        "fontFamily": {
+            "type": "string",
+            "description": "The font family to use for this strut style."
+        },
+        "fontFamilyFallback": {
+            "type": "array",
+            "description": "A list of fallback font families to use for this strut style."
+        },
+        "fontSize": {
+            "type": "number",
+            "description": "The font size to use for this strut style."
+        },
+        "fontWeight": {
+            "type": "string",
+            "description": "The font weight to use for this strut style."
+        },
+        "forceStrutHeight": {
+            "type": "boolean",
+            "description": "Whether to force the strut height."
+        },
+        "height": {
+            "type": "number",
+            "description": "The minimum height of the strut."
+        },
+        "leading": {
+            "type": "number",
+            "description": "The additional leading of the strut which is a multiple of fontSize."
+        },
+        "leadingDistribution": {
+            "$ref": "../defs/textLeadingDistribution.schema.json"
+        }
+    },
+    "additionalProperties": false
+}

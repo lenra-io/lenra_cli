@@ -1,0 +1,16 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/wrapAlignment.schema.json",
+    "title": "Wrap Alignment",
+    "description": "How the objects in the Wrap should be aligned.",
+    "type": "string",
+    "enum": [
+        "start",
+        "end",
+        "center",
+        "spaceBetween",
+        "spaceAround",
+        "spaceEvenly"
+    ],
+    "default": "start"
+}

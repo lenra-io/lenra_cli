@@ -1,0 +1,20 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/offset.schema.json",
+    "title": "Offset",
+    "description": "Element of type Offset",
+    "type": "object",
+    "properties": {
+        "dx": {
+            "description": "The Offset along the x axis",
+            "type": "number",
+            "default": 0
+        },
+        "dy": {
+            "description": "The Offset along the y axis",
+            "type": "number",
+            "default": 0
+        }
+    },
+    "additionalProperties": false
+}

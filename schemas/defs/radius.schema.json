@@ -1,0 +1,18 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/radius.schema.json",
+    "title": "Radius",
+    "description": "Element of type Radius",
+    "type": "object",
+    "properties": {
+        "x": {
+            "type": "number",
+            "default": 0
+        },
+        "y": {
+            "type": "number",
+            "default": 0
+        }
+    },
+    "additionalProperties": false
+}

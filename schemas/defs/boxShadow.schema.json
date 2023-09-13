@@ -1,0 +1,26 @@
+{
+    "$schema": "https://raw.githubusercontent.com/lenra-io/ex_component_schema/beta/priv/static/draft-lenra.json",
+    "$id": "defs/boxShadow.schema.json",
+    "title": "BoxShadow",
+    "description": "Element of type BoxShadow",
+    "type": "object",
+    "properties": {
+        "color": {
+            "$ref": "../defs/color.schema.json"
+        },
+        "blurRadius": {
+            "description": "The blur radius",
+            "type": "number",
+            "default": 0
+        },
+        "spreadRadius": {
+            "description": "The spread radius",
+            "type": "number",
+            "default": 0
+        },
+        "offset": {
+            "$ref": "../defs/offset.schema.json"
+        }
+    },
+    "additionalProperties": false
+}
