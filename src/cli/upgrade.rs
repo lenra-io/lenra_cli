@@ -12,7 +12,7 @@ pub struct Upgrade;
 
 #[async_trait]
 impl CliCommand for Upgrade {
-    async fn run(&self, _context: CommandContext) -> Result<()> {
+    async fn run(&self, _context: &mut CommandContext) -> Result<()> {
         lenra::upgrade_app().await
     }
 }

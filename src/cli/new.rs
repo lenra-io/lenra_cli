@@ -26,7 +26,7 @@ pub struct New {
 
 #[async_trait]
 impl CliCommand for New {
-    async fn run(&self, _context: CommandContext) -> Result<()> {
+    async fn run(&self, _context: &mut CommandContext) -> Result<()> {
         log::debug!("topics {:?}", self.topics);
 
         let template =
@@ -100,7 +100,7 @@ mod tests {
             MockResult::Return(Box::pin(async move { Ok(vec![]) }))
         });
         let result = new
-            .run(CommandContext {
+            .run(&mut CommandContext {
                 ..Default::default()
             })
             .await;
@@ -152,7 +152,7 @@ mod tests {
             MockResult::Return(Box::pin(async move { Ok(()) }))
         });
         let result = new
-            .run(CommandContext {
+            .run(&mut CommandContext {
                 ..Default::default()
             })
             .await;
@@ -214,7 +214,7 @@ mod tests {
             MockResult::Return(Box::pin(async move { Ok(()) }))
         });
         let result = new
-            .run(CommandContext {
+            .run(&mut CommandContext {
                 ..Default::default()
             })
             .await;
@@ -245,7 +245,7 @@ mod tests {
             MockResult::Return(Box::pin(async move { Ok(()) }))
         });
         let result = new
-            .run(CommandContext {
+            .run(&mut CommandContext {
                 ..Default::default()
             })
             .await;
@@ -275,7 +275,7 @@ mod tests {
             MockResult::Return(Box::pin(async move { Ok(()) }))
         });
         let result = new
-            .run(CommandContext {
+            .run(&mut CommandContext {
                 ..Default::default()
             })
             .await;

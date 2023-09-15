@@ -24,9 +24,10 @@ mod template;
 async fn main() -> () {
     env_logger::init();
     let args = Cli::parse();
-    let context = CommandContext {
-        config: args.config.clone(),
-        expose: args.expose.clone(),
+    let context = &mut CommandContext {
+        config_path: args.config,
+        config: None,
+        expose: args.expose,
         verbose: args.verbose,
     };
     if args.verbose {
