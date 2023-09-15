@@ -17,17 +17,17 @@ pub struct Update {
 
 #[async_trait]
 impl CliCommand for Update {
-    async fn run(&self, _context: CommandContext) -> Result<()> {
-        update_loader(&self.services).await
+    async fn run(&self, context: &mut CommandContext) -> Result<()> {
+        update_loader(context, &self.services).await
     }
 }
 
-pub async fn update_loader(services: &Vec<Service>) -> Result<()> {
+pub async fn update_loader(context: &mut CommandContext, services: &Vec<Service>) -> Result<()> {
     loader(
         "Update environment images...",
         "Environment images updated",
         "Failed updating environment images",
-        || async { lenra::update_env_images(services).await },
+        || async { lenra::update_env_images(context, services).await },
     )
     .await
 }

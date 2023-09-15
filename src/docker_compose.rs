@@ -11,6 +11,7 @@ use std::{convert::TryInto, env, fs, path::PathBuf};
 use strum::Display;
 use tokio::process;
 
+use crate::cli::CommandContext;
 use crate::command::{get_command_output, is_inherit_stdio};
 use crate::config::Image;
 use crate::docker::normalize_tag;
@@ -116,14 +117,14 @@ pub enum ServiceState {
 
 /// Generates the docker-compose.yml file
 pub async fn generate_docker_compose(
+    context: &mut CommandContext,
     dockerfile: PathBuf,
     dev_conf: &Option<Dev>,
-    exposed_services: &Vec<Service>,
     debug: bool,
 ) -> Result<()> {
     let compose_content =
-        generate_docker_compose_content(dockerfile, dev_conf, exposed_services, debug).await?;
-    let compose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
+        generate_docker_compose_content(dockerfile, dev_conf, &context.expose, debug).await?;
+    let compose_path: PathBuf = context.resolve_path(&DOCKERCOMPOSE_DEFAULT_PATH.iter().collect());
     fs::write(compose_path, compose_content).map_err(Error::from)?;
     Ok(())
 }
@@ -329,8 +330,9 @@ fn port_to_port_binding(port: u16) -> String {
     format!("{}:{}", port, port)
 }
 
-pub fn create_compose_command() -> process::Command {
-    let dockercompose_path: PathBuf = DOCKERCOMPOSE_DEFAULT_PATH.iter().collect();
+pub fn create_compose_command(context: &mut CommandContext) -> process::Command {
+    let dockercompose_path: PathBuf =
+        context.resolve_path(&DOCKERCOMPOSE_DEFAULT_PATH.iter().collect());
     let mut cmd = process::Command::from(COMPOSE_COMMAND.clone());
     cmd.arg("-f").arg(dockercompose_path).kill_on_drop(true);
     if is_inherit_stdio() {
@@ -341,8 +343,8 @@ pub fn create_compose_command() -> process::Command {
     cmd
 }
 
-pub async fn compose_up() -> Result<()> {
-    let mut command = create_compose_command();
+pub async fn compose_up(context: &mut CommandContext) -> Result<()> {
+    let mut command = create_compose_command(context);
 
     command.arg("up").arg("-d").arg("--wait");
 
@@ -358,8 +360,8 @@ pub async fn compose_up() -> Result<()> {
     Ok(())
 }
 
-pub async fn compose_down() -> Result<()> {
-    let mut command = create_compose_command();
+pub async fn compose_down(context: &mut CommandContext) -> Result<()> {
+    let mut command = create_compose_command(context);
 
     command.arg("down").arg("--volumes");
 
@@ -372,8 +374,8 @@ pub async fn compose_down() -> Result<()> {
     Ok(())
 }
 
-pub async fn compose_build() -> Result<()> {
-    let mut command = create_compose_command();
+pub async fn compose_build(context: &mut CommandContext) -> Result<()> {
+    let mut command = create_compose_command(context);
     command.arg("build");
 
     // Use Buildkit to improve performance
@@ -391,12 +393,12 @@ pub async fn compose_build() -> Result<()> {
     Ok(())
 }
 
-pub async fn compose_pull(services: Vec<&str>) -> Result<()> {
+pub async fn compose_pull(context: &mut CommandContext, services: &Vec<Service>) -> Result<()> {
     log::debug!("Pulling services: {:?}", services);
-    let mut command = create_compose_command();
+    let mut command = create_compose_command(context);
     command.arg("pull");
     services.iter().for_each(|service| {
-        command.arg(service);
+        command.arg(service.to_str());
     });
 
     log::debug!("cmd: {:?}", command);
@@ -412,8 +414,8 @@ pub async fn compose_pull(services: Vec<&str>) -> Result<()> {
 }
 
 /// List all the current Docker Compose running services
-pub async fn list_running_services() -> Result<Vec<Service>> {
-    let mut command = create_compose_command();
+pub async fn list_running_services(context: &mut CommandContext) -> Result<Vec<Service>> {
+    let mut command = create_compose_command(context);
     command
         .arg("ps")
         .arg("--services")
@@ -437,8 +439,11 @@ pub async fn list_running_services() -> Result<Vec<Service>> {
 }
 
 /// Get the given Docker Compose service information
-pub async fn get_service_informations(service: Service) -> Result<ServiceInformations> {
-    let mut command = create_compose_command();
+pub async fn get_service_informations(
+    context: &mut CommandContext,
+    service: Service,
+) -> Result<ServiceInformations> {
+    let mut command = create_compose_command(context);
     let service_name = service.to_str();
     command
         .arg("ps")
@@ -452,8 +457,11 @@ pub async fn get_service_informations(service: Service) -> Result<ServiceInforma
 }
 
 /// Get the given Docker Compose service published port
-pub async fn get_service_published_ports(service: Service) -> Result<Vec<u16>> {
-    let infos = get_service_informations(service).await?;
+pub async fn get_service_published_ports(
+    context: &mut CommandContext,
+    service: Service,
+) -> Result<Vec<u16>> {
+    let infos = get_service_informations(context, service).await?;
     let ports = infos
         .publishers
         .iter()
@@ -463,10 +471,14 @@ pub async fn get_service_published_ports(service: Service) -> Result<Vec<u16>> {
     Ok(ports)
 }
 
-pub async fn execute_compose_service_command(service: &str, cmd: &[&str]) -> Result<String> {
-    let mut command = create_compose_command();
+pub async fn execute_compose_service_command(
+    context: &mut CommandContext,
+    service: Service,
+    cmd: &[&str],
+) -> Result<String> {
+    let mut command = create_compose_command(context);
 
-    command.arg("exec").arg(service);
+    command.arg("exec").arg(service.to_str());
 
     cmd.iter().for_each(|&part| {
         command.arg(part);

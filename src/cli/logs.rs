@@ -47,10 +47,10 @@ pub struct Logs {
 
 #[async_trait]
 impl CliCommand for Logs {
-    async fn run(&self, _context: CommandContext) -> Result<()> {
+    async fn run(&self, context: &mut CommandContext) -> Result<()> {
         log::info!("Show logs");
 
-        let mut command = create_compose_command();
+        let mut command = create_compose_command(context);
 
         command
             .stdout(Stdio::inherit())

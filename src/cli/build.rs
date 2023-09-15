@@ -17,28 +17,28 @@ pub struct Build {
 
 #[async_trait]
 impl CliCommand for Build {
-    async fn run(&self, context: CommandContext) -> Result<()> {
+    async fn run(&self, context: &mut CommandContext) -> Result<()> {
         generate_app_env_loader(context, self.production).await?;
-        build_loader().await
+        build_loader(context).await
     }
 }
 
-pub async fn generate_app_env_loader(context: CommandContext, production: bool) -> Result<()> {
+pub async fn generate_app_env_loader(context: &mut CommandContext, production: bool) -> Result<()> {
     loader(
         "Generate app env...",
         "App env generated",
         "Failed generating app env",
-        || async { lenra::generate_app_env(&context.config, &context.expose, production).await },
+        || async { lenra::generate_app_env(context, production).await },
     )
     .await
 }
 
-pub async fn build_loader() -> Result<()> {
+pub async fn build_loader(context: &mut CommandContext) -> Result<()> {
     loader(
         "Build app...",
         "App built",
         "Failed building app",
-        || async { lenra::build_app().await },
+        || async { lenra::build_app(context).await },
     )
     .await
 }

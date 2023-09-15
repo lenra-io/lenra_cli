@@ -8,7 +8,8 @@ use serde::{Deserialize, Serialize};
 use serde_yaml::Value;
 
 use crate::{
-    docker_compose::{generate_docker_compose, Service},
+    cli::CommandContext,
+    docker_compose::generate_docker_compose,
     errors::{Error, Result},
 };
 
@@ -17,7 +18,7 @@ pub const LENRA_CACHE_DIRECTORY: &str = ".lenra";
 
 pub const DOCKERFILE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, "Dockerfile"];
 pub const DOCKERIGNORE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, "Dockerfile.dockerignore"];
-pub const DOCKERCOMPOSE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, "docker-compose.yml"];
+pub const DOCKERCOMPOSE_DEFAULT_PATH: [&str; 2] = [LENRA_CACHE_DIRECTORY, "compose.yml"];
 
 pub const OF_WATCHDOG_BUILDER: &str = "of-watchdog";
 pub const OF_WATCHDOG_IMAGE: &str = "ghcr.io/openfaas/of-watchdog";
@@ -45,11 +46,10 @@ pub fn load_config_file(path: &std::path::PathBuf) -> Result<Application> {
 }
 
 /** The main component of the config file */
-#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Application {
-    #[serde(rename = "componentsApi")]
-    pub components_api: String,
+    pub path: Option<PathBuf>,
     pub generator: Generator,
     pub dev: Option<Dev>,
 }
@@ -78,7 +78,7 @@ pub struct DebugDofigen {
 }
 
 /** The application generator configuration */
-#[derive(Serialize, Deserialize, Debug, PartialEq)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
 #[serde(untagged)]
 pub enum Generator {
     Dofigen(Dofigen),
@@ -90,49 +90,52 @@ pub enum Generator {
 }
 
 /** The Dofigen configuration */
-#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Dofigen {
     pub dofigen: dofigen_lib::Image,
 }
 
 /** The Dofigen configuration file */
-#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct DofigenFile {
     pub dofigen: std::path::PathBuf,
 }
 
 /** The Docker configuration */
-#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Docker {
     pub docker: String,
     pub ignore: Option<String>,
 }
 
 /** The Docker configuration file */
-#[derive(Serialize, Deserialize, Debug, PartialEq, Default)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Dockerfile {
     pub docker: std::path::PathBuf,
 }
 
 impl Application {
     /// Generates all the files needed to build and run the application
-    pub async fn generate_files(&self, exposed_services: &Vec<Service>, debug: bool) -> Result<()> {
-        self.generate_docker_files(debug)?;
-        self.generate_docker_compose_file(exposed_services, debug)
-            .await?;
+    pub async fn generate_files(&self, context: &mut CommandContext, debug: bool) -> Result<()> {
+        self.generate_docker_files(context, debug)?;
+        self.generate_docker_compose_file(context, debug).await?;
         Ok(())
     }
 
-    pub fn generate_docker_files(&self, debug: bool) -> Result<()> {
+    pub fn generate_docker_files(&self, context: &mut CommandContext, debug: bool) -> Result<()> {
         log::info!("Docker files generation");
         // create the `.lenra` cache directory
-        fs::create_dir_all(LENRA_CACHE_DIRECTORY).unwrap();
+        fs::create_dir_all(context.resolve_path(&PathBuf::from(LENRA_CACHE_DIRECTORY))).unwrap();
 
         match &self.generator {
             // If args '--prod' is passed then not debug
-            Generator::Dofigen(dofigen) => self.build_dofigen(dofigen.dofigen.clone(), debug),
+            Generator::Dofigen(dofigen) => {
+                self.build_dofigen(context, dofigen.dofigen.clone(), debug)
+            }
             Generator::DofigenFile(dofigen_file) => self.build_dofigen(
-                from_file_path(&dofigen_file.dofigen).map_err(Error::from)?,
+                context,
+                from_file_path(&context.resolve_path(&dofigen_file.dofigen))
+                    .map_err(Error::from)?,
                 debug,
             ),
             Generator::DofigenError { dofigen: _ } => Err(Error::Custom(
@@ -140,7 +143,7 @@ impl Application {
             )),
             Generator::Dockerfile(_dockerfile) => Ok(()),
             Generator::Docker(docker) => {
-                self.save_docker_content(docker.docker.clone(), docker.ignore.clone())
+                self.save_docker_content(context, docker.docker.clone(), docker.ignore.clone())
             }
             Generator::Unknow => Err(Error::Custom("Not managed generator".into())),
         }
@@ -148,27 +151,33 @@ impl Application {
 
     pub async fn generate_docker_compose_file(
         &self,
-        exposed_services: &Vec<Service>,
+        context: &mut CommandContext,
         debug: bool,
     ) -> Result<()> {
         log::info!("Docker Compose file generation");
         // create the `.lenra` cache directory
-        fs::create_dir_all(LENRA_CACHE_DIRECTORY).map_err(Error::from)?;
+        fs::create_dir_all(context.resolve_path(&PathBuf::from(LENRA_CACHE_DIRECTORY)))
+            .map_err(Error::from)?;
 
         let dockerfile: PathBuf = if let Generator::Dockerfile(file_conf) = &self.generator {
-            file_conf.docker.clone()
+            context.resolve_path(&file_conf.docker.clone())
         } else {
-            DOCKERFILE_DEFAULT_PATH.iter().collect()
+            context.resolve_path(&DOCKERFILE_DEFAULT_PATH.iter().collect())
         };
 
-        generate_docker_compose(dockerfile, &self.dev, exposed_services, debug)
+        generate_docker_compose(context, dockerfile, &self.dev, debug)
             .await
             .map_err(Error::from)?;
         Ok(())
     }
 
     /// Builds a Docker image from a Dofigen structure
-    fn build_dofigen(&self, image: dofigen_lib::Image, debug: bool) -> Result<()> {
+    fn build_dofigen(
+        &self,
+        context: &mut CommandContext,
+        image: dofigen_lib::Image,
+        debug: bool,
+    ) -> Result<()> {
         // Generate the Dofigen config with OpenFaaS overlay to handle the of-watchdog
         let overlay = self.dofigen_of_overlay(image)?;
 
@@ -182,7 +191,7 @@ impl Application {
         // generate the Dockerfile and .dockerignore files with Dofigen
         let dockerfile = generate_dockerfile(&overlay);
         let dockerignore = generate_dockerignore(&overlay);
-        self.save_docker_content(dockerfile, Some(dockerignore))
+        self.save_docker_content(context, dockerfile, Some(dockerignore))
     }
 
     fn dofigen_debug_overlay(&self, image: dofigen_lib::Image) -> Result<dofigen_lib::Image> {
@@ -317,11 +326,14 @@ impl Application {
     /// Saves the Dockerfile and dockerignore (if present) files from their contents
     fn save_docker_content(
         &self,
+        context: &mut CommandContext,
         dockerfile_content: String,
         dockerignore_content: Option<String>,
     ) -> Result<()> {
-        let dockerfile_path: PathBuf = DOCKERFILE_DEFAULT_PATH.iter().collect();
-        let dockerignore_path: PathBuf = DOCKERIGNORE_DEFAULT_PATH.iter().collect();
+        let dockerfile_path: PathBuf =
+            context.resolve_path(&DOCKERFILE_DEFAULT_PATH.iter().collect());
+        let dockerignore_path: PathBuf =
+            context.resolve_path(&DOCKERIGNORE_DEFAULT_PATH.iter().collect());
 
         fs::write(dockerfile_path, dockerfile_content)?;
         if let Some(content) = dockerignore_content {
@@ -372,7 +384,6 @@ mod dofigen_of_overlay_tests {
             ..Default::default()
         };
         let config = Application {
-            components_api: "".to_string(),
             generator: Generator::Dofigen(Dofigen {
                 dofigen: image.clone(),
             }),
@@ -390,7 +401,6 @@ mod dofigen_of_overlay_tests {
             ..Default::default()
         };
         let config = Application {
-            components_api: "".to_string(),
             generator: Generator::Dofigen(Dofigen {
                 dofigen: image.clone(),
             }),
