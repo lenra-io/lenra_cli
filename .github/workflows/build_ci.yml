@@ -29,7 +29,6 @@ jobs:
       with:
         node-version: 16
 
-
     - id: get-next-version
       name: Get next version
       env:
@@ -157,20 +156,15 @@ jobs:
         command: build
         args: --release --target ${{ matrix.target }}
 
-    - name: Zip
-      if: ${{ matrix.os == 'windows' }}
-      shell: pwsh
-      run: Compress-Archive "target/${{ matrix.target }}/release/lenra${{ matrix.file_extension }}" "lenra-${{ matrix.os }}-${{ matrix.arch }}.zip"
-    - name: Zip
-      if: ${{ matrix.os != 'windows' }}
-      shell: bash
-      run: tar -C "target/${{ matrix.target }}/release" -czf "lenra-${{ matrix.os }}-${{ matrix.arch }}.tar.gz" "lenra${{ matrix.file_extension }}"
+    - name: rename artifact to platform specific name
+      run: |
+        mv target/${{ matrix.target }}/release/lenra${{ matrix.file_extension }} ./lenra-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.file_extension }}
 
     - name: Upload
       uses: actions/upload-artifact@v3
       with:
         name: lenra-${{ matrix.os }}-${{ matrix.arch }}
-        path: lenra-${{ matrix.os }}-${{ matrix.arch }}.*
+        path: ./lenra-${{ matrix.os }}-${{ matrix.arch }}${{ matrix.file_extension }}
 
   generate_doc_artifact:
     name: Generate doc artifact
@@ -181,9 +175,9 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
       - name: Setup Node.js
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v3
         with:
           node-version: "16"
       - name: Setup node deps
@@ -227,7 +221,7 @@ jobs:
         path: artifacts/
 
     - name: Setup Node.js
-      uses: actions/setup-node@v2
+      uses: actions/setup-node@v3
       with:
         node-version: "18"
 

@@ -14,6 +14,14 @@ Install the Lenra CLI using one of the next possibilities.
 
 You can download the binary from [the release page](https://github.com/lenra-io/lenra_cli/releases) and add it to your path environment variable.
 
+On linux you can do this quickly by running the following :
+```
+curl -fSLo /usr/local/bin/lenra https://github.com/lenra-io/lenra_cli/releases/latest/download/lenra-linux-x86_64
+chmod +x /usr/local/bin/lenra
+```
+
+PS: You can replace x86-64 by aarch64 if you run ARMv8 device.
+
 ### Cargo install
 
 First install Cargo, the Rust package manager: https://doc.rust-lang.org/cargo/getting-started/installation.html
