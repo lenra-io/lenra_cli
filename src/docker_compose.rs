@@ -122,9 +122,9 @@ pub async fn generate_docker_compose(
     dev_conf: &Option<Dev>,
     debug: bool,
 ) -> Result<()> {
+    let compose_path: PathBuf = context.resolve_path(&DOCKERCOMPOSE_DEFAULT_PATH.iter().collect());
     let compose_content =
         generate_docker_compose_content(dockerfile, dev_conf, &context.expose, debug).await?;
-    let compose_path: PathBuf = context.resolve_path(&DOCKERCOMPOSE_DEFAULT_PATH.iter().collect());
     fs::write(compose_path, compose_content).map_err(Error::from)?;
     Ok(())
 }
