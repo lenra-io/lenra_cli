@@ -2,7 +2,7 @@ use std::{process::Output, string::FromUtf8Error};
 
 use rustyline::error::ReadlineError;
 use thiserror::Error;
-use tokio::{process::Command, task::JoinError};
+use tokio::task::JoinError;
 
 use crate::docker_compose::Service;
 
@@ -50,7 +50,7 @@ pub enum Error {
 
 #[derive(Debug)]
 pub struct CommandError {
-    pub command: Command,
+    pub command: String,
     pub output: Output,
 }
 
@@ -61,7 +61,7 @@ impl std::fmt::Display for CommandError {
         let output = self.output.clone();
         write!(
             f,
-            "Command exec exited with code {}:\n\tcmd: {:?}\n\tstdout: {}\n\tstderr: {}",
+            "Command exec exited with code {}:\n\tcmd: {}\n\tstdout: {}\n\tstderr: {}",
             output.status.code().unwrap(),
             self.command,
             String::from_utf8(output.stdout).unwrap(),

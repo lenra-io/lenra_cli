@@ -123,7 +123,7 @@ pub async fn clone_template(template: &str, target_dir: &PathBuf) -> Result<()> 
     );
     let mut cmd = create_git_command();
     cmd.arg("clone").arg(template).arg(target_dir.as_os_str());
-    run_command(cmd).await?;
+    run_command(&mut cmd, None).await?;
 
     Ok(())
 }
@@ -146,7 +146,7 @@ pub async fn get_template_data() -> Result<TemplateData> {
             .arg("config")
             .arg("--get")
             .arg("remote.origin.url");
-        let template = get_command_output(cmd).await?;
+        let template = get_command_output(&mut cmd).await?;
         Ok(TemplateData {
             template,
             commit: None,

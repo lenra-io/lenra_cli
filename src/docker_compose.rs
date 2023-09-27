@@ -344,29 +344,35 @@ pub fn create_compose_command(context: &mut CommandContext) -> process::Command 
 }
 
 pub async fn compose_up(context: &mut CommandContext) -> Result<()> {
-    let mut command = create_compose_command(context);
-    command.arg("up").arg("-d").arg("--wait");
-
-    run_command(command).await?;
+    run_command(
+        create_compose_command(context)
+            .arg("up")
+            .arg("-d")
+            .arg("--wait"),
+        Some(context.verbose),
+    )
+    .await?;
     Ok(())
 }
 
 pub async fn compose_down(context: &mut CommandContext) -> Result<()> {
-    let mut command = create_compose_command(context);
-    command.arg("down").arg("--volumes");
-
-    run_command(command).await?;
+    run_command(
+        create_compose_command(context).arg("down").arg("--volumes"),
+        Some(context.verbose),
+    )
+    .await?;
     Ok(())
 }
 
 pub async fn compose_build(context: &mut CommandContext) -> Result<()> {
-    let mut command = create_compose_command(context);
-    command.arg("build");
-
-    // Use Buildkit to improve performance
-    command.env("DOCKER_BUILDKIT", "1");
-
-    run_command(command).await?;
+    run_command(
+        create_compose_command(context)
+            .arg("build")
+            // Use Buildkit to improve performance
+            .env("DOCKER_BUILDKIT", "1"),
+        Some(context.verbose),
+    )
+    .await?;
     Ok(())
 }
 
@@ -378,20 +384,21 @@ pub async fn compose_pull(context: &mut CommandContext, services: &Vec<Service>)
         command.arg(service.to_str());
     });
 
-    run_command(command).await?;
+    run_command(&mut command, Some(context.verbose)).await?;
     Ok(())
 }
 
 /// List all the current Docker Compose running services
 pub async fn list_running_services(context: &mut CommandContext) -> Result<Vec<Service>> {
-    let mut command = create_compose_command(context);
-    command
-        .arg("ps")
-        .arg("--services")
-        .arg("--filter")
-        .arg("status=running");
-
-    let services: Vec<Service> = get_command_output(command).await.map(|output| {
+    let services: Vec<Service> = get_command_output(
+        create_compose_command(context)
+            .arg("ps")
+            .arg("--services")
+            .arg("--filter")
+            .arg("status=running"),
+    )
+    .await
+    .map(|output| {
         output
             .lines()
             .map(|service| match service.trim() {
@@ -412,15 +419,14 @@ pub async fn get_service_informations(
     context: &mut CommandContext,
     service: Service,
 ) -> Result<ServiceInformations> {
-    let mut command = create_compose_command(context);
-    let service_name = service.to_str();
-    command
-        .arg("ps")
-        .arg(service_name)
-        .arg("--format")
-        .arg("json");
-
-    let output = get_command_output(command).await?;
+    let output = get_command_output(
+        create_compose_command(context)
+            .arg("ps")
+            .arg(service.to_str())
+            .arg("--format")
+            .arg("json"),
+    )
+    .await?;
     let infos: ServiceInformations = serde_yaml::from_str(output.as_str())?;
     Ok(infos)
 }
@@ -446,15 +452,13 @@ pub async fn execute_compose_service_command(
     cmd: &[&str],
 ) -> Result<String> {
     let mut command = create_compose_command(context);
-
     command.arg("exec").arg(service.to_str());
 
     cmd.iter().for_each(|&part| {
         command.arg(part);
-        ()
     });
 
-    get_command_output(command).await
+    get_command_output(&mut command).await
 }
 
 fn current_dir_name() -> Option<String> {

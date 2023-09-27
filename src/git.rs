@@ -28,7 +28,7 @@ pub async fn get_current_branch(git_dir: Option<PathBuf>) -> Result<String> {
         cmd.arg("--git-dir").arg(dir.as_os_str());
     }
     cmd.arg("rev-parse").arg("--abbrev-ref").arg("HEAD");
-    get_command_output(cmd).await
+    get_command_output(&mut cmd).await
 }
 
 #[cfg_attr(test, mockable)]
@@ -38,7 +38,7 @@ pub async fn get_current_commit(git_dir: Option<PathBuf>) -> Result<String> {
         cmd.arg("--git-dir").arg(dir.as_os_str());
     }
     cmd.arg("rev-parse").arg("HEAD");
-    get_command_output(cmd).await
+    get_command_output(&mut cmd).await
 }
 
 pub async fn pull(git_dir: Option<PathBuf>) -> Result<()> {
@@ -51,7 +51,7 @@ pub async fn pull(git_dir: Option<PathBuf>) -> Result<()> {
 
     cmd.arg("pull");
 
-    run_command(cmd).await?;
+    run_command(&mut cmd, None).await?;
     Ok(())
 }
 

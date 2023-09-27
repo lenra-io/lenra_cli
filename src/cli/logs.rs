@@ -1,5 +1,3 @@
-use std::process::Stdio;
-
 use async_trait::async_trait;
 pub use clap::Args;
 
@@ -52,12 +50,7 @@ impl CliCommand for Logs {
 
         let mut command = create_compose_command(context);
 
-        command
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit())
-            .arg("logs")
-            .arg("--tail")
-            .arg(self.tail.clone());
+        command.arg("logs").arg("--tail").arg(self.tail.clone());
 
         if self.follow {
             command.arg("--follow");
@@ -81,7 +74,7 @@ impl CliCommand for Logs {
             command.arg(service.to_str());
         });
 
-        run_command(command).await?;
+        run_command(&mut command, Some(true)).await?;
         Ok(())
     }
 }
