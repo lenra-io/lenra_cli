@@ -138,6 +138,7 @@ impl CommandContext {
     pub fn resolve_path(&self, path: &PathBuf) -> PathBuf {
         let mut resolved_path = self.get_app_workdir();
         resolved_path.push(path);
+        resolved_path = resolved_path.canonicalize().unwrap_or(resolved_path);
         debug!("Resolved path {:?} to {:?}", path, resolved_path);
         resolved_path
     }
