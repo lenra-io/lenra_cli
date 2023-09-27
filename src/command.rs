@@ -29,6 +29,8 @@ pub fn create_command(cmd: &str) -> Command {
 
 pub async fn run_command(command: Command) -> Result<Output> {
     let mut command = Command::from(command);
+
+    log::debug!("cmd: {:?}", command);
     let output = command.output().await?;
 
     if !output.status.success() {

@@ -1,8 +1,8 @@
 use std::path::PathBuf;
 
 use crate::{
-    command::{create_command, get_command_output},
-    errors::{Error, Result},
+    command::{create_command, get_command_output, run_command},
+    errors::Result,
 };
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -51,8 +51,7 @@ pub async fn pull(git_dir: Option<PathBuf>) -> Result<()> {
 
     cmd.arg("pull");
 
-    cmd.spawn()?.wait_with_output().await.map_err(Error::from)?;
-
+    run_command(cmd).await?;
     Ok(())
 }
 

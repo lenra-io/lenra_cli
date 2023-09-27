@@ -12,13 +12,13 @@ use strum::Display;
 use tokio::process;
 
 use crate::cli::CommandContext;
-use crate::command::{get_command_output, is_inherit_stdio};
+use crate::command::{get_command_output, is_inherit_stdio, run_command};
 use crate::config::Image;
 use crate::docker::normalize_tag;
 use crate::errors::Error;
 use crate::{
     config::{Dev, DOCKERCOMPOSE_DEFAULT_PATH},
-    errors::{CommandError, Result},
+    errors::Result,
     git::get_current_branch,
 };
 
@@ -345,32 +345,17 @@ pub fn create_compose_command(context: &mut CommandContext) -> process::Command 
 
 pub async fn compose_up(context: &mut CommandContext) -> Result<()> {
     let mut command = create_compose_command(context);
-
     command.arg("up").arg("-d").arg("--wait");
 
-    log::debug!("cmd: {:?}", command);
-    let output = command.spawn()?.wait_with_output().await?;
-
-    if !output.status.success() {
-        warn!(
-            "An error occured while running the docker-compose app:\n{}",
-            CommandError { command, output }
-        )
-    }
+    run_command(command).await?;
     Ok(())
 }
 
 pub async fn compose_down(context: &mut CommandContext) -> Result<()> {
     let mut command = create_compose_command(context);
-
     command.arg("down").arg("--volumes");
 
-    log::debug!("cmd: {:?}", command);
-    let output = command.spawn()?.wait_with_output().await?;
-    if !output.status.success() {
-        warn!("An error occured while stoping the docker-compose app");
-        return Err(Error::Command(CommandError { command, output }));
-    }
+    run_command(command).await?;
     Ok(())
 }
 
@@ -381,15 +366,7 @@ pub async fn compose_build(context: &mut CommandContext) -> Result<()> {
     // Use Buildkit to improve performance
     command.env("DOCKER_BUILDKIT", "1");
 
-    log::debug!("cmd: {:?}", command);
-    let output = command.spawn()?.wait_with_output().await?;
-
-    if !output.status.success() {
-        warn!(
-            "An error occured while building the Docker image:\n{}",
-            CommandError { command, output }
-        )
-    }
+    run_command(command).await?;
     Ok(())
 }
 
@@ -401,15 +378,7 @@ pub async fn compose_pull(context: &mut CommandContext, services: &Vec<Service>)
         command.arg(service.to_str());
     });
 
-    log::debug!("cmd: {:?}", command);
-    let output = command.spawn()?.wait_with_output().await?;
-
-    if !output.status.success() {
-        warn!(
-            "An error occured while building the Docker image:\n{}",
-            CommandError { command, output }
-        )
-    }
+    run_command(command).await?;
     Ok(())
 }
 
@@ -485,15 +454,7 @@ pub async fn execute_compose_service_command(
         ()
     });
 
-    let output = command.output().await.map_err(Error::from)?;
-
-    if !output.status.success() {
-        return Err(Error::from(CommandError { command, output }));
-    }
-
-    String::from_utf8(output.stdout)
-        .map(|name| name.trim().to_string())
-        .map_err(Error::from)
+    get_command_output(command).await
 }
 
 fn current_dir_name() -> Option<String> {

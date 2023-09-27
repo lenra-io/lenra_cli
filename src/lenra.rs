@@ -8,7 +8,7 @@ use rustyline::Editor;
 
 use crate::{
     cli::CommandContext,
-    command::get_command_output,
+    command::{get_command_output, run_command},
     config::{DOCKERCOMPOSE_DEFAULT_PATH, LENRA_CACHE_DIRECTORY},
     devtool::stop_app_env,
     docker_compose::{
@@ -198,7 +198,8 @@ pub async fn upgrade_app() -> Result<()> {
             .arg("HEAD")
             .arg("--")
             .arg(".");
-        cmd.spawn()?.wait_with_output().await.map_err(Error::from)?;
+
+        run_command(cmd).await?;
     }
     // save template data
     TemplateData {
