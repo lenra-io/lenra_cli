@@ -1,14 +1,13 @@
 use std::{
     fs,
     path::{Path, PathBuf},
-    process::Stdio,
 };
 
 use rustyline::Editor;
 
 use crate::{
     cli::CommandContext,
-    command::get_command_output,
+    command::{get_command_output, run_command},
     config::{DOCKERCOMPOSE_DEFAULT_PATH, LENRA_CACHE_DIRECTORY},
     devtool::stop_app_env,
     docker_compose::{
@@ -125,7 +124,7 @@ pub async fn update_env_images(
     Ok(())
 }
 
-pub async fn upgrade_app() -> Result<()> {
+pub async fn upgrade_app(context: &mut CommandContext) -> Result<()> {
     log::info!("Upgrading the application");
     // get template data
     let template_data = template::get_template_data().await?;
@@ -164,22 +163,32 @@ pub async fn upgrade_app() -> Result<()> {
             .arg("diff")
             .arg(commit)
             .arg(current_commit.clone());
-        let mut patch = get_command_output(cmd).await?;
+        let mut patch = get_command_output(&mut cmd).await?;
         patch.push('\n');
         fs::write(patch_file.clone(), patch)?;
 
         // apply a patch
         log::debug!("apply patch on project");
-        let mut cmd = git::create_git_command();
-        cmd.arg("apply")
-            .arg(patch_file.clone())
-            .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit());
         let patch_file_str = patch_file.to_string_lossy();
-        while !cmd.spawn()?.wait_with_output().await?.status.success() {
-            println!("An error occured applying the patch {patch_file_str}");
-            let mut rl = Editor::<()>::new()?;
-            rl.readline("Fix it and press enter to retry")?;
+        while let Err(error) = run_command(
+            git::create_git_command()
+                .arg("apply")
+                .arg(patch_file.clone()),
+            Some(false),
+        )
+        .await
+        {
+            match error {
+                Error::Command(cmd_error) => {
+                    println!(
+                        "An error occured applying the patch {patch_file_str}:\n{}",
+                        cmd_error
+                    );
+                    let mut rl = Editor::<()>::new()?;
+                    rl.readline("Fix it and press enter to retry")?;
+                }
+                _ => return Err(error),
+            }
         }
         fs::remove_file(patch_file)?;
     } else {
@@ -191,14 +200,18 @@ pub async fn upgrade_app() -> Result<()> {
 
         // checkout the template in the current dir
         log::debug!("checkout the template");
-        let mut cmd = git::create_git_command();
-        cmd.arg("--git-dir")
-            .arg(git_dir.as_os_str())
-            .arg("checkout")
-            .arg("HEAD")
-            .arg("--")
-            .arg(".");
-        cmd.spawn()?.wait_with_output().await.map_err(Error::from)?;
+
+        run_command(
+            git::create_git_command()
+                .arg("--git-dir")
+                .arg(git_dir.as_os_str())
+                .arg("checkout")
+                .arg("HEAD")
+                .arg("--")
+                .arg("."),
+            Some(context.verbose),
+        )
+        .await?;
     }
     // save template data
     TemplateData {
