@@ -12,13 +12,13 @@ use strum::Display;
 use tokio::process;
 
 use crate::cli::CommandContext;
-use crate::command::{get_command_output, is_inherit_stdio};
+use crate::command::{get_command_output, is_inherit_stdio, run_command};
 use crate::config::Image;
 use crate::docker::normalize_tag;
 use crate::errors::Error;
 use crate::{
     config::{Dev, DOCKERCOMPOSE_DEFAULT_PATH},
-    errors::{CommandError, Result},
+    errors::Result,
     git::get_current_branch,
 };
 
@@ -344,52 +344,35 @@ pub fn create_compose_command(context: &mut CommandContext) -> process::Command 
 }
 
 pub async fn compose_up(context: &mut CommandContext) -> Result<()> {
-    let mut command = create_compose_command(context);
-
-    command.arg("up").arg("-d").arg("--wait");
-
-    log::debug!("cmd: {:?}", command);
-    let output = command.spawn()?.wait_with_output().await?;
-
-    if !output.status.success() {
-        warn!(
-            "An error occured while running the docker-compose app:\n{}",
-            CommandError { command, output }
-        )
-    }
+    run_command(
+        create_compose_command(context)
+            .arg("up")
+            .arg("-d")
+            .arg("--wait"),
+        Some(context.verbose),
+    )
+    .await?;
     Ok(())
 }
 
 pub async fn compose_down(context: &mut CommandContext) -> Result<()> {
-    let mut command = create_compose_command(context);
-
-    command.arg("down").arg("--volumes");
-
-    log::debug!("cmd: {:?}", command);
-    let output = command.spawn()?.wait_with_output().await?;
-    if !output.status.success() {
-        warn!("An error occured while stoping the docker-compose app");
-        return Err(Error::Command(CommandError { command, output }));
-    }
+    run_command(
+        create_compose_command(context).arg("down").arg("--volumes"),
+        Some(context.verbose),
+    )
+    .await?;
     Ok(())
 }
 
 pub async fn compose_build(context: &mut CommandContext) -> Result<()> {
-    let mut command = create_compose_command(context);
-    command.arg("build");
-
-    // Use Buildkit to improve performance
-    command.env("DOCKER_BUILDKIT", "1");
-
-    log::debug!("cmd: {:?}", command);
-    let output = command.spawn()?.wait_with_output().await?;
-
-    if !output.status.success() {
-        warn!(
-            "An error occured while building the Docker image:\n{}",
-            CommandError { command, output }
-        )
-    }
+    run_command(
+        create_compose_command(context)
+            .arg("build")
+            // Use Buildkit to improve performance
+            .env("DOCKER_BUILDKIT", "1"),
+        Some(context.verbose),
+    )
+    .await?;
     Ok(())
 }
 
@@ -401,28 +384,21 @@ pub async fn compose_pull(context: &mut CommandContext, services: &Vec<Service>)
         command.arg(service.to_str());
     });
 
-    log::debug!("cmd: {:?}", command);
-    let output = command.spawn()?.wait_with_output().await?;
-
-    if !output.status.success() {
-        warn!(
-            "An error occured while building the Docker image:\n{}",
-            CommandError { command, output }
-        )
-    }
+    run_command(&mut command, Some(context.verbose)).await?;
     Ok(())
 }
 
 /// List all the current Docker Compose running services
 pub async fn list_running_services(context: &mut CommandContext) -> Result<Vec<Service>> {
-    let mut command = create_compose_command(context);
-    command
-        .arg("ps")
-        .arg("--services")
-        .arg("--filter")
-        .arg("status=running");
-
-    let services: Vec<Service> = get_command_output(command).await.map(|output| {
+    let services: Vec<Service> = get_command_output(
+        create_compose_command(context)
+            .arg("ps")
+            .arg("--services")
+            .arg("--filter")
+            .arg("status=running"),
+    )
+    .await
+    .map(|output| {
         output
             .lines()
             .map(|service| match service.trim() {
@@ -443,15 +419,14 @@ pub async fn get_service_informations(
     context: &mut CommandContext,
     service: Service,
 ) -> Result<ServiceInformations> {
-    let mut command = create_compose_command(context);
-    let service_name = service.to_str();
-    command
-        .arg("ps")
-        .arg(service_name)
-        .arg("--format")
-        .arg("json");
-
-    let output = get_command_output(command).await?;
+    let output = get_command_output(
+        create_compose_command(context)
+            .arg("ps")
+            .arg(service.to_str())
+            .arg("--format")
+            .arg("json"),
+    )
+    .await?;
     let infos: ServiceInformations = serde_yaml::from_str(output.as_str())?;
     Ok(infos)
 }
@@ -477,23 +452,13 @@ pub async fn execute_compose_service_command(
     cmd: &[&str],
 ) -> Result<String> {
     let mut command = create_compose_command(context);
-
     command.arg("exec").arg(service.to_str());
 
     cmd.iter().for_each(|&part| {
         command.arg(part);
-        ()
     });
 
-    let output = command.output().await.map_err(Error::from)?;
-
-    if !output.status.success() {
-        return Err(Error::from(CommandError { command, output }));
-    }
-
-    String::from_utf8(output.stdout)
-        .map(|name| name.trim().to_string())
-        .map_err(Error::from)
+    get_command_output(&mut command).await
 }
 
 fn current_dir_name() -> Option<String> {
