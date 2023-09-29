@@ -12,12 +12,12 @@ use crate::{
 };
 
 use self::{
-    build::Build, check::Check, dev::Dev, logs::Logs, new::New, reload::Reload, start::Start,
-    stop::Stop, update::Update, upgrade::Upgrade,
+    build::Build, dev::Dev, logs::Logs, new::New, reload::Reload, start::Start, stop::Stop,
+    update::Update, upgrade::Upgrade,
 };
 
 mod build;
-mod check;
+// mod check;
 mod dev;
 mod logs;
 mod new;
@@ -75,8 +75,8 @@ pub enum Command {
     Upgrade(Upgrade),
     /// Update the tools Docker images
     Update(Update),
-    /// Checks the running app
-    Check(Check),
+    // /// Checks the running app
+    // Check(Check),
     /// Reload the app by rebuilding and restarting it
     Reload(Reload),
 }
@@ -97,7 +97,7 @@ impl CliCommand for Command {
             Command::Dev(dev) => dev.run(context),
             Command::Upgrade(upgrade) => upgrade.run(context),
             Command::Update(update) => update.run(context),
-            Command::Check(check) => check.run(context),
+            // Command::Check(check) => check.run(context),
             Command::Reload(reload) => reload.run(context),
         }
         .await

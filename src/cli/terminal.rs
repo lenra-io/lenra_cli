@@ -13,7 +13,7 @@ use crate::{
     errors::{Error, Result},
 };
 
-use crate::cli::{check::Check, logs::Logs, CliCommand};
+use crate::cli::{logs::Logs, CliCommand};
 
 use super::{
     build::Build, dev::Dev, reload::Reload, start::Start, stop::Stop, update::Update,
@@ -147,8 +147,8 @@ pub enum TerminalCommand {
     Upgrade(Upgrade),
     /// Update the tools Docker images
     Update(Update),
-    /// Checks the running app
-    Check(Check),
+    // /// Checks the running app
+    // Check(Check),
     /// Reload the app by rebuilding and restarting it
     Reload(Reload),
     /// Exits the terminal
@@ -185,7 +185,7 @@ impl TerminalCommand {
             TerminalCommand::Dev(dev) => dev.run(context).await?,
             TerminalCommand::Upgrade(upgrade) => upgrade.run(context).await?,
             TerminalCommand::Update(update) => update.run(context).await?,
-            TerminalCommand::Check(check) => check.run(context).await?,
+            // TerminalCommand::Check(check) => check.run(context).await?,
             TerminalCommand::Reload(reload) => reload.run(context).await?,
         };
         Ok(())

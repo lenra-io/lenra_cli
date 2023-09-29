@@ -2,7 +2,6 @@ use docker_compose_types::{
     AdvancedBuildStep, BuildStep, Command, Compose, DependsCondition, DependsOnOptions, Deploy,
     EnvTypes, Environment, Healthcheck, HealthcheckTest, Limits, Resources, Services,
 };
-use itertools::Itertools;
 use lazy_static::lazy_static;
 use log::{debug, warn};
 use serde::{Deserialize, Serialize};
@@ -414,37 +413,37 @@ pub async fn list_running_services(context: &mut CommandContext) -> Result<Vec<S
     Ok(services)
 }
 
-/// Get the given Docker Compose service information
-pub async fn get_service_informations(
-    context: &mut CommandContext,
-    service: Service,
-) -> Result<ServiceInformations> {
-    let output = get_command_output(
-        create_compose_command(context)
-            .arg("ps")
-            .arg(service.to_str())
-            .arg("--format")
-            .arg("json"),
-    )
-    .await?;
-    let infos: ServiceInformations = serde_yaml::from_str(output.as_str())?;
-    Ok(infos)
-}
+// /// Get the given Docker Compose service information
+// pub async fn get_service_informations(
+//     context: &mut CommandContext,
+//     service: Service,
+// ) -> Result<ServiceInformations> {
+//     let output = get_command_output(
+//         create_compose_command(context)
+//             .arg("ps")
+//             .arg(service.to_str())
+//             .arg("--format")
+//             .arg("json"),
+//     )
+//     .await?;
+//     let infos: ServiceInformations = serde_yaml::from_str(output.as_str())?;
+//     Ok(infos)
+// }
 
-/// Get the given Docker Compose service published port
-pub async fn get_service_published_ports(
-    context: &mut CommandContext,
-    service: Service,
-) -> Result<Vec<u16>> {
-    let infos = get_service_informations(context, service).await?;
-    let ports = infos
-        .publishers
-        .iter()
-        .map(|publisher| publisher.published_port)
-        .unique()
-        .collect();
-    Ok(ports)
-}
+// /// Get the given Docker Compose service published port
+// pub async fn get_service_published_ports(
+//     context: &mut CommandContext,
+//     service: Service,
+// ) -> Result<Vec<u16>> {
+//     let infos = get_service_informations(context, service).await?;
+//     let ports = infos
+//         .publishers
+//         .iter()
+//         .map(|publisher| publisher.published_port)
+//         .unique()
+//         .collect();
+//     Ok(ports)
+// }
 
 pub async fn execute_compose_service_command(
     context: &mut CommandContext,
