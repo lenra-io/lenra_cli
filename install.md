@@ -32,12 +32,6 @@ Then use the next command to install the Lenra's cli:
 cargo install lenra_cli
 ```
 
-Since the CLI is not released yet, you have to target a [pre-release version](https://github.com/lenra-io/lenra_cli/releases) like that:
-
-```bash
-cargo install lenra_cli@~1.0.0-beta.0
-```
-
 ### Build it from sources
 
 First install Cargo, the Rust package manager: https://doc.rust-lang.org/cargo/getting-started/installation.html

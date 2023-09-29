@@ -13,13 +13,13 @@ This CLI contains many subcommands to help you doing what you need.
 - [reload](./reload.md): starts your app previously built with the build command
 - [logs](./logs.md): displays output from the containers
 - [stop](./stop.md): stops your app previously started with the start command
-- [check](./check/index.md): checks the running app
+<!-- - [check](./check/index.md): checks the running app -->
 
 Use the help options or help subcommand to understand how to use them:
 
 ```bash
 $ lenra --help
-lenra_cli 0.0.0
+lenra_cli 1.0.0
 The Lenra command line interface
 
 USAGE:
@@ -34,7 +34,6 @@ OPTIONS:
 
 SUBCOMMANDS:
     build      Build your app in release mode
-    check      Checks the running app
     dev        Start the app in an interactive mode
     help       Print this message or the help of the given subcommand(s)
     logs       View output from the containers
