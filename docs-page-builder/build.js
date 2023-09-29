@@ -14,7 +14,7 @@ converter.addExtension({
     }
 });
 
-const githubBasPath = "https://github.com/lenra-io/lenra_cli/blob/beta/";
+const githubBasPath = "https://github.com/lenra-io/lenra_cli/blob/main/";
 
 const docsDir = path.join("..", "docs");
 const outDir = "build";

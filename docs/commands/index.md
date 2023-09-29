@@ -5,7 +5,7 @@ description: This CLI contains many subcommands to help you doing what you need.
 This CLI contains many subcommands to help you doing what you need.
 
 - [new](./new.md): creates a new Lenra app project from a template
-- [dev](./dev/index.md): starts your app in dev mode
+- [dev](./dev.md): starts your app in dev mode
 - [update](./update.md): updates the tools Docker images
 - [upgrade](./upgrade.md): upgrades the app with the last template updates
 - [build](./build.md): builds the Lenra app of the current directory
