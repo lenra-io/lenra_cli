@@ -277,12 +277,23 @@ impl Application {
                     envs.insert("write_timeout".to_string(), "3600".to_string());
                 }
                 // handle healthcheck
-                healthcheck = Some(Healthcheck {
+                let default_healthcheck = Healthcheck {
                     cmd: "curl --fail http://localhost:8080/_/health".into(),
                     start: Some("3s".into()),
                     interval: Some("3s".into()),
                     timeout: Some("1s".into()),
                     retries: Some(10),
+                };
+                healthcheck = Some(if let Some(healthcheck) = image.healthcheck {
+                    Healthcheck {
+                        cmd: healthcheck.cmd,
+                        start: healthcheck.start.or(default_healthcheck.start),
+                        interval: healthcheck.interval.or(default_healthcheck.interval),
+                        timeout: healthcheck.timeout.or(default_healthcheck.timeout),
+                        retries: healthcheck.retries.or(default_healthcheck.retries),
+                    }
+                } else {
+                    default_healthcheck
                 });
             }
         };
