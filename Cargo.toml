@@ -32,7 +32,7 @@ dofigen = "1.2.0"
 docker-compose-types = "0.4.1"
 rustyline = "10.1.0"
 dirs = "5.0.0"
-chrono = "0.4.24"
+chrono = "0.4.31"
 thiserror = "1.0.40"
 colored = "2.0.0"
 ureq = { version = "2.6.2", features = ["json"] }
