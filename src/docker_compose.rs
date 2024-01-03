@@ -12,7 +12,7 @@ use tokio::process;
 
 use crate::cli::CommandContext;
 use crate::command::{get_command_output, is_inherit_stdio, run_command};
-use crate::config::Image;
+use crate::config::{Image, DevToolConf, ImageConf};
 use crate::docker::normalize_tag;
 use crate::errors::Error;
 use crate::{
@@ -128,6 +128,10 @@ pub async fn generate_docker_compose(
     Ok(())
 }
 
+fn devtool_log_level(dev_conf: &Option<Dev>) -> Option<String> {
+    dev_conf.clone()?.devtool?.log_level.clone()
+}
+
 async fn generate_docker_compose_content(
     dockerfile: PathBuf,
     dev_conf: &Option<Dev>,
@@ -173,7 +177,11 @@ async fn generate_docker_compose_content(
         "MONGO_HOSTNAME".into(),
         Some(EnvTypes::String(MONGO_SERVICE_NAME.into())),
     ));
-    let devtool_envs: [(String, Option<EnvTypes>); 7] = devtool_env_vec.try_into().unwrap();
+    devtool_env_vec.push((
+        "LOG_LEVEL".into(),
+        devtool_log_level(dev_conf).map(|level|EnvTypes::String(level)),
+    ));
+    let devtool_envs: [(String, Option<EnvTypes>); 8] = devtool_env_vec.try_into().unwrap();
 
     let mongo_envs: [(String, Option<EnvTypes>); 2] = [
         (
@@ -492,7 +500,7 @@ pub async fn get_services_images(dev_conf: &Option<Dev>) -> ServiceImages {
             .to_image(&default_app_image, &default_app_tag),
         devtool: dev
             .devtool
-            .unwrap_or(Image {
+            .unwrap_or(DevToolConf {
                 ..Default::default()
             })
             .to_image(DEVTOOL_IMAGE, DEVTOOL_DEFAULT_TAG),
