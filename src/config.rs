@@ -80,6 +80,38 @@ pub struct DevToolConf {
     pub log_level: Option<String>,
 }
 
+pub trait ImageConf {
+    fn image(&self) -> Option<String>;
+    fn tag(&self) -> Option<String>;
+    fn to_image(&self, default_image: &str, default_tag: &str) -> String {
+        format!(
+            "{}:{}",
+            self.image().unwrap_or(default_image.to_string()),
+            self.tag().unwrap_or(default_tag.to_string())
+        )
+    }
+}
+
+impl ImageConf for Image {
+    fn image(&self) -> Option<String> {
+        self.image.clone()
+    }
+
+    fn tag(&self) -> Option<String> {
+        self.tag.clone()
+    }
+}
+
+impl ImageConf for DevToolConf {
+    fn image(&self) -> Option<String> {
+        self.image.clone()
+    }
+
+    fn tag(&self) -> Option<String> {
+        self.tag.clone()
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
 pub struct DebugDofigen {
     pub cmd: Option<Vec<String>>,
@@ -427,37 +459,5 @@ mod dofigen_of_overlay_tests {
             ..Default::default()
         };
         config.dofigen_of_overlay(image).unwrap();
-    }
-}
-
-pub trait ImageConf {
-    fn image(&self) -> Option<String>;
-    fn tag(&self) -> Option<String>;
-    fn to_image(&self, default_image: &str, default_tag: &str) -> String {
-        format!(
-            "{}:{}",
-            self.image().unwrap_or(default_image.to_string()),
-            self.tag().unwrap_or(default_tag.to_string())
-        )
-    }
-}
-
-impl ImageConf for Image {
-    fn image(&self) -> Option<String> {
-        self.image.clone()
-    }
-
-    fn tag(&self) -> Option<String> {
-        self.tag.clone()
-    }
-}
-
-impl ImageConf for DevToolConf {
-    fn image(&self) -> Option<String> {
-        self.image.clone()
-    }
-
-    fn tag(&self) -> Option<String> {
-        self.tag.clone()
     }
 }

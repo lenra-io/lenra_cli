@@ -12,7 +12,7 @@ use tokio::process;
 
 use crate::cli::CommandContext;
 use crate::command::{get_command_output, is_inherit_stdio, run_command};
-use crate::config::{Image, DevToolConf, ImageConf};
+use crate::config::{DevToolConf, Image, ImageConf};
 use crate::docker::normalize_tag;
 use crate::errors::Error;
 use crate::{
@@ -138,6 +138,17 @@ async fn generate_docker_compose_content(
     exposed_services: &Vec<Service>,
     debug: bool,
 ) -> Result<String> {
+    let compose =
+        generate_docker_compose_struct(dockerfile, dev_conf, exposed_services, debug).await?;
+    serde_yaml::to_string(&compose).map_err(Error::from)
+}
+
+async fn generate_docker_compose_struct(
+    dockerfile: PathBuf,
+    dev_conf: &Option<Dev>,
+    exposed_services: &Vec<Service>,
+    debug: bool,
+) -> Result<Compose> {
     let mut devtool_env_vec: Vec<(String, Option<EnvTypes>)> = vec![
         (
             "POSTGRES_USER".into(),
@@ -179,7 +190,7 @@ async fn generate_docker_compose_content(
     ));
     devtool_env_vec.push((
         "LOG_LEVEL".into(),
-        devtool_log_level(dev_conf).map(|level|EnvTypes::String(level)),
+        devtool_log_level(dev_conf).map(|level| EnvTypes::String(level)),
     ));
     let devtool_envs: [(String, Option<EnvTypes>); 8] = devtool_env_vec.try_into().unwrap();
 
@@ -214,7 +225,7 @@ async fn generate_docker_compose_content(
         }
     }
 
-    let compose = Compose {
+    Ok(Compose {
         services: Some(Services(
             [
                 (
@@ -329,12 +340,11 @@ async fn generate_docker_compose_content(
             .into(),
         )),
         ..Default::default()
-    };
-    serde_yaml::to_string(&compose).map_err(Error::from)
+    })
 }
 
 fn port_to_port_binding(port: u16) -> String {
-    format!("{}:{}", port, port)
+    format!("{port}:{port}")
 }
 
 pub fn create_compose_command(context: &mut CommandContext) -> process::Command {
@@ -637,5 +647,54 @@ mod test_get_services_images {
         });
         let images: ServiceImages = get_services_images(&None).await;
         assert_eq!(images.app, format!("lenra/app/lenra_cli:{}", tag));
+    }
+}
+
+#[cfg(test)]
+mod dev_tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn devtool_log_level() {
+        let devtool = DevToolConf {
+            log_level: Some("debug".into()),
+            ..Default::default()
+        };
+        let dev_conf = Some(Dev {
+            devtool: Some(devtool.clone()),
+            ..Default::default()
+        });
+        // generate docker compose content
+        let compose =
+            generate_docker_compose_struct(PathBuf::from("Dockerfile"), &dev_conf, &vec![], false)
+                .await
+                .unwrap();
+        let services = compose.services.unwrap().0;
+        let devtool_service = services
+            .get(DEVTOOL_SERVICE_NAME)
+            .unwrap()
+            .as_ref()
+            .unwrap();
+        let devtool_env = devtool_service.environment.as_ref().unwrap();
+        match devtool_env {
+            Environment::KvPair(envs) => {
+                let env_var = envs.get("LOG_LEVEL").unwrap().as_ref().unwrap();
+                match env_var {
+                    EnvTypes::String(value) => {
+                        assert_eq!(value, "debug");
+                    }
+                    _ => {
+                        panic!("Unexpected env var type");
+                    }
+                }
+            }
+            Environment::List(envs) => {
+                let env_var = envs
+                    .into_iter()
+                    .find(|env_var| env_var.starts_with("LOG_LEVEL="))
+                    .unwrap();
+                assert_eq!(env_var, "LOG_LEVEL=debug");
+            }
+        }
     }
 }
