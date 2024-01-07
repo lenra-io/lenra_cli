@@ -58,7 +58,7 @@ pub struct Application {
 #[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
 pub struct Dev {
     pub app: Option<Image>,
-    pub devtool: Option<Image>,
+    pub devtool: Option<DevToolConf>,
     pub postgres: Option<Image>,
     pub mongo: Option<Image>,
     pub dofigen: Option<DebugDofigen>,
@@ -69,6 +69,47 @@ pub struct Dev {
 pub struct Image {
     pub image: Option<String>,
     pub tag: Option<String>,
+}
+
+/** A Docker image */
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone, Default)]
+#[serde(rename_all = "camelCase")]
+pub struct DevToolConf {
+    pub image: Option<String>,
+    pub tag: Option<String>,
+    pub log_level: Option<String>,
+}
+
+pub trait ImageConf {
+    fn image(&self) -> Option<String>;
+    fn tag(&self) -> Option<String>;
+    fn to_image(&self, default_image: &str, default_tag: &str) -> String {
+        format!(
+            "{}:{}",
+            self.image().unwrap_or(default_image.to_string()),
+            self.tag().unwrap_or(default_tag.to_string())
+        )
+    }
+}
+
+impl ImageConf for Image {
+    fn image(&self) -> Option<String> {
+        self.image.clone()
+    }
+
+    fn tag(&self) -> Option<String> {
+        self.tag.clone()
+    }
+}
+
+impl ImageConf for DevToolConf {
+    fn image(&self) -> Option<String> {
+        self.image.clone()
+    }
+
+    fn tag(&self) -> Option<String> {
+        self.tag.clone()
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Default)]
@@ -418,15 +459,5 @@ mod dofigen_of_overlay_tests {
             ..Default::default()
         };
         config.dofigen_of_overlay(image).unwrap();
-    }
-}
-
-impl Image {
-    pub fn to_image(&self, default_image: &str, default_tag: &str) -> String {
-        format!(
-            "{}:{}",
-            self.image.clone().unwrap_or(default_image.to_string()),
-            self.tag.clone().unwrap_or(default_tag.to_string())
-        )
     }
 }
