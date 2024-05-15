@@ -17,27 +17,7 @@ env:
 jobs:
   get-next-version:
     name: Get next version
-    runs-on: ubuntu-20.04
-    continue-on-error: true # must be allow to fail
-    timeout-minutes: 2
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: 16
-
-    - id: get-next-version
-      name: Get next version
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: npx -p conventional-changelog-conventionalcommits@5 -p @semantic-release/git -p semantic-release-export-data -p semantic-release@19 semantic-release --dry-run
-
-    outputs:
-      new-release-published: ${{ steps.get-next-version.outputs.new-release-published }}
-      new-release-version: ${{ steps.get-next-version.outputs.new-release-version }}
+    uses: lenra-io/github-actions/.github/workflows/get-version.yml@main
 
   style:
     name: Check Style
@@ -94,7 +74,7 @@ jobs:
     needs: [test, get-next-version]
     runs-on: "${{ matrix.runner }}"
     env:
-      VERSION: ${{ needs.get-next-version.outputs.new-release-version }}
+      VERSION: ${{ needs.get-next-version.outputs.version }}
     timeout-minutes: 20
     strategy:
       matrix: # Need to find what's the best target for `x86-x64-linux` and remove the others (gnu or musl)
@@ -206,47 +186,45 @@ jobs:
   publish:
     name: publish
     needs: [build, generate_doc_artifact, get-next-version]
-    if: github.ref_name == 'main' || github.ref_name == 'beta' || github.ref_name == 'alpha'
+    if: github.ref_name == 'main' || github.ref_name == 'beta'
+    uses: lenra-io/github-actions/.github/workflows/release.yml@main
+    with:
+      download-artifacts: true
+      assets: artifacts/
+
+  publish-cargo:
+    name: publish-cargo
+    needs: [build, get-next-version, publish]
+    if: github.ref_name == 'main' || github.ref_name == 'beta'
     runs-on: ubuntu-latest
     env:
-      VERSION: ${{ needs.get-next-version.outputs.new-release-version }}
-    timeout-minutes: 8
+      VERSION: ${{ needs.get-next-version.outputs.version }}
     steps:
     - name: Checkout
+      if: ${{ needs.get-next-version.outputs.will-release }}
       uses: actions/checkout@v3
 
     - name: download-artifacts
+      if: ${{ needs.get-next-version.outputs.will-release }}
       uses: actions/download-artifact@v3
       with:
         path: artifacts/
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: "18"
-
-    - id: release
-      name: Release
-      shell: bash
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      run: npx --force -p conventional-changelog-conventionalcommits@5 -p @semantic-release/git -p semantic-release-export-data -p https://github.com/Tlepel/semantic-release.git#fix-versions-share-head semantic-release
-
     - name: Install cargo-edit
-      if: ${{ steps.release.outputs.new-release-published }}
+      if: ${{ needs.get-next-version.outputs.will-release }}
       uses: actions-rs/cargo@v1
       with:
         command: install
         args: cargo-edit
 
     - name: Set version
-      if: ${{ steps.release.outputs.new-release-published }}
+      if: ${{ needs.get-next-version.outputs.will-release }}
       uses: actions-rs/cargo@v1
       with:
         command: set-version
         args: ${{ env.VERSION }}
 
     - name: Publish cargo
+      if: ${{ needs.get-next-version.outputs.will-release }}
       shell: bash
-      if: ${{ steps.release.outputs.new-release-published }}
       run: cargo publish --allow-dirty --token "${{ secrets.CARGO_TOKEN }}"
