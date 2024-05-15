@@ -196,6 +196,7 @@ impl TerminalCommand {
             TerminalCommand::Build(_)
             | TerminalCommand::Start(_)
             | TerminalCommand::Reload(_)
+            | TerminalCommand::Dev(_)
             | TerminalCommand::Update(_) => true,
             _ => false,
         }
