@@ -1,7 +1,4 @@
-use std::{
-    fs,
-    path::{Path, PathBuf},
-};
+use std::{fs, path::PathBuf};
 
 use rustyline::Editor;
 
@@ -127,14 +124,15 @@ pub async fn update_env_images(
 pub async fn upgrade_app(context: &mut CommandContext) -> Result<()> {
     log::info!("Upgrading the application");
     // get template data
-    let template_data = template::get_template_data().await?;
-    let git_dir = Path::new(LENRA_CACHE_DIRECTORY).join(template::TEMPLATE_GIT_DIR);
+    let template_data = template::get_template_data(context).await?;
+    let cache_dir = context.resolve_path(&PathBuf::from(LENRA_CACHE_DIRECTORY));
+    let git_dir = cache_dir.join(template::TEMPLATE_GIT_DIR);
 
     if git_dir.is_dir() {
         // update the template repo
         git::pull(Some(git_dir.clone())).await?;
     } else {
-        let template_tmp = Path::new(LENRA_CACHE_DIRECTORY).join(template::TEMPLATE_TEMP_DIR);
+        let template_tmp = cache_dir.join(template::TEMPLATE_TEMP_DIR);
         // clone template project
         template::clone_template(template_data.template.as_str(), &template_tmp).await?;
         fs::rename(template_tmp.join(".git"), git_dir.clone())?;
@@ -149,8 +147,7 @@ pub async fn upgrade_app(context: &mut CommandContext) -> Result<()> {
         }
 
         // get diff between previous commit and current commit
-        let patch_file = Path::new(LENRA_CACHE_DIRECTORY)
-            .join(format!("patch.{}-{}.diff", commit, current_commit));
+        let patch_file = cache_dir.join(format!("patch.{}-{}.diff", commit, current_commit));
         log::debug!(
             "create patch between {} and {}: {:?}",
             commit,
@@ -218,7 +215,7 @@ pub async fn upgrade_app(context: &mut CommandContext) -> Result<()> {
         template: template_data.template,
         commit: Some(current_commit),
     }
-    .save()
+    .save(context)
     .await
 }
 

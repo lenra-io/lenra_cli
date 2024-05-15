@@ -5,6 +5,7 @@ use std::{
 };
 
 use crate::{
+    cli::CommandContext,
     command::{get_command_output, run_command},
     config::LENRA_CACHE_DIRECTORY,
     errors::{Error, Result},
@@ -47,8 +48,8 @@ pub struct TemplateData {
 
 #[cfg_attr(test, mockable)]
 impl TemplateData {
-    pub async fn save(&self) -> Result<()> {
-        let path = Path::new(TEMPLATE_DATA_FILE);
+    pub async fn save(&self, context: &mut CommandContext) -> Result<()> {
+        let path = context.resolve_path(&PathBuf::from(TEMPLATE_DATA_FILE));
         self.save_to(&path).await
     }
 
@@ -129,9 +130,10 @@ pub async fn clone_template(template: &str, target_dir: &PathBuf) -> Result<()> 
 }
 
 #[cfg_attr(test, mockable)]
-pub async fn get_template_data() -> Result<TemplateData> {
-    let template_data_file = Path::new(TEMPLATE_DATA_FILE);
-    let git_dir = Path::new(LENRA_CACHE_DIRECTORY).join(TEMPLATE_GIT_DIR);
+pub async fn get_template_data(context: &mut CommandContext) -> Result<TemplateData> {
+    let template_data_file = context.resolve_path(&PathBuf::from(TEMPLATE_DATA_FILE));
+    let git_dir =
+        context.resolve_path(&PathBuf::from(LENRA_CACHE_DIRECTORY).join(TEMPLATE_GIT_DIR));
     if template_data_file.exists() {
         let template_data = fs::read_to_string(template_data_file).map_err(Error::from)?;
         let template_data: Vec<&str> = template_data.split("\n").collect();
