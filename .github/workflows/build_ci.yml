@@ -186,7 +186,7 @@ jobs:
   publish:
     name: publish
     needs: [build, generate_doc_artifact, get-next-version]
-    if: github.ref_name == 'main' || github.ref_name == 'beta'
+    if: (github.ref_name == 'main' || github.ref_name == 'beta') && ${{ needs.get-next-version.outputs.will-release }}
     uses: lenra-io/github-actions/.github/workflows/release.yml@main
     with:
       download-artifacts: true
@@ -195,7 +195,7 @@ jobs:
   publish-cargo:
     name: publish-cargo
     needs: [build, get-next-version, publish]
-    if: github.ref_name == 'main' || github.ref_name == 'beta'
+    if: (github.ref_name == 'main' || github.ref_name == 'beta') && ${{ needs.get-next-version.outputs.will-release }}
     runs-on: ubuntu-latest
     env:
       VERSION: ${{ needs.get-next-version.outputs.version }}
