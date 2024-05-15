@@ -16,11 +16,9 @@ You can download the binary from [the release page](https://github.com/lenra-io/
 
 On linux you can do this quickly by running the following :
 ```
-curl -fSLo /usr/local/bin/lenra https://github.com/lenra-io/lenra_cli/releases/latest/download/lenra-linux-x86_64
-chmod +x /usr/local/bin/lenra
+sudo curl -fSLo /usr/local/bin/lenra https://github.com/lenra-io/lenra_cli/releases/latest/download/lenra-linux-$(arch)
+sudo chmod +x /usr/local/bin/lenra
 ```
-
-PS: You can replace x86-64 by aarch64 if you run ARMv8 device.
 
 ### Cargo install
 
