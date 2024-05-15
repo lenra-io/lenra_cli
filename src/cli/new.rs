@@ -26,7 +26,7 @@ pub struct New {
 
 #[async_trait]
 impl CliCommand for New {
-    async fn run(&self, _context: &mut CommandContext) -> Result<()> {
+    async fn run(&self, context: &mut CommandContext) -> Result<()> {
         log::debug!("topics {:?}", self.topics);
 
         let template =
@@ -48,6 +48,7 @@ impl CliCommand for New {
             "Creating new project...",
             "Project created",
             "Failed creating new project",
+            !context.verbose,
             || async { lenra::create_new_project(template.as_str(), &self.path).await },
         )
         .await

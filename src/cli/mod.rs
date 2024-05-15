@@ -2,6 +2,7 @@ use std::{future::Future, path::PathBuf};
 
 use async_trait::async_trait;
 pub use clap::{Parser, Subcommand};
+use colored::{Color, Colorize};
 use loading::Loading;
 use log::debug;
 
@@ -159,21 +160,32 @@ impl CommandContext {
     }
 }
 
-pub async fn loader<F, Fut, R>(text: &str, success: &str, fail: &str, task: F) -> Result<R>
+pub async fn loader<F, Fut, R>(text: &str, success: &str, fail: &str, animate: bool, task: F) -> Result<R>
 where
     F: FnOnce() -> Fut,
     Fut: Future<Output = Result<R>>,
-{
-    let loading = Loading::default();
-    loading.text(text);
-    let res = task().await;
-    if res.is_ok() {
-        loading.success(success);
+{   
+    if animate {
+        let loading = Loading::default();
+        loading.text(text);
+        let res = task().await;
+        if res.is_ok() {
+            loading.success(success);
+        } else {
+            loading.fail(fail);
+        }
+        loading.end();
+        res
     } else {
-        loading.fail(fail);
+        println!("•︎ {}", text);
+        let res = task().await;
+        if res.is_ok() {
+            println!("{} {}", "✔".color(Color::Green), success);
+        } else {
+            println!("{} {}", "✖".color(Color::Red), fail);
+        }
+        res
     }
-    loading.end();
-    res
 }
 
 #[cfg(test)]

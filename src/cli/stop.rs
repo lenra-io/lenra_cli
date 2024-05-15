@@ -22,6 +22,7 @@ pub async fn stop_loader(context: &mut CommandContext) -> Result<()> {
         "Stop app environment...",
         "App environment stopped",
         "Failed stopping app environment",
+        !context.verbose,
         || async { lenra::stop_env(context).await },
     )
     .await

@@ -28,6 +28,7 @@ pub async fn generate_app_env_loader(context: &mut CommandContext, production: b
         "Generate app env...",
         "App env generated",
         "Failed generating app env",
+        !context.verbose,
         || async { lenra::generate_app_env(context, production).await },
     )
     .await
@@ -38,6 +39,7 @@ pub async fn build_loader(context: &mut CommandContext) -> Result<()> {
         "Build app...",
         "App built",
         "Failed building app",
+        !context.verbose,
         || async { lenra::build_app(context).await },
     )
     .await

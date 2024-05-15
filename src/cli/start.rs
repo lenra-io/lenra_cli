@@ -25,6 +25,7 @@ pub async fn start_loader(context: &mut CommandContext) -> Result<()> {
         "Start app environment...",
         "App environment started",
         "Failed starting app",
+        !context.verbose,
         || async { lenra::start_env(context).await },
     )
     .await
@@ -35,6 +36,7 @@ pub async fn clear_cache_loader(context: &mut CommandContext) -> Result<()> {
         "Clearing cache...",
         "Cache cleared",
         "Failed clearing cache",
+        !context.verbose,
         || async { lenra::clear_cache(context).await },
     )
     .await
