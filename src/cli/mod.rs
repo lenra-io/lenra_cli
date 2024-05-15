@@ -1,7 +1,7 @@
 use std::{future::Future, path::PathBuf};
 
 use async_trait::async_trait;
-pub use clap::{Args, Parser, Subcommand};
+pub use clap::{Parser, Subcommand};
 use loading::Loading;
 use log::debug;
 
