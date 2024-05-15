@@ -27,6 +27,7 @@ pub async fn update_loader(context: &mut CommandContext, services: &Vec<Service>
         "Update environment images...",
         "Environment images updated",
         "Failed updating environment images",
+        !context.verbose,
         || async { lenra::update_env_images(context, services).await },
     )
     .await
