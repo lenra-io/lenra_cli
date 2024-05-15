@@ -160,11 +160,17 @@ impl CommandContext {
     }
 }
 
-pub async fn loader<F, Fut, R>(text: &str, success: &str, fail: &str, animate: bool, task: F) -> Result<R>
+pub async fn loader<F, Fut, R>(
+    text: &str,
+    success: &str,
+    fail: &str,
+    animate: bool,
+    task: F,
+) -> Result<R>
 where
     F: FnOnce() -> Fut,
     Fut: Future<Output = Result<R>>,
-{   
+{
     if animate {
         let loading = Loading::default();
         loading.text(text);
