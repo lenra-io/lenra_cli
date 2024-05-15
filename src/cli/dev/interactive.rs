@@ -8,7 +8,6 @@ use crate::{
     keyboard_event::{keyevent_to_string, KeyEventListener, KeyboardListener},
 };
 use clap::CommandFactory;
-pub use clap::{Args, Parser, Subcommand};
 use colored::{Color, Colorize};
 use lazy_static::__Deref;
 use log::debug;

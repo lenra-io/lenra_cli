@@ -372,6 +372,7 @@ impl Application {
             caches: image.caches,
             healthcheck: healthcheck,
             ignores: image.ignores,
+            context: image.context,
         })
     }
 
